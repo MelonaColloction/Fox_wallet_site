@@ -1,0 +1,159 @@
+name: Deploy Site with Obfuscation
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'index.html'
+      - 'price.js'
+      - 'Fox123.png'
+      - 'notification.png'
+      - 'image/**'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Obfuscator
+        run: |
+          npm install -g javascript-obfuscator
+          npm install -g html-minifier-terser
+
+      - name: Obfuscate and Minify (SAFE MODE)
+        run: |
+          # ۱. فشرده‌سازی HTML
+          html-minifier-terser --collapse-whitespace --remove-comments --minify-css true --minify-js false index.html -o index.html.min
+          mv index.html.min index.html
+
+          # ۲. مبهم‌سازی امن JS
+          python3 - <<'PY'
+          import re, os, subprocess, tempfile, shutil
+
+          PROTECTED_LITERALS = [
+              "wallet", "Wallet", "WALLET", "address", "Address", "ADDRESS",
+              "privateKey", "private_key", "PRIVATE_KEY", "mnemonic", "seed", "SEED", "SeedPhrase",
+              "password", "pass", "PIN", "pin", "token", "authToken", "accessToken", "refreshToken",
+              "session", "user", "username", "email", "phone", "balance", "Balance", "BALANCE",
+              "history", "transactions", "txs", "settings", "config", "preferences",
+              "biometric", "biometry", "fingerprint", "faceId", "notifications", "fcm", "deviceId",
+              "foxeggs", "FoxEggs", "FOXEGGS", "fox_", "_fox", "Fox",
+              "localStorage", "sessionStorage", "indexedDB", "getItem", "setItem", "removeItem", "clear",
+              "postMessage", "BroadcastChannel", "Capacitor", "Plugins", "LocalNotifications",
+              "NativeBiometric", "Preferences", "Filesystem", "addEventListener", "dispatchEvent", "CustomEvent"
+          ]
+
+          RESERVED_IDENTIFIERS = [
+              "window", "document", "navigator", "location", "history", "console", "Math", "JSON", "Date", "Promise", "Object",
+              "Array", "String", "Number", "Boolean", "Function", "Symbol", "Map", "Set", "WeakMap", "WeakSet",
+              "Error", "TypeError", "SyntaxError", "RegExp", "undefined", "null", "true", "false", "this",
+              "localStorage", "sessionStorage", "indexedDB", "fetch", "XMLHttpRequest", "WebSocket", "Worker",
+              "requestAnimationFrame", "setTimeout", "setInterval", "clearTimeout", "clearInterval",
+              "alert", "confirm", "prompt", "parseInt", "parseFloat", "isNaN", "isFinite",
+              "encodeURIComponent", "decodeURIComponent", "atob", "btoa", "crypto", "subtle",
+              "Capacitor", "cordova", "plugins", "Android", "webkit", "JavascriptInterface"
+          ]
+
+          def build_obf_options(extra_strings=None):
+              opts = [
+                  "--compact", "true", "--control-flow-flattening", "true",
+                  "--control-flow-flattening-threshold", "0.7", "--dead-code-injection", "true",
+                  "--dead-code-injection-threshold", "0.3", "--identifier-names-generator", "mangled-shuffled",
+                  "--rename-globals", "false", "--rename-properties", "false", "--string-array", "true",
+                  "--string-array-encoding", "base64", "--string-array-threshold", "0.75",
+                  "--string-array-rotate", "true", "--string-array-shuffle", "true",
+                  "--string-array-wrappers-count", "2", "--split-strings", "true",
+                  "--split-strings-chunk-length", "6", "--debug-protection", "true", "--disable-console-output", "false",
+              ]
+              for s in RESERVED_IDENTIFIERS + PROTECTED_LITERALS:
+                  if re.fullmatch(r'[A-Za-z_$][A-Za-z0-9_$]*', s): opts += ["--reserved-names", s]
+              protected_strings = [s for s in PROTECTED_LITERALS if len(s) >= 2]
+              if extra_strings:
+                  for s in extra_strings:
+                      if s and 2 <= len(s) <= 100 and s not in protected_strings: protected_strings.append(s)
+              opts += ["--reserved-strings", ",".join(protected_strings)]
+              return opts
+
+          def obfuscate(js_code, tag, extra_strings=None):
+              tmpdir = tempfile.mkdtemp()
+              src = os.path.join(tmpdir, "in.js")
+              dst = os.path.join(tmpdir, "out.js")
+              try:
+                  with open(src, "w", encoding="utf-8") as f: f.write(js_code)
+                  res = subprocess.run(["javascript-obfuscator", src, "--output", dst, *build_obf_options(extra_strings)], capture_output=True, text=True)
+                  if res.returncode != 0:
+                      print(f"⚠️ Obfuscation FAILED for {tag}:\n{res.stderr[:1000]}")
+                      return None
+                  if not os.path.exists(dst): return None
+                  with open(dst, "r", encoding="utf-8") as f: return f.read()
+              finally:
+                  shutil.rmtree(tmpdir, ignore_errors=True)
+
+          STORAGE_KEY_PATTERN = re.compile(r'(?:localStorage|sessionStorage)\.(?:getItem|setItem|removeItem)\s*\(\s*[\'"]([^\'"]+)[\'"]', re.DOTALL)
+
+          def extract_storage_keys(js):
+              keys = set()
+              for m in STORAGE_KEY_PATTERN.finditer(js): keys.add(m.group(1).strip())
+              return keys
+
+          with open("index.html", "r", encoding="utf-8") as f: html = f.read()
+
+          dynamic_keys = list(extract_storage_keys(html))
+          script_re = re.compile(r'<script(\s[^>]*)?>(.*?)</script>', re.DOTALL)
+          stats = {"total": 0, "obfuscated": 0, "skipped": 0, "failed": 0}
+
+          def repl(m):
+              attrs = m.group(1) or ""
+              body = m.group(2)
+              stats["total"] += 1
+              if 'src=' in attrs or not body.strip() or re.search(r'type\s*=\s*[\'"](?:application/ld\+json|importmap|application/json)[\'"]', attrs):
+                  stats["skipped"] += 1
+                  return m.group(0)
+              obs = obfuscate(body, f"<script#{stats['total']}>", extra_strings=dynamic_keys)
+              if obs is None:
+                  stats["failed"] += 1
+                  return m.group(0)
+              stats["obfuscated"] += 1
+              return f'<script{attrs}>{obs}</script>'
+
+          html = script_re.sub(repl, html)
+          with open("index.html", "w", encoding="utf-8") as f: f.write(html)
+          print(f"📊 HTML scripts: total={stats['total']} obf={stats['obfuscated']} skip={stats['skipped']} fail={stats['failed']}")
+
+          if os.path.exists("price.js"):
+              with open("price.js", "r", encoding="utf-8") as f: js = f.read()
+              obs = obfuscate(js, "price.js", extra_strings=dynamic_keys)
+              if obs:
+                  with open("price.js", "w", encoding="utf-8") as f: f.write(obs)
+                  print("✅ price.js obfuscated")
+              else:
+                  raise SystemExit("❌ price.js obfuscation failed")
+          PY
+
+      # ==========================================
+      # ۳. آماده‌سازی پوشه انتشار (جلوگیری از لو رفتن سورس کد)
+      # ==========================================
+      - name: Prepare public directory
+        run: |
+          mkdir -p public
+          cp index.html public/
+          cp price.js public/ || true
+          cp Fox123.png public/ || true
+          cp notification.png public/ || true
+          cp -r image public/ || true
+          # اگر فایل‌های استاتیک دیگری مثل favicon داری، اینجا کپی کن
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./public   # 👈 فقط پوشه public آپلود می‌شود
