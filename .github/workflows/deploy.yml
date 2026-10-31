@@ -13,15 +13,16 @@ on:
 
 jobs:
   deploy:
-    # سیستم‌عامل را روی نسخه ۲۴ قفل کردیم تا هشدار Ubuntu 26 ندهد
     runs-on: ubuntu-24.04
 
+    # 👇 این دو خط اضافه شدند تا مشکل 403 برطرف شود
+    permissions:
+      contents: write
+
     steps:
-      # ارتقا به نسخه ۵ برای پشتیبانی از Node 24
       - name: Checkout
         uses: actions/checkout@v5
 
-      # ارتقا به نسخه ۵ برای پشتیبانی از Node 24
       - name: Setup Node.js
         uses: actions/setup-node@v5
         with:
@@ -142,9 +143,6 @@ jobs:
                   raise SystemExit("❌ price.js obfuscation failed")
           PY
 
-      # ==========================================
-      # ۳. آماده‌سازی پوشه انتشار (جلوگیری از لو رفتن سورس کد)
-      # ==========================================
       - name: Prepare public directory
         run: |
           mkdir -p public
@@ -153,11 +151,9 @@ jobs:
           cp Fox123.png public/ || true
           cp notification.png public/ || true
           cp -r image public/ || true
-          # اگر فایل‌های استاتیک دیگری مثل favicon داری، اینجا کپی کن
 
-      # ارتقا به نسخه ۴ برای پشتیبانی از Node 24
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./public   # 👈 فقط پوشه public آپلود می‌شود
+          publish_dir: ./public
