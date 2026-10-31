@@ -13,7 +13,7 @@ on:
 
 jobs:
   deploy:
-    # قفل کردن روی نسخه ۲۴ اوبونتو برای رفع هشدار Ubuntu 26
+    # قفل کردن روی نسخه ۲۴ اوبونتو برای جلوگیری از تغییرات ناگهانی
     runs-on: ubuntu-24.04
     
     # دادن دسترسی نوشتن برای رفع خطای 403
@@ -21,15 +21,14 @@ jobs:
       contents: write
 
     steps:
-      # ارتقا به نسخه ۵ برای پشتیبانی از Node 24
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
 
-      # ارتقا به نسخه ۵ برای پشتیبانی از Node 24
       - name: Setup Node.js
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v4
         with:
-          node-version: 20
+          # 👇 ارتقا از ۲۰ به ۲۲ (نسخه LTS)
+          node-version: 22
 
       - name: Install Obfuscator
         run: |
@@ -155,7 +154,6 @@ jobs:
           cp notification.png public/ || true
           cp -r image public/ || true
 
-      # ارتقا به نسخه ۴ برای رفع هشدار Node.js
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
