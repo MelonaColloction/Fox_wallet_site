@@ -13,14 +13,17 @@ on:
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    # سیستم‌عامل را روی نسخه ۲۴ قفل کردیم تا هشدار Ubuntu 26 ندهد
+    runs-on: ubuntu-24.04
 
     steps:
+      # ارتقا به نسخه ۵ برای پشتیبانی از Node 24
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
+      # ارتقا به نسخه ۵ برای پشتیبانی از Node 24
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 20
 
@@ -152,8 +155,9 @@ jobs:
           cp -r image public/ || true
           # اگر فایل‌های استاتیک دیگری مثل favicon داری، اینجا کپی کن
 
+      # ارتقا به نسخه ۴ برای پشتیبانی از Node 24
       - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
+        uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./public   # 👈 فقط پوشه public آپلود می‌شود
