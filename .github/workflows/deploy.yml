@@ -10,7 +10,6 @@ on:
       - 'Fox123.png'
       - 'notification.png'
       - 'image/**'
-  # 👇 این خط اضافه شد تا بتوانید ورک‌فلو را دستی هم اجرا کنید
   workflow_dispatch:
 
 jobs:
@@ -21,13 +20,15 @@ jobs:
       contents: write
 
     steps:
+      # 👇 ارتقا به v5 برای رفع هشدار Node.js
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
+      # 👇 ارتقا به v5 و استفاده از Node 22 برای رفع هشدار
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
-          node-version: 24
+          node-version: 22
 
       - name: Install Obfuscator
         run: |
