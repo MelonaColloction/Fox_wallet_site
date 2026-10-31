@@ -13,16 +13,19 @@ on:
 
 jobs:
   deploy:
+    # قفل کردن روی نسخه ۲۴ اوبونتو برای رفع هشدار Ubuntu 26
     runs-on: ubuntu-24.04
-
-    # 👇 این دو خط اضافه شدند تا مشکل 403 برطرف شود
+    
+    # دادن دسترسی نوشتن برای رفع خطای 403
     permissions:
       contents: write
 
     steps:
+      # ارتقا به نسخه ۵ برای پشتیبانی از Node 24
       - name: Checkout
         uses: actions/checkout@v5
 
+      # ارتقا به نسخه ۵ برای پشتیبانی از Node 24
       - name: Setup Node.js
         uses: actions/setup-node@v5
         with:
@@ -152,6 +155,7 @@ jobs:
           cp notification.png public/ || true
           cp -r image public/ || true
 
+      # ارتقا به نسخه ۴ برای رفع هشدار Node.js
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
