@@ -10,13 +10,13 @@ on:
       - 'Fox123.png'
       - 'notification.png'
       - 'image/**'
+  # 👇 این خط اضافه شد تا بتوانید ورک‌فلو را دستی هم اجرا کنید
+  workflow_dispatch:
 
 jobs:
   deploy:
-    # قفل کردن روی نسخه ۲۴ اوبونتو برای جلوگیری از تغییرات ناگهانی
     runs-on: ubuntu-24.04
     
-    # دادن دسترسی نوشتن برای رفع خطای 403
     permissions:
       contents: write
 
@@ -27,7 +27,6 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          # 👇 ارتقا از ۲۰ به ۲۲ (نسخه LTS)
           node-version: 24
 
       - name: Install Obfuscator
