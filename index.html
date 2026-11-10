@@ -961,6 +961,45 @@ body {
 .import-word-input:focus { border-color: var(--accent-primary); }
 .import-word-input::placeholder { color: var(--text-placeholder); }
 
+/* LANGUAGE SELECTION SCREEN */
+.lang-select-overlay {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: linear-gradient(160deg, var(--bg-primary), var(--bg-secondary));
+    display: flex; justify-content: center; align-items: center;
+    z-index: 3000; padding: 20px;
+}
+.lang-select-overlay.closed { display: none; }
+.lang-select-box {
+    background: var(--bg-card); border: 1px solid var(--border-color);
+    border-radius: 28px; padding: 30px 24px; max-width: 420px; width: 100%;
+    box-shadow: 0 20px 60px var(--shadow-color); text-align: center;
+    animation: fadeIn 0.4s ease;
+}
+.lang-select-icon { font-size: 3rem; margin-bottom: 12px; }
+.lang-select-title { font-size: 1.3rem; font-weight: 700; color: var(--text-primary); margin-bottom: 6px; }
+.lang-select-desc { font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 24px; }
+.lang-options { display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; }
+.lang-option-btn {
+    display: flex; align-items: center; justify-content: center; gap: 12px;
+    padding: 18px 20px; background: var(--bg-input);
+    border: 2px solid var(--border-light); border-radius: 18px;
+    color: var(--text-primary); font-size: 1rem; font-weight: 700;
+    cursor: pointer; transition: 0.2s; font-family: inherit;
+}
+.lang-option-btn:hover { border-color: var(--accent-success); background: var(--bg-item-hover); transform: translateY(-2px); }
+.lang-option-btn:active { transform: scale(0.97); }
+.lang-option-btn.selected { border-color: var(--accent-success); background: var(--accent-bg-success); }
+.lang-option-flag { font-size: 1.8rem; }
+.lang-confirm-btn {
+    width: 100%; padding: 14px; background: var(--accent-success);
+    color: var(--bg-primary); border: none; border-radius: 30px;
+    font-size: 0.95rem; font-weight: 700; cursor: pointer;
+    transition: 0.2s; font-family: inherit;
+}
+.lang-confirm-btn:hover { opacity: 0.85; }
+.lang-confirm-btn:active { transform: scale(0.97); }
+.lang-confirm-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
 /* Responsive */
 @media (max-width: 420px) {
     .card { padding: 14px 12px; }
@@ -982,6 +1021,7 @@ body {
     .chart-box { height: 200px; }
     .seed-word-box .seed-word-text { font-size: 0.68rem; }
     .import-word-input { font-size: 0.65rem; padding: 8px 4px; }
+    .lang-select-box { padding: 24px 18px; }
 }
 
 ::-webkit-scrollbar { width: 4px; }
@@ -1001,9 +1041,30 @@ body {
 #deleteWalletConfirmModal { z-index: 1350 !important; }
 #seedVerifyModal { z-index: 1400 !important; }
 #seedRevealModal { z-index: 1450 !important; }
+#langSelectOverlay { z-index: 3000 !important; }
     </style>
 </head>
 <body>
+
+<!-- ═══════════════ LANGUAGE SELECTION (اولین ورود) ═══════════════ -->
+<div class="lang-select-overlay closed" id="langSelectOverlay">
+    <div class="lang-select-box">
+        <div class="lang-select-icon">🌐</div>
+        <div class="lang-select-title" id="langSelectTitle">Choose your language</div>
+        <div class="lang-select-desc" id="langSelectDesc">Please select your preferred language</div>
+        <div class="lang-options">
+            <button class="lang-option-btn" data-lang="fa" onclick="selectFirstLang('fa')">
+                <span class="lang-option-flag">🇮🇷</span>
+                <span>فارسی</span>
+            </button>
+            <button class="lang-option-btn" data-lang="en" onclick="selectFirstLang('en')">
+                <span class="lang-option-flag">🇺🇸</span>
+                <span>English</span>
+            </button>
+        </div>
+        <button class="lang-confirm-btn" id="langConfirmBtn" onclick="confirmFirstLang()" disabled>Continue</button>
+    </div>
+</div>
 
 <!-- NOTIFICATION BANNER -->
 <div class="notif-banner" id="notifBanner">
@@ -1171,7 +1232,7 @@ body {
         </div>
     </div>
 
-    <!-- SEED VERIFY MODAL (برای مشاهده کلمات از منوی والت) -->
+    <!-- SEED VERIFY MODAL -->
     <div class="modal-overlay closed" id="seedVerifyModal">
         <div class="modal">
             <h2 style="color:var(--accent-warning);" id="seedVerifyTitle">🔐 تأیید هویت</h2>
@@ -1193,7 +1254,7 @@ body {
         </div>
     </div>
 
-    <!-- SEED REVEAL MODAL (Trust Wallet style) -->
+    <!-- SEED REVEAL MODAL -->
     <div class="modal-overlay closed" id="seedRevealModal">
         <div class="modal-fullscreen">
             <div class="modal-header">
@@ -1222,7 +1283,7 @@ body {
                     </button>
                 </div>
                 <div id="seedRevealStep3" class="hidden">
-                    <div class="desc" style="text-align:center; color:var(--accent-success); font-weight:700;">
+                    <div class="desc" style="text-align:center; color:var(--accent-success); font-weight:700;" id="seedVerifiedMsg">
                         ✅ تأیید شد!
                     </div>
                     <div class="seed-grid-container" id="seedFinalContainer"></div>
@@ -1237,7 +1298,7 @@ body {
         </div>
     </div>
 
-    <!-- LOGIN MODAL (فقط برای بار اول) -->
+    <!-- LOGIN MODAL -->
     <div class="modal-overlay closed" id="loginModal">
         <div class="modal">
             <div style="text-align: center; margin-bottom: 20px;">
@@ -1246,14 +1307,12 @@ body {
                 <div class="desc" id="loginDesc">به کیف پول خود خوش آمدید</div>
             </div>
             
-            <!-- گزینه‌های اولیه -->
             <div id="loginOptions">
                 <button class="btn btn-primary btn-full" onclick="showCreateWallet()" id="loginCreateBtn">🆕 ساخت کیف پول جدید</button>
                 <br><br>
                 <button class="btn btn-outline btn-full" onclick="showImportWallet()" id="loginImportBtn">📥 وارد کردن کیف پول</button>
             </div>
 
-            <!-- فرم ساخت اولیه -->
             <div id="createSection" class="hidden">
                 <div class="warning-box" id="createWarning">⚠️ این ۱۲ کلمه را در جای امنی ذخیره کنید!</div>
                 <div class="seed-grid-container" id="newSeedGrid"></div>
@@ -1262,15 +1321,13 @@ body {
                 <button class="btn btn-outline btn-full" onclick="backToLogin()" style="margin-top:6px;" id="createBackBtn">🔙 بازگشت</button>
             </div>
             
-            <!-- فرم تأیید اولیه -->
             <div id="createVerifySection" class="hidden">
-                <div class="desc" style="text-align: center;">۳ کلمه خواسته شده را انتخاب کنید</div>
+                <div class="desc" style="text-align: center;" id="createVerifyDesc">۳ کلمه خواسته شده را انتخاب کنید</div>
                 <div id="createVerifyQuestions" style="margin: 16px 0; display: flex; flex-direction: column; gap: 12px;"></div>
                 <button class="btn btn-success btn-full" onclick="verifyCreateWalletWords()" id="createVerifySubmitBtn">✅ تأیید</button>
                 <button class="btn btn-outline btn-full" onclick="backToSeedDisplayLogin()" style="margin-top:6px;">🔙 بازگشت</button>
             </div>
 
-            <!-- فرم رمز اولیه -->
             <div id="createPasswordSection" class="hidden">
                 <div class="input-group"><input type="text" id="createWalletName" placeholder="نام کیف پول (مثلاً: اصلی)" maxlength="30" /></div>
                 <div class="input-group"><input type="password" id="createPass" placeholder="رمز عبور (حداقل ۶ کاراکتر)" /></div>
@@ -1279,7 +1336,6 @@ body {
                 <button class="btn btn-outline btn-full" onclick="backToLogin()" style="margin-top:6px;">🔙 لغو</button>
             </div>
 
-            <!-- فرم وارد کردن اولیه (Trust Style) -->
             <div id="importSection" class="hidden">
                 <div class="warning-box" id="importWarning">⚠️ ۱۲ کلمه بازیابی خود را وارد کنید</div>
                 <div class="import-grid-container" id="loginImportGrid"></div>
@@ -1290,7 +1346,6 @@ body {
                 <button class="btn btn-outline btn-full" onclick="backToLogin()" style="margin-top:6px;" id="importBackBtn">🔙 بازگشت</button>
             </div>
 
-            <!-- فرم قفل (Unlock) -->
             <div id="unlockSection" class="hidden">
                 <div class="input-group"><input type="password" id="unlockPass" placeholder="رمز عبور خود را وارد کنید" /></div>
                 <button class="btn btn-success btn-full" onclick="unlockWallet()" id="unlockBtn">🔓 باز کردن</button>
@@ -1299,7 +1354,7 @@ body {
         </div>
     </div>
 
-    <!-- ADD WALLET MODAL (از منوی داخل برنامه) -->
+    <!-- ADD WALLET MODAL -->
     <div class="modal-overlay closed" id="addWalletModal">
         <div class="modal">
             <h2 id="addWalletTitle">➕ افزودن کیف پول جدید</h2>
@@ -1313,7 +1368,6 @@ body {
                 <button class="btn btn-secondary btn-full" onclick="closeAddWalletModal()" id="addCancelBtn">❌ لغو</button>
             </div>
 
-            <!-- مراحل ساخت (Trust Style) -->
             <div id="addCreateSection" class="hidden">
                 <div class="warning-box" id="addCreateWarning">⚠️ این ۱۲ کلمه را در جای امنی ذخیره کنید!</div>
                 <div class="seed-grid-container" id="addNewSeedGrid"></div>
@@ -1323,7 +1377,7 @@ body {
             </div>
 
             <div id="addVerifySection" class="hidden">
-                <div class="desc" style="text-align: center;">برای اطمینان، ۳ کلمه خواسته شده را انتخاب کنید</div>
+                <div class="desc" style="text-align: center;" id="addVerifyDesc">برای اطمینان، ۳ کلمه خواسته شده را انتخاب کنید</div>
                 <div id="addVerifyQuestions" style="margin: 16px 0; display: flex; flex-direction: column; gap: 12px;"></div>
                 <button class="btn btn-success btn-full" onclick="verifyAddWalletWords()" id="addVerifySubmitBtn">✅ تأیید</button>
                 <button class="btn btn-outline btn-full" onclick="backToSeedDisplayAdd()" style="margin-top:6px;">🔙 بازگشت به کلمات</button>
@@ -1337,7 +1391,6 @@ body {
                 <button class="btn btn-outline btn-full" onclick="backToAddWalletOptions()" style="margin-top:6px;">🔙 لغو</button>
             </div>
 
-            <!-- بخش ایمپورت (Trust Style) -->
             <div id="addImportSection" class="hidden">
                 <div class="warning-box" id="addImportWarning">⚠️ ۱۲ کلمه بازیابی خود را وارد کنید</div>
                 <div class="import-grid-container" id="addImportGrid"></div>
@@ -1426,7 +1479,7 @@ body {
         </div>
     </div>
 
-    <!-- SEND / SWAP / SWAP PICKER / CONFIRM / SUCCESS / TX DETAIL -->
+    <!-- SEND MODAL -->
     <div class="modal-overlay closed" id="sendModal">
         <div class="modal">
             <h2 style="color:var(--accent-success);" id="sendModalTitle">📤 ارسال</h2>
@@ -1466,6 +1519,7 @@ body {
         </div>
     </div>
 
+    <!-- SWAP MODAL -->
     <div class="modal-overlay closed" id="swapModal">
         <div class="modal">
             <h2 style="color:var(--accent-primary);" id="swapModalTitle">🔄 Swap</h2>
@@ -1501,6 +1555,7 @@ body {
         </div>
     </div>
 
+    <!-- CONFIRM TX MODAL -->
     <div class="modal-overlay closed" id="confirmTxModal">
         <div class="confirm-modal">
             <div class="confirm-icon" id="confirmIcon">⚠️</div>
@@ -1518,6 +1573,7 @@ body {
         </div>
     </div>
 
+    <!-- SUCCESS MODAL -->
     <div class="modal-overlay closed" id="successModal">
         <div class="success-modal">
             <div class="success-icon">✓</div>
@@ -1528,6 +1584,7 @@ body {
         </div>
     </div>
 
+    <!-- TX DETAIL MODAL -->
     <div class="modal-overlay closed" id="txDetailModal">
         <div class="success-modal">
             <div id="txDetailContent"></div>
@@ -1540,6 +1597,13 @@ body {
         <div class="modal">
             <h2 style="color:var(--accent-success);" id="settingsTitleText">⚙️ تنظیمات</h2>
             <div class="desc" id="settingsDescText">تنظیمات اپلیکیشن</div>
+            <div class="section-title" style="margin-top: 20px;" id="languageSectionLabel">🌐 زبان</div>
+            <div class="settings-section">
+                <div class="settings-row">
+                    <div class="settings-label"><div class="title" id="languageSettingTitle">🌐 زبان</div><div class="desc" id="languageSettingDesc">زبان مورد نظر خود را انتخاب کنید</div></div>
+                    <button class="btn btn-secondary" onclick="openLanguageSelectFromSettings()" id="changeLangBtn" style="font-size:0.7rem; padding:8px 14px;">🌐</button>
+                </div>
+            </div>
             <div class="section-title" style="margin-top: 20px;" id="themeSectionLabel">🎨 تم رنگی</div>
             <div class="theme-grid" id="themeGrid">
                 <div class="theme-option" data-theme="dark" onclick="changeTheme('dark')"><div class="theme-preview dark"></div><div class="theme-name" id="themeDarkName">تیره</div></div>
@@ -1610,7 +1674,7 @@ async function migrateLocalStorageToIndexedDB() {
             }
             localStorage.removeItem('foxWallets');
         }
-        const settingsKeys = ['foxTheme', 'foxLang', 'foxBiometricEnabled', 'foxNotifSound', 'foxNotifVibrate', 'foxBalanceHidden'];
+        const settingsKeys = ['foxTheme', 'foxLang', 'foxLangChosen', 'foxBiometricEnabled', 'foxNotifSound', 'foxNotifVibrate', 'foxBalanceHidden'];
         for (const key of settingsKeys) {
             const val = localStorage.getItem(key);
             if (val !== null) {
@@ -1660,10 +1724,11 @@ async function loadSettingsToCache() {
     settingsCache = {
         theme: await settingsDB.getItem('foxTheme') || 'dark',
         lang: await settingsDB.getItem('foxLang') || 'fa',
-        biometricEnabled: await settingsDB.getItem('foxBiometricEnabled') === 'true',
-        notifSound: await settingsDB.getItem('foxNotifSound') !== 'false',
-        notifVibrate: await settingsDB.getItem('foxNotifVibrate') !== 'false',
-        balanceHidden: await settingsDB.getItem('foxBalanceHidden') === 'true'
+        langChosen: (await settingsDB.getItem('foxLangChosen')) === 'true',
+        biometricEnabled: (await settingsDB.getItem('foxBiometricEnabled')) === 'true',
+        notifSound: (await settingsDB.getItem('foxNotifSound')) !== 'false',
+        notifVibrate: (await settingsDB.getItem('foxNotifVibrate')) !== 'false',
+        balanceHidden: (await settingsDB.getItem('foxBalanceHidden')) === 'true'
     };
 }
 
@@ -1684,6 +1749,8 @@ const Settings = {
     setNotifVibrate(val) { settingsCache.notifVibrate = val; settingsDB.setItem('foxNotifVibrate', val ? 'true' : 'false'); },
     getLang() { return settingsCache.lang || 'fa'; },
     setLang(lang) { settingsCache.lang = lang; settingsDB.setItem('foxLang', lang); },
+    isLangChosen() { return settingsCache.langChosen === true; },
+    setLangChosen(val) { settingsCache.langChosen = val; settingsDB.setItem('foxLangChosen', val ? 'true' : 'false'); },
     getBiometricEnabled() { return settingsCache.biometricEnabled === true; },
     setBiometricEnabled(val) { settingsCache.biometricEnabled = val; settingsDB.setItem('foxBiometricEnabled', val ? 'true' : 'false'); },
     getBalanceHidden() { return settingsCache.balanceHidden === true; },
@@ -1692,26 +1759,385 @@ const Settings = {
 
 document.documentElement.setAttribute('data-theme', 'dark');
 
-function changeTheme(theme) {
-    Settings.setTheme(theme);
-    const names = {
-        fa: { dark: 'تیره', light: 'روشن', autumn: 'پاییزی', ocean: 'اقیانوس', forest: 'جنگل', purple: 'بنفش', black: 'مشکی' },
-        en: { dark: 'Dark', light: 'Light', autumn: 'Autumn', ocean: 'Ocean', forest: 'Forest', purple: 'Purple', black: 'Black' }
-    };
-    showNotification('info', '🎨', names[currentLang][theme] || theme);
+// ═══════════════════════════════════════════════════════════════
+// GLOBAL STATE (قبل از translations لازم برای استفاده در t())
+// ═══════════════════════════════════════════════════════════════
+let currentLang = 'fa';
+let selectedFirstLang = null;
+
+// ═══════════════════════════════════════════════════════════════
+// TRANSLATIONS (کامل فارسی + انگلیسی)
+// ═══════════════════════════════════════════════════════════════
+const translations = {
+    fa: {
+        // عمومی
+        appName: 'Fox Wallet', walletsBtn: '👛 کیف پول‌ها', connecting: '🔌 در حال اتصال...',
+        connected: '✅ متصل به Avalanche', locked: '🔒 کیف پول قفل است', welcome: '👋 خوش آمدید',
+        offline: '⚠️ آفلاین - نمایش داده‌های ذخیره‌شده', offlineMsg: 'شبکه در دسترس نیست. داده‌های ذخیره‌شده نمایش داده می‌شوند.',
+        error: '⚠️ خطا', notConnected: '❌ کیف پول متصل نیست', openWalletFirst: '❌ اول کیف پول را باز کنید',
+        confirm: '✅ تأیید', cancel: '❌ لغو', close: '❌ بستن', back: '🔙 بازگشت', continue: 'ادامه',
+        save: '✅ ذخیره', copy: '📋', copied: '✅ کپی شد', hashCopied: '✅ هش کپی شد',
+        loading: 'در حال بارگذاری...', noData: 'داده‌ای نیست',
+
+        // زبان (اولین ورود)
+        langChooseTitle: '🌐 زبان خود را انتخاب کنید',
+        langChooseDesc: 'زبان مورد نظر خود را انتخاب کنید',
+        langContinue: 'ادامه',
+        langSelectTitle: '🌐 انتخاب زبان',
+        langSelectDesc: 'زبان مورد نظر خود را انتخاب کنید',
+        languageSection: '🌐 زبان', languageTitle: '🌐 زبان', languageDesc: 'زبان مورد نظر خود را انتخاب کنید',
+        langPersian: 'فارسی', langEnglish: 'English',
+        languageChanged: '✅ زبان تغییر کرد',
+
+        // هدر و هیرو
+        heroTotalBalance: 'ارزش کل', heroSend: 'ارسال', heroReceive: 'دریافت', heroSwap: 'Swap',
+        balanceHidden: '🙈 موجودی مخفی شد', balanceShown: '👁️ موجودی نمایش داده شد',
+
+        // تب‌ها
+        tabTokens: 'توکن‌ها', tabNFTs: 'NFTها', tabHistory: 'تاریخچه',
+        emptyTokens: 'هنوز توکنی ندارید', emptyNFTs: 'هیچ NFT ای نیست', emptyTx: 'هنوز تراکنشی ثبت نشده',
+
+        // تنظیمات
+        settingsLabel: '⚙️ تنظیمات', openSettings: '⚙️ باز کردن تنظیمات',
+        settingsTitle: '⚙️ تنظیمات', settingsDesc: 'تنظیمات اپلیکیشن',
+        themeSection: '🎨 تم رنگی', themeDark: 'تیره', themeLight: 'روشن', themeAutumn: 'پاییزی',
+        themeOcean: 'اقیانوس', themeForest: 'جنگل', themePurple: 'بنفش', themeBlack: 'مشکی (OLED)',
+        securitySection: '🔐 امنیت', bioLoginTitle: '👆 ورود با اثر انگشت',
+        notificationsSection: '🔔 نوتیفیکیشن', notifSoundTitle: '🔊 صدای اعلان',
+        notifSoundDesc: 'پخش صدا برای اعلان‌ها', notifVibrateTitle: '📳 ویبره',
+        notifVibrateDesc: 'لرزش هنگام اعلان',
+        bioChecking: 'در حال بررسی...', bioEnabled: '✅ فعال', bioDisabled: 'غیرفعال',
+        bioNotSupported: 'غیرفعال (پشتیبانی نمی‌شود)',
+        bioTelegramWarning: '⚠️ Telegram Mini App از اثر انگشت پشتیبانی نمی‌کند.',
+        bioWebWarning: '⚠️ در مرورگر وب پشتیبانی نمی‌شود.', bioDeviceWarning: '⚠️ دستگاه سنسور اثر انگشت ندارد.',
+        bioEnabledToast: '✅ اثر انگشت فعال شد', bioDisabledToast: '🔓 اثر انگشت غیرفعال شد',
+        bioFailed: '❌ احراز هویت ناموفق', bioSaveError: '❌ خطا در ذخیره',
+        bioNotSupportedToast: '❌ دستگاه پشتیبانی نمی‌کند', bioInfoNotFound: '❌ اطلاعات پیدا نشد',
+        bioEnablePrompt: 'تأیید فعال‌سازی', bioTxPrompt: 'تأیید تراکنش', bioSwapPrompt: 'تأیید Swap',
+        bioSeedPrompt: 'تأیید مشاهده ۱۲ کلمه', bioLoginPrompt: 'ورود به Fox Wallet', bioExitPrompt: 'تأیید حذف',
+        bioAuthTitle: 'احراز هویت', bioAuthSubtitle: 'برای تأیید از اثر انگشت استفاده کنید',
+        bioAuthDescription: 'اثر انگشت خود را روی سنسور بگذارید', bioAuthFallback: 'استفاده از رمز دستگاه',
+        soundOn: 'صدای اعلان فعال شد', soundOff: 'صدای اعلان غیرفعال شد',
+        vibrateOn: 'ویبره فعال شد', vibrateOff: 'ویبره غیرفعال شد',
+
+        // کیف پول‌ها
+        favoritesBtn: '⭐ آدرس‌های ذخیره‌شده', footer: '🦊 Fox Wallet - آینده مالی غیرمتمرکز',
+        walletsTitle: '👛 کیف پول‌ها', selectWallet: 'یک کیف پول انتخاب کنید',
+        addNewWallet: '➕ افزودن کیف پول جدید', activeBadge: 'فعال', renameWallet: '✏️ تغییر نام',
+        renameDesc: 'نام جدید را وارد کنید', walletName: 'نام کیف پول',
+        deleteWallet: '⚠️ حذف کیف پول',
+        deleteWalletDesc: 'آیا مطمئنید؟ این کیف پول از برنامه حذف می‌شود. فقط با ۱۲ کلمه بازیابی می‌توانید بازگردانید.',
+        deleteBtn: '🗑️ حذف', exportSeed: '🔑 نمایش ۱۲ کلمه', noWallets: 'هنوز کیف پولی نیست',
+        walletAdded: '✅ کیف پول اضافه شد', walletDeletedPermanently: '🗑️ کیف پول حذف شد',
+        walletRenamed: '✅ نام تغییر کرد', walletExists: '❌ این کیف پول قبلاً وجود دارد',
+        selectWalletFirst: '❌ ابتدا یک کیف پول انتخاب کنید',
+
+        // Seed / بازیابی
+        seedVerifyTitle: '🔐 تأیید هویت', seedVerifyDesc: 'برای مشاهده عبارت بازیابی هویت خود را تأیید کنید',
+        fingerprint: '👆 اثر انگشت', seedRevealTitle: '🔑 عبارت بازیابی',
+        seedRevealWarning: '⚠️ این کلمات را با هیچ‌کس به اشتراک نگذارید. هر کسی که این کلمات را داشته باشد می‌تواند به کیف پول شما دسترسی پیدا کند.',
+        seedRevealDesc1: 'برای دیدن ۱۲ کلمه روی «نمایش» بزنید',
+        seedRevealDesc2: '۳ کلمه تصادفی را وارد کنید', reveal: '👁️ نمایش',
+        verify: '✅ تأیید', copyAll: '📋 کپی همه', seedWrong: '❌ کلمات اشتباه هستند.',
+        seedVerified: '✅ تأیید شد!', wordNumber: 'کلمه شماره {n} کدام است؟',
+        seedPlaceholder: 'کلمه', generateClick: 'برای تولید کلیک کنید',
+        seedAllWords: 'همه کلمات',
+
+        // ورود
+        loginTitle: '🦊 Fox Wallet', loginDesc: 'به کیف پول خود خوش آمدید',
+        createWallet: '🆕 ساخت کیف پول جدید', importWallet: '📥 وارد کردن کیف پول',
+        createWarning: '⚠️ این ۱۲ کلمه را در جای امنی ذخیره کنید!',
+        importWarning: '⚠️ ۱۲ کلمه بازیابی خود را وارد کنید',
+        generate: '🔄 تولید کلمات', password: 'رمز عبور', passwordFull: 'رمز عبور (حداقل ۶ کاراکتر)',
+        repeatPassword: 'تکرار رمز عبور', enterPassword: 'رمز عبور خود را وارد کنید',
+        unlock: '🔓 باز کردن', fingerprintLogin: '👆 ورود با اثر انگشت',
+        passMin: 'رمز باید حداقل ۶ کاراکتر باشد', passMatch: 'رمزها مطابقت ندارند',
+        passWrong: '❌ رمز اشتباه است', generateFirst: 'ابتدا کلمات را تولید کنید',
+        walletCreated: '🎉 کیف پول ساخته شد', walletImported: '🎉 کیف پول وارد شد',
+        walletUnlocked: '🔓 کیف پول باز شد', waitingFingerprint: '👆 در انتظار اثر انگشت...',
+        walletNamePlaceholder: 'نام کیف پول', savedSeedConfirm: '✅ من ذخیره کردم، بعدی',
+        saveSeedBtn: '✅ ذخیره کردم، بعدی', createWalletBtn: '✅ ساخت کیف پول',
+        importWalletBtn: '✅ وارد کردن', addWalletBtn: '✅ ساخت و افزودن والت',
+        chooseWords: '۳ کلمه خواسته شده را انتخاب کنید',
+        chooseWordsVerify: 'برای اطمینان، ۳ کلمه خواسته شده را انتخاب کنید',
+        backToSeed: '🔙 بازگشت به کلمات',
+
+        // توکن
+        selectToken: 'انتخاب توکن', noTxForToken: 'تراکنشی برای این توکن نیست',
+        days7: '۷ روز', days30: '۳۰ روز', days90: '۹۰ روز',
+        native: 'بومی', currentPrice: 'قیمت فعلی', change24h: 'تغییر ۲۴س', yourBalance: 'موجودی',
+        tokenValue: 'ارزش', aboutToken: 'درباره', contract: 'قرارداد',
+
+        // ارسال
+        sendTitle: '📤 ارسال', sendDesc: 'چه چیزی ارسال می‌کنید؟',
+        sendTokenTab: '💰 توکن', sendNFTTab: '🖼️ NFT', recipient: 'آدرس گیرنده', tokenAmount: 'مقدار',
+        balanceInfo: 'موجودی', sendTokenBtn: 'ارسال توکن', sendNFTBtn: 'ارسال NFT', nftAmount: 'تعداد',
+        noNFTToSend: 'NFT ای برای ارسال نیست', selectNFTFirst: '❌ NFT را انتخاب کنید',
+        invalidAddress: '❌ آدرس معتبر نیست', cantSendToSelf: '❌ نمی‌توانید به خودتان بفرستید',
+        invalidAmount: '❌ مقدار نامعتبر است', insufficientBalance: '❌ موجودی کافی نیست',
+        minAmount: '❌ حداقل مقدار 0.001 AVAX است', tokenNotFound: '❌ توکن پیدا نشد',
+
+        // Swap
+        swapTitle: '🔄 Swap', swapDesc: 'توکن‌های خود را تبدیل کنید',
+        from: 'از', to: 'به', rate: 'نرخ:', fee: 'کارمزد:',
+        sameToken: '❌ توکن‌ها یکسان هستند', rateNotReady: '❌ نرخ آماده نیست',
+        approving: '⏳ در حال تأیید دسترسی...', swapBtn: '🔄 Swap', slippage: 'Slippage',
+
+        // تأیید و تراکنش
+        confirmTitle: '⚠️ تأیید', confirmSub: 'برای ادامه هویت خود را تأیید کنید', confirmSubBio: 'اثر انگشت خود را بزنید',
+        confirmBioBtn: '👆 اثر انگشت', confirmPassBtn: '✅ تأیید', confirmSwapTitle: '⚠️ تأیید Swap',
+        confirmSwapSub: 'برای تبدیل هویت خود را تأیید کنید', confirmSwapBtn: '✅ تأیید و تبدیل',
+        sending: '🔄 در حال ارسال...', swapping: '🔄 در حال تبدیل...', waitingNetwork: '⏳ در انتظار تأیید شبکه...',
+        txCancelled: '❌ لغو شد', sendingError: '❌ خطا در ارسال', swapError: '❌ خطا در Swap',
+        successTitle: '✅ ارسال موفق!', successSub: 'تراکنش انجام شد', successSwapTitle: '✅ Swap موفق!',
+        successSwapSub: 'تبدیل انجام شد',
+        notificationSentTitle: '✅ ارسال موفق', notificationSwapTitle: '✅ Swap موفق', notificationNFTTitle: '✅ NFT ارسال شد',
+
+        // QR / Scanner
+        qrTitle: '📥 دریافت', qrDesc: 'برای دریافت این کد را اسکن کنید', scanTitle: '📷 اسکن QR',
+        scanDesc: 'دوربین را سمت QR بگیرید', scanSuccess: '✅ اسکن موفق', scanInvalid: '❌ QR معتبر نیست',
+        cameraUnavailable: 'دوربین در دسترس نیست', cameraDenied: 'دسترسی به دوربین رد شد',
+        scannerNotLoaded: '❌ کتابخانه اسکنر بارگذاری نشد', qrNotLoaded: '❌ کتابخانه QR بارگذاری نشد',
+        qrError: '❌ خطا در ساخت QR',
+
+        // Favorites
+        favoritesTitle: '⭐ آدرس‌های ذخیره‌شده', favoritesDesc: 'آدرس‌های مورد علاقه شما',
+        favoritesPickerTitle: '⭐ انتخاب آدرس', favoritesPickerDesc: 'یک آدرس انتخاب کنید',
+        noFavorites: 'آدرسی ذخیره نشده', addAddress: '➕ افزودن آدرس',
+        addAddressTitle: '➕ افزودن آدرس', addAddressDesc: 'نام و آدرس را ذخیره کنید',
+        name: 'نام', favoriteNameRequired: '❌ نام را وارد کنید', favoriteInvalidAddress: '❌ آدرس معتبر نیست',
+        favoriteAdded: '✅ آدرس ذخیره شد', favoriteDeleted: '🗑️ آدرس حذف شد',
+        favoriteAlreadySaved: '❌ قبلاً ذخیره شده',
+
+        // NFT
+        allNFTsTitle: '🖼️ همه NFT ها', nftDetailTitle: '🖼️ جزئیات NFT',
+        detailTokenId: '🆔 شناسه:', detailAmount: '📦 تعداد:', detailFrom: '📤 از:', detailTo: '📥 به:',
+        detailGas: '⛽ کارمزد:', detailTime: '🕐 زمان:', detailHash: '🔗 هش:', detailValue: '💰 مقدار:',
+        detailPrice: '💎 قیمت:', detailTotalPrice: '💰 قیمت کل:',
+
+        // تاریخچه
+        allTxTitle: '📜 تاریخچه تراکنش ها',
+        typeReceiveAVAX: '📥 دریافت AVAX', typeSendAVAX: '📤 ارسال AVAX',
+        typeReceiveNFT: '📥 دریافت NFT', typeSendNFT: '📤 ارسال NFT', typeSwap: '🔄 Swap',
+
+        // Prompt
+        promptTitle: '🔐 تأیید هویت', promptDesc: 'رمز عبور خود را وارد کنید'
+    },
+    en: {
+        // General
+        appName: 'Fox Wallet', walletsBtn: '👛 Wallets', connecting: '🔌 Connecting...',
+        connected: '✅ Connected to Avalanche', locked: '🔒 Wallet is locked', welcome: '👋 Welcome',
+        offline: '⚠️ Offline - showing cached data', offlineMsg: 'Network unavailable. Showing cached data.',
+        error: '⚠️ Error', notConnected: '❌ Wallet not connected', openWalletFirst: '❌ Open wallet first',
+        confirm: '✅ Confirm', cancel: '❌ Cancel', close: '❌ Close', back: '🔙 Back', continue: 'Continue',
+        save: '✅ Save', copy: '📋', copied: '✅ Copied', hashCopied: '✅ Hash copied',
+        loading: 'Loading...', noData: 'No data',
+
+        // Language
+        langChooseTitle: '🌐 Choose your language',
+        langChooseDesc: 'Please select your preferred language',
+        langContinue: 'Continue',
+        langSelectTitle: '🌐 Select Language',
+        langSelectDesc: 'Choose your preferred language',
+        languageSection: '🌐 Language', languageTitle: '🌐 Language', languageDesc: 'Choose your preferred language',
+        langPersian: 'فارسی', langEnglish: 'English',
+        languageChanged: '✅ Language changed',
+
+        // Header & Hero
+        heroTotalBalance: 'Total Balance', heroSend: 'Send', heroReceive: 'Receive', heroSwap: 'Swap',
+        balanceHidden: '🙈 Balance hidden', balanceShown: '👁️ Balance shown',
+
+        // Tabs
+        tabTokens: 'Tokens', tabNFTs: 'NFTs', tabHistory: 'History',
+        emptyTokens: 'No tokens yet', emptyNFTs: 'No NFTs', emptyTx: 'No transactions yet',
+
+        // Settings
+        settingsLabel: '⚙️ Settings', openSettings: '⚙️ Open Settings',
+        settingsTitle: '⚙️ Settings', settingsDesc: 'App settings',
+        themeSection: '🎨 Theme', themeDark: 'Dark', themeLight: 'Light', themeAutumn: 'Autumn',
+        themeOcean: 'Ocean', themeForest: 'Forest', themePurple: 'Purple', themeBlack: 'Black (OLED)',
+        securitySection: '🔐 Security', bioLoginTitle: '👆 Fingerprint Login',
+        notificationsSection: '🔔 Notifications', notifSoundTitle: '🔊 Notification Sound',
+        notifSoundDesc: 'Play sound for notifications', notifVibrateTitle: '📳 Vibration',
+        notifVibrateDesc: 'Vibrate on notifications',
+        bioChecking: 'Checking...', bioEnabled: '✅ Enabled', bioDisabled: 'Disabled',
+        bioNotSupported: 'Disabled (not supported)',
+        bioTelegramWarning: '⚠️ Telegram Mini App does not support biometrics.',
+        bioWebWarning: '⚠️ Not supported in web browser.', bioDeviceWarning: '⚠️ Your device has no fingerprint sensor.',
+        bioEnabledToast: '✅ Biometric enabled', bioDisabledToast: '🔓 Biometric disabled',
+        bioFailed: '❌ Authentication failed', bioSaveError: '❌ Save error',
+        bioNotSupportedToast: '❌ Device not supported', bioInfoNotFound: '❌ Saved info not found',
+        bioEnablePrompt: 'Confirm fingerprint enable', bioTxPrompt: 'Confirm transaction', bioSwapPrompt: 'Confirm swap',
+        bioSeedPrompt: 'Confirm viewing 12 words', bioLoginPrompt: 'Login to Fox Wallet', bioExitPrompt: 'Confirm deletion',
+        bioAuthTitle: 'Authentication', bioAuthSubtitle: 'Use fingerprint to confirm',
+        bioAuthDescription: 'Place your finger on the sensor', bioAuthFallback: 'Use device password',
+        soundOn: 'Sound enabled', soundOff: 'Sound disabled',
+        vibrateOn: 'Vibration enabled', vibrateOff: 'Vibration disabled',
+
+        // Wallets
+        favoritesBtn: '⭐ Saved Addresses', footer: '🦊 Fox Wallet - The Future of DeFi',
+        walletsTitle: '👛 Wallets', selectWallet: 'Select a wallet',
+        addNewWallet: '➕ Add New Wallet', activeBadge: 'Active', renameWallet: '✏️ Rename Wallet',
+        renameDesc: 'Enter a new name', walletName: 'Wallet name',
+        deleteWallet: '⚠️ Delete Wallet',
+        deleteWalletDesc: 'Are you sure? This will remove the wallet from this app. You can only restore it with your 12 recovery words.',
+        deleteBtn: '🗑️ Delete', exportSeed: '🔑 Export Seed', noWallets: 'No wallets yet',
+        walletAdded: '✅ Wallet added', walletDeletedPermanently: '🗑️ Wallet deleted',
+        walletRenamed: '✅ Name changed', walletExists: '❌ Wallet already exists',
+        selectWalletFirst: '❌ Select a wallet first',
+
+        // Seed
+        seedVerifyTitle: '🔐 Confirm Identity', seedVerifyDesc: 'Authenticate to view your recovery phrase',
+        fingerprint: '👆 Fingerprint', seedRevealTitle: '🔑 Recovery Phrase',
+        seedRevealWarning: '⚠️ Never share these words with anyone. Anyone with these words can access your wallet.',
+        seedRevealDesc1: 'Tap "Reveal" to see your 12 words',
+        seedRevealDesc2: 'Enter 3 random words to verify', reveal: '👁️ Reveal',
+        verify: '✅ Verify', copyAll: '📋 Copy All', seedWrong: '❌ Wrong words. Try again.',
+        seedVerified: '✅ Verified!', wordNumber: 'What is word #{n}?',
+        seedPlaceholder: 'Word', generateClick: 'Click to generate',
+        seedAllWords: 'All words',
+
+        // Login
+        loginTitle: '🦊 Fox Wallet', loginDesc: 'Welcome to your wallet',
+        createWallet: '🆕 Create New Wallet', importWallet: '📥 Import Wallet',
+        createWarning: '⚠️ Save these 12 words in a safe place!',
+        importWarning: '⚠️ Enter your 12 recovery words',
+        generate: '🔄 Generate Words', password: 'Password', passwordFull: 'Password (min 6 chars)',
+        repeatPassword: 'Repeat Password', enterPassword: 'Enter your password',
+        unlock: '🔓 Unlock', fingerprintLogin: '👆 Login with Fingerprint',
+        passMin: 'Password must be at least 6 characters', passMatch: 'Passwords do not match',
+        passWrong: '❌ Wrong password', generateFirst: 'Generate words first',
+        walletCreated: '🎉 Wallet created', walletImported: '🎉 Wallet imported',
+        walletUnlocked: '🔓 Wallet unlocked', waitingFingerprint: '👆 Waiting for fingerprint...',
+        walletNamePlaceholder: 'Wallet name', savedSeedConfirm: '✅ I saved it, next',
+        saveSeedBtn: '✅ I saved it, next', createWalletBtn: '✅ Create Wallet',
+        importWalletBtn: '✅ Import', addWalletBtn: '✅ Create & Add Wallet',
+        chooseWords: 'Select 3 requested words',
+        chooseWordsVerify: 'For security, select 3 requested words',
+        backToSeed: '🔙 Back to words',
+
+        // Token
+        selectToken: 'Select Token', noTxForToken: 'No transactions for this token',
+        days7: '7D', days30: '30D', days90: '90D',
+        native: 'Native', currentPrice: 'Current Price', change24h: '24h Change', yourBalance: 'Balance',
+        tokenValue: 'Value', aboutToken: 'About', contract: 'Contract',
+
+        // Send
+        sendTitle: '📤 Send', sendDesc: 'What would you like to send?',
+        sendTokenTab: '💰 Token', sendNFTTab: '🖼️ NFT', recipient: 'Recipient Address', tokenAmount: 'Amount',
+        balanceInfo: 'Balance', sendTokenBtn: 'Send Token', sendNFTBtn: 'Send NFT', nftAmount: 'Quantity',
+        noNFTToSend: 'No NFTs to send', selectNFTFirst: '❌ Select an NFT first',
+        invalidAddress: '❌ Invalid address', cantSendToSelf: '❌ Cannot send to yourself',
+        invalidAmount: '❌ Invalid amount', insufficientBalance: '❌ Insufficient balance',
+        minAmount: '❌ Minimum is 0.001 AVAX', tokenNotFound: '❌ Token not found',
+
+        // Swap
+        swapTitle: '🔄 Swap', swapDesc: 'Convert your tokens',
+        from: 'From', to: 'To', rate: 'Rate:', fee: 'Fee:',
+        sameToken: '❌ Same token', rateNotReady: '❌ Rate not ready',
+        approving: '⏳ Approving...', swapBtn: '🔄 Swap', slippage: 'Slippage',
+
+        // Confirm & Tx
+        confirmTitle: '⚠️ Confirm', confirmSub: 'Authenticate to continue', confirmSubBio: 'Place your finger to confirm',
+        confirmBioBtn: '👆 Fingerprint', confirmPassBtn: '✅ Confirm', confirmSwapTitle: '⚠️ Confirm Swap',
+        confirmSwapSub: 'Authenticate to swap', confirmSwapBtn: '✅ Confirm & Swap',
+        sending: '🔄 Sending...', swapping: '🔄 Swapping...', waitingNetwork: '⏳ Waiting for network...',
+        txCancelled: '❌ Cancelled', sendingError: '❌ Sending error', swapError: '❌ Swap error',
+        successTitle: '✅ Success!', successSub: 'Transaction completed', successSwapTitle: '✅ Swap Successful!',
+        successSwapSub: 'Swap completed',
+        notificationSentTitle: '✅ Sent', notificationSwapTitle: '✅ Swap Successful', notificationNFTTitle: '✅ NFT Sent',
+
+        // QR / Scanner
+        qrTitle: '📥 Receive', qrDesc: 'Scan this QR code to receive', scanTitle: '📷 Scan QR',
+        scanDesc: 'Point camera at QR', scanSuccess: '✅ Scan successful', scanInvalid: '❌ Invalid QR',
+        cameraUnavailable: 'Camera unavailable', cameraDenied: 'Camera permission denied',
+        scannerNotLoaded: '❌ Scanner library not loaded', qrNotLoaded: '❌ QR library not loaded',
+        qrError: '❌ QR generation error',
+
+        // Favorites
+        favoritesTitle: '⭐ Saved Addresses', favoritesDesc: 'Your saved addresses',
+        favoritesPickerTitle: '⭐ Select Address', favoritesPickerDesc: 'Choose an address',
+        noFavorites: 'No saved addresses', addAddress: '➕ Add Address',
+        addAddressTitle: '➕ Add Address', addAddressDesc: 'Save name and address',
+        name: 'Name', favoriteNameRequired: '❌ Enter a name', favoriteInvalidAddress: '❌ Invalid address',
+        favoriteAdded: '✅ Address saved', favoriteDeleted: '🗑️ Address deleted',
+        favoriteAlreadySaved: '❌ Already saved',
+
+        // NFT
+        allNFTsTitle: '🖼️ All NFTs', nftDetailTitle: '🖼️ NFT Details',
+        detailTokenId: '🆔 ID:', detailAmount: '📦 Amount:', detailFrom: '📤 From:', detailTo: '📥 To:',
+        detailGas: '⛽ Gas:', detailTime: '🕐 Time:', detailHash: '🔗 Hash:', detailValue: '💰 Value:',
+        detailPrice: '💎 Price:', detailTotalPrice: '💰 Total:',
+
+        // History
+        allTxTitle: '📜 Transaction History',
+        typeReceiveAVAX: '📥 Received AVAX', typeSendAVAX: '📤 Sent AVAX',
+        typeReceiveNFT: '📥 Received NFT', typeSendNFT: '📤 Sent NFT', typeSwap: '🔄 Swap',
+
+        // Prompt
+        promptTitle: '🔐 Confirm Identity', promptDesc: 'Enter your password'
+    }
+};
+
+function t(key, vars) {
+    let str = (translations[currentLang] && translations[currentLang][key]) || (translations.fa[key]) || key;
+    if (vars) { for (const k in vars) str = str.replace(new RegExp('\\{' + k + '\\}', 'g'), vars[k]); }
+    return str;
 }
 
-function toggleNotificationSound() {
-    const t = document.getElementById('notifSoundToggle');
-    Settings.setNotifSound(t.checked);
-    showNotification('info', '🔊', t.checked ? t('soundOn') : t('soundOff'));
+// ═══════════════════════════════════════════════════════════════
+// LANGUAGE MANAGEMENT
+// ═══════════════════════════════════════════════════════════════
+function applyLanguage(lang) {
+    currentLang = lang;
+    Settings.setLang(lang);
+    document.documentElement.lang = lang;
+    document.documentElement.dir = lang === 'en' ? 'ltr' : 'rtl';
+    updateUI();
 }
 
-function toggleNotificationVibrate() {
-    const t = document.getElementById('notifVibrateToggle');
-    Settings.setNotifVibrate(t.checked);
-    if (t.checked && navigator.vibrate) navigator.vibrate(100);
-    showNotification('info', '📳', t.checked ? t('vibrateOn') : t('vibrateOff'));
+function toggleLanguage() {
+    const newLang = currentLang === 'fa' ? 'en' : 'fa';
+    applyLanguage(newLang);
+    showNotification('info', '🌐', t('languageChanged'));
+}
+
+// ═══════════════════════════════════════════════════════════════
+// FIRST-TIME LANGUAGE SELECT
+// ═══════════════════════════════════════════════════════════════
+function selectFirstLang(lang) {
+    selectedFirstLang = lang;
+    document.querySelectorAll('.lang-option-btn').forEach(b => b.classList.toggle('selected', b.dataset.lang === lang));
+    const btn = document.getElementById('langConfirmBtn');
+    if (btn) btn.disabled = false;
+}
+
+function confirmFirstLang() {
+    if (!selectedFirstLang) return;
+    Settings.setLang(selectedFirstLang);
+    Settings.setLangChosen(true);
+    currentLang = selectedFirstLang;
+    document.documentElement.lang = currentLang;
+    document.documentElement.dir = currentLang === 'en' ? 'ltr' : 'rtl';
+    const overlay = document.getElementById('langSelectOverlay');
+    if (overlay) overlay.classList.add('closed');
+    updateUI();
+    // بعد از انتخاب زبان، به صفحه ورود/ساخت والت برو
+    setTimeout(() => {
+        if (state.wallets.length === 0) {
+            document.getElementById('loginModal').classList.remove('closed');
+        } else {
+            showUnlockModal();
+        }
+    }, 100);
+}
+
+function openLanguageSelectFromSettings() {
+    selectedFirstLang = currentLang;
+    document.querySelectorAll('.lang-option-btn').forEach(b => b.classList.toggle('selected', b.dataset.lang === currentLang));
+    const btn = document.getElementById('langConfirmBtn');
+    if (btn) btn.disabled = false;
+    document.getElementById('langSelectOverlay').classList.remove('closed');
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1844,11 +2270,10 @@ const BiometricAuth = {
         try {
             const NativeBiometric = window.Capacitor.Plugins.NativeBiometric;
             if (!NativeBiometric) return { success: false };
-            const L = translations[currentLang];
             await NativeBiometric.verifyIdentity({
-                reason: title, title: L.bioAuthTitle, subtitle: L.bioAuthSubtitle,
-                description: L.bioAuthDescription, maxAttempts: 3,
-                useFallback: true, fallbackTitle: L.bioAuthFallback,
+                reason: title, title: t('bioAuthTitle'), subtitle: t('bioAuthSubtitle'),
+                description: t('bioAuthDescription'), maxAttempts: 3,
+                useFallback: true, fallbackTitle: t('bioAuthFallback'),
             });
             return { success: true };
         } catch (e) { return { success: false, error: e.message }; }
@@ -1973,7 +2398,6 @@ let state = {
 };
 
 let newMnemonic = '';
-let currentLang = 'fa';
 let addNewMnemonic = '';
 let biometricAvailable = false;
 let tokenBalances = {};
@@ -1986,187 +2410,10 @@ let swapPickerTarget = 'from';
 let loginTempMnemonicWords = [];
 let addTempMnemonicWords = [];
 
-// ═══════════════════════════════════════════════════════════════
-// TRANSLATIONS
-// ═══════════════════════════════════════════════════════════════
-const translations = {
-    fa: {
-        appName: 'Fox Wallet', walletsBtn: '👛 کیف پول‌ها', connecting: '🔌 در حال اتصال...',
-        connected: '✅ متصل به Avalanche', locked: '🔒 کیف پول قفل است', welcome: '👋 خوش آمدید',
-        heroTotalBalance: 'ارزش کل', heroSend: 'ارسال', heroReceive: 'دریافت', heroSwap: 'Swap',
-        tabTokens: 'توکن‌ها', tabNFTs: 'NFTها', tabHistory: 'تاریخچه', settingsLabel: '⚙️ تنظیمات',
-        openSettings: '⚙️ باز کردن تنظیمات', favoritesBtn: '⭐ آدرس‌های ذخیره‌شده',
-        footer: '🦊 Fox Wallet - آینده مالی غیرمتمرکز', emptyTokens: 'هنوز توکنی ندارید',
-        emptyNFTs: 'هیچ NFT ای نیست', emptyTx: 'هنوز تراکنشی ثبت نشده',
-        walletsTitle: '👛 کیف پول‌ها', selectWallet: 'یک کیف پول انتخاب کنید',
-        addNewWallet: '➕ افزودن کیف پول جدید', activeBadge: 'فعال', renameWallet: '✏️ تغییر نام',
-        renameDesc: 'نام جدید را وارد کنید', walletName: 'نام کیف پول', save: '✅ ذخیره',
-        deleteWallet: '⚠️ حذف کیف پول', deleteWalletDesc: 'آیا مطمئنید؟ این کیف پول از برنامه حذف می‌شود. فقط با ۱۲ کلمه بازیابی می‌توانید بازگردانید.',
-        deleteBtn: '🗑️ حذف', exportSeed: '🔑 نمایش ۱۲ کلمه',
-        seedVerifyTitle: '🔐 تأیید هویت', seedVerifyDesc: 'برای مشاهده عبارت بازیابی هویت خود را تأیید کنید',
-        fingerprint: '👆 اثر انگشت', seedRevealTitle: '🔑 عبارت بازیابی',
-        seedRevealWarning: '⚠️ این کلمات را با هیچ‌کس به اشتراک نگذارید.',
-        seedRevealDesc1: 'برای دیدن ۱۲ کلمه روی «نمایش» بزنید',
-        seedRevealDesc2: '۳ کلمه تصادفی را وارد کنید', reveal: '👁️ نمایش',
-        verify: '✅ تأیید', copyAll: '📋 کپی همه', seedWrong: '❌ کلمات اشتباه هستند.',
-        loginTitle: '🦊 Fox Wallet', loginDesc: 'به کیف پول خود خوش آمدید',
-        createWallet: '🆕 ساخت کیف پول جدید', importWallet: '📥 وارد کردن کیف پول',
-        createWarning: '⚠️ این ۱۲ کلمه را در جای امنی ذخیره کنید!',
-        importWarning: '⚠️ ۱۲ کلمه بازیابی خود را وارد کنید',
-        seedPlaceholder: 'کلمه', generateClick: 'برای تولید کلیک کنید',
-        generate: '🔄 تولید کلمات', password: 'رمز عبور', passwordFull: 'رمز عبور (حداقل ۶ کاراکتر)',
-        repeatPassword: 'تکرار رمز عبور', enterPassword: 'رمز عبور خود را وارد کنید',
-        unlock: '🔓 باز کردن', fingerprintLogin: '👆 ورود با اثر انگشت',
-        passMin: 'رمز باید حداقل ۶ کاراکتر باشد', passMatch: 'رمزها مطابقت ندارند',
-        passWrong: '❌ رمز اشتباه است', generateFirst: 'ابتدا کلمات را تولید کنید',
-        walletCreated: '🎉 کیف پول ساخته شد', walletImported: '🎉 کیف پول وارد شد',
-        walletAdded: '✅ کیف پول اضافه شد', walletUnlocked: '🔓 کیف پول باز شد',
-        walletDeletedPermanently: '🗑️ کیف پول حذف شد', walletRenamed: '✅ نام تغییر کرد',
-        waitingFingerprint: '👆 در انتظار اثر انگشت...', walletNamePlaceholder: 'نام کیف پول',
-        walletExists: '❌ این کیف پول قبلاً وجود دارد', selectToken: 'انتخاب توکن',
-        noTxForToken: 'تراکنشی برای این توکن نیست', days7: '۷ روز', days30: '۳۰ روز', days90: '۹۰ روز',
-        native: 'بومی', currentPrice: 'قیمت فعلی', change24h: 'تغییر ۲۴س', yourBalance: 'موجودی',
-        tokenValue: 'ارزش', aboutToken: 'درباره', sendTitle: '📤 ارسال', sendDesc: 'چه چیزی ارسال می‌کنید؟',
-        sendTokenTab: '💰 توکن', sendNFTTab: '🖼️ NFT', recipient: 'آدرس گیرنده', tokenAmount: 'مقدار',
-        balanceInfo: 'موجودی', sendTokenBtn: 'ارسال توکن', sendNFTBtn: 'ارسال NFT', nftAmount: 'تعداد',
-        noNFTToSend: 'NFT ای برای ارسال نیست', selectNFTFirst: '❌ NFT را انتخاب کنید',
-        invalidAddress: '❌ آدرس معتبر نیست', cantSendToSelf: '❌ نمی‌توانید به خودتان بفرستید',
-        invalidAmount: '❌ مقدار نامعتبر است', insufficientBalance: '❌ موجودی کافی نیست',
-        minAmount: '❌ حداقل مقدار 0.001 AVAX است', swapTitle: '🔄 Swap', swapDesc: 'توکن‌های خود را تبدیل کنید',
-        from: 'از', to: 'به', rate: 'نرخ:', fee: 'کارمزد:', confirmTitle: '⚠️ تأیید',
-        confirmSub: 'برای ادامه هویت خود را تأیید کنید', confirmSubBio: 'اثر انگشت خود را بزنید',
-        confirmBioBtn: '👆 اثر انگشت', confirmPassBtn: '✅ تأیید', confirmSwapTitle: '⚠️ تأیید Swap',
-        confirmSwapSub: 'برای تبدیل هویت خود را تأیید کنید', confirmSwapBtn: '✅ تأیید و تبدیل',
-        sending: '🔄 در حال ارسال...', swapping: '🔄 در حال تبدیل...', waitingNetwork: '⏳ در انتظار تأیید شبکه...',
-        txCancelled: '❌ لغو شد', sendingError: '❌ خطا در ارسال', swapError: '❌ خطا در Swap',
-        successTitle: '✅ ارسال موفق!', successSub: 'تراکنش انجام شد', successSwapTitle: '✅ Swap موفق!',
-        successSwapSub: 'تبدیل انجام شد', soundOn: 'صدای اعلان فعال شد', soundOff: 'صدای اعلان غیرفعال شد',
-        vibrateOn: 'ویبره فعال شد', vibrateOff: 'ویبره غیرفعال شد', copied: '✅ کپی شد',
-        hashCopied: '✅ هش کپی شد', openWalletFirst: '❌ اول کیف پول را باز کنید',
-        confirm: '✅ تأیید', cancel: '❌ لغو', close: '❌ بستن', back: '🔙 بازگشت', continue: 'ادامه',
-        favoritesTitle: '⭐ آدرس‌های ذخیره‌شده', favoritesDesc: 'آدرس‌های مورد علاقه شما',
-        favoritesPickerTitle: '⭐ انتخاب آدرس', favoritesPickerDesc: 'یک آدرس انتخاب کنید',
-        noFavorites: 'آدرسی ذخیره نشده', addAddress: '➕ افزودن آدرس',
-        addAddressTitle: '➕ افزودن آدرس', addAddressDesc: 'نام و آدرس را ذخیره کنید',
-        name: 'نام', favoriteNameRequired: '❌ نام را وارد کنید', favoriteInvalidAddress: '❌ آدرس معتبر نیست',
-        favoriteAdded: '✅ آدرس ذخیره شد', favoriteDeleted: '🗑️ آدرس حذف شد',
-        qrTitle: '📥 دریافت', qrDesc: 'برای دریافت این کد را اسکن کنید', scanTitle: '📷 اسکن QR',
-        scanDesc: 'دوربین را سمت QR بگیرید', scanSuccess: '✅ اسکن موفق', scanInvalid: '❌ QR معتبر نیست',
-        settingsTitle: '⚙️ تنظیمات', settingsDesc: 'تنظیمات اپلیکیشن', themeSection: '🎨 تم رنگی',
-        themeDark: 'تیره', themeLight: 'روشن', themeAutumn: 'پاییزی', themeOcean: 'اقیانوس',
-        themeForest: 'جنگل', themePurple: 'بنفش', themeBlack: 'مشکی (OLED)', securitySection: '🔐 امنیت',
-        bioLoginTitle: '👆 ورود با اثر انگشت', notificationsSection: '🔔 نوتیفیکیشن',
-        notifSoundTitle: '🔊 صدای اعلان', notifSoundDesc: 'پخش صدا برای اعلان‌ها', notifVibrateTitle: '📳 ویبره',
-        notifVibrateDesc: 'لرزش هنگام اعلان', bioChecking: 'در حال بررسی...', bioEnabled: '✅ فعال',
-        bioDisabled: 'غیرفعال', bioNotSupported: 'غیرفعال (پشتیبانی نمی‌شود)',
-        bioTelegramWarning: '⚠️ Telegram Mini App از اثر انگشت پشتیبانی نمی‌کند.',
-        bioWebWarning: '⚠️ در مرورگر وب پشتیبانی نمی‌شود.', bioDeviceWarning: '⚠️ دستگاه سنسور اثر انگشت ندارد.',
-        bioEnabledToast: '✅ اثر انگشت فعال شد', bioDisabledToast: '🔓 اثر انگشت غیرفعال شد',
-        bioFailed: '❌ احراز هویت ناموفق', bioSaveError: '❌ خطا در ذخیره',
-        bioNotSupportedToast: '❌ دستگاه پشتیبانی نمی‌کند', bioInfoNotFound: '❌ اطلاعات پیدا نشد',
-        bioEnablePrompt: 'تأیید فعال‌سازی', bioTxPrompt: 'تأیید تراکنش', bioSwapPrompt: 'تأیید Swap',
-        bioSeedPrompt: 'تأیید مشاهده ۱۲ کلمه', bioLoginPrompt: 'ورود به Fox Wallet', bioExitPrompt: 'تأیید حذف',
-        bioAuthTitle: 'احراز هویت', bioAuthSubtitle: 'برای تأیید از اثر انگشت استفاده کنید',
-        bioAuthDescription: 'اثر انگشت خود را روی سنسور بگذارید', bioAuthFallback: 'استفاده از رمز دستگاه',
-        balanceHidden: '🙈 موجودی مخفی شد', balanceShown: '👁️ موجودی نمایش داده شد',
-        allNFTsTitle: '🖼️ همه NFT ها', nftDetailTitle: '🖼️ جزئیات NFT', allTxTitle: '📜 تاریخچه تراکنش ها',
-        detailTokenId: '🆔 شناسه:', detailAmount: '📦 تعداد:', detailFrom: '📤 از:', detailTo: '📥 به:',
-        detailGas: '⛽ کارمزد:', detailTime: '🕐 زمان:', detailHash: '🔗 هش:', detailValue: '💰 مقدار:',
-        detailPrice: '💎 قیمت:', detailTotalPrice: '💰 قیمت کل:', typeReceiveAVAX: '📥 دریافت AVAX',
-        typeSendAVAX: '📤 ارسال AVAX', typeReceiveNFT: '📥 دریافت NFT', typeSendNFT: '📤 ارسال NFT',
-        typeSwap: '🔄 Swap', promptTitle: '🔐 تأیید هویت', promptDesc: 'رمز عبور خود را وارد کنید',
-        noWallets: 'هنوز کیف پولی نیست'
-    },
-    en: {
-        appName: 'Fox Wallet', walletsBtn: '👛 Wallets', connecting: '🔌 Connecting...',
-        connected: '✅ Connected to Avalanche', locked: '🔒 Wallet is locked', welcome: '👋 Welcome',
-        heroTotalBalance: 'Total Balance', heroSend: 'Send', heroReceive: 'Receive', heroSwap: 'Swap',
-        tabTokens: 'Tokens', tabNFTs: 'NFTs', tabHistory: 'History', settingsLabel: '⚙️ Settings',
-        openSettings: '⚙️ Open Settings', favoritesBtn: '⭐ Saved Addresses',
-        footer: '🦊 Fox Wallet - The Future of DeFi', emptyTokens: 'No tokens yet',
-        emptyNFTs: 'No NFTs', emptyTx: 'No transactions yet',
-        walletsTitle: '👛 Wallets', selectWallet: 'Select a wallet',
-        addNewWallet: '➕ Add New Wallet', activeBadge: 'Active', renameWallet: '✏️ Rename Wallet',
-        renameDesc: 'Enter a new name', walletName: 'Wallet name', save: '✅ Save',
-        deleteWallet: '⚠️ Delete Wallet', deleteWalletDesc: 'Are you sure? This will remove the wallet from this app. You can only restore it with your 12 recovery words.',
-        deleteBtn: '🗑️ Delete', exportSeed: '🔑 Export Seed',
-        seedVerifyTitle: '🔐 Confirm Identity', seedVerifyDesc: 'Authenticate to view your recovery phrase',
-        fingerprint: '👆 Fingerprint', seedRevealTitle: '🔑 Recovery Phrase',
-        seedRevealWarning: '⚠️ Never share these words with anyone.',
-        seedRevealDesc1: 'Tap "Reveal" to see your 12 words',
-        seedRevealDesc2: 'Enter 3 random words to verify', reveal: '👁️ Reveal',
-        verify: '✅ Verify', copyAll: '📋 Copy All', seedWrong: '❌ Wrong words. Try again.',
-        loginTitle: '🦊 Fox Wallet', loginDesc: 'Welcome to your wallet',
-        createWallet: '🆕 Create New Wallet', importWallet: '📥 Import Wallet',
-        createWarning: '⚠️ Save these 12 words in a safe place!',
-        importWarning: '⚠️ Enter your 12 recovery words',
-        seedPlaceholder: 'Word', generateClick: 'Click to generate',
-        generate: '🔄 Generate Words', password: 'Password', passwordFull: 'Password (min 6 chars)',
-        repeatPassword: 'Repeat Password', enterPassword: 'Enter your password',
-        unlock: '🔓 Unlock', fingerprintLogin: '👆 Login with Fingerprint',
-        passMin: 'Password must be at least 6 characters', passMatch: 'Passwords do not match',
-        passWrong: '❌ Wrong password', generateFirst: 'Generate words first',
-        walletCreated: '🎉 Wallet created', walletImported: '🎉 Wallet imported',
-        walletAdded: '✅ Wallet added', walletUnlocked: '🔓 Wallet unlocked',
-        walletDeletedPermanently: '🗑️ Wallet deleted', walletRenamed: '✅ Name changed',
-        waitingFingerprint: '👆 Waiting for fingerprint...', walletNamePlaceholder: 'Wallet name',
-        walletExists: '❌ Wallet already exists', selectToken: 'Select Token',
-        noTxForToken: 'No transactions for this token', days7: '7D', days30: '30D', days90: '90D',
-        native: 'Native', currentPrice: 'Current Price', change24h: '24h Change', yourBalance: 'Balance',
-        tokenValue: 'Value', aboutToken: 'About', sendTitle: '📤 Send', sendDesc: 'What would you like to send?',
-        sendTokenTab: '💰 Token', sendNFTTab: '🖼️ NFT', recipient: 'Recipient Address', tokenAmount: 'Amount',
-        balanceInfo: 'Balance', sendTokenBtn: 'Send Token', sendNFTBtn: 'Send NFT', nftAmount: 'Quantity',
-        noNFTToSend: 'No NFTs to send', selectNFTFirst: '❌ Select an NFT first',
-        invalidAddress: '❌ Invalid address', cantSendToSelf: '❌ Cannot send to yourself',
-        invalidAmount: '❌ Invalid amount', insufficientBalance: '❌ Insufficient balance',
-        minAmount: '❌ Minimum is 0.001 AVAX', swapTitle: '🔄 Swap', swapDesc: 'Convert your tokens',
-        from: 'From', to: 'To', rate: 'Rate:', fee: 'Fee:', confirmTitle: '⚠️ Confirm',
-        confirmSub: 'Authenticate to continue', confirmSubBio: 'Place your finger to confirm',
-        confirmBioBtn: '👆 Fingerprint', confirmPassBtn: '✅ Confirm', confirmSwapTitle: '⚠️ Confirm Swap',
-        confirmSwapSub: 'Authenticate to swap', confirmSwapBtn: '✅ Confirm & Swap',
-        sending: '🔄 Sending...', swapping: '🔄 Swapping...', waitingNetwork: '⏳ Waiting for network...',
-        txCancelled: '❌ Cancelled', sendingError: '❌ Sending error', swapError: '❌ Swap error',
-        successTitle: '✅ Success!', successSub: 'Transaction completed', successSwapTitle: '✅ Swap Successful!',
-        successSwapSub: 'Swap completed', soundOn: 'Sound enabled', soundOff: 'Sound disabled',
-        vibrateOn: 'Vibration enabled', vibrateOff: 'Vibration disabled', copied: '✅ Copied',
-        hashCopied: '✅ Hash copied', openWalletFirst: '❌ Open wallet first',
-        confirm: '✅ Confirm', cancel: '❌ Cancel', close: '❌ Close', back: '🔙 Back', continue: 'Continue',
-        favoritesTitle: '⭐ Saved Addresses', favoritesDesc: 'Your saved addresses',
-        favoritesPickerTitle: '⭐ Select Address', favoritesPickerDesc: 'Choose an address',
-        noFavorites: 'No saved addresses', addAddress: '➕ Add Address',
-        addAddressTitle: '➕ Add Address', addAddressDesc: 'Save name and address',
-        name: 'Name', favoriteNameRequired: '❌ Enter a name', favoriteInvalidAddress: '❌ Invalid address',
-        favoriteAdded: '✅ Address saved', favoriteDeleted: '🗑️ Address deleted',
-        qrTitle: '📥 Receive', qrDesc: 'Scan this QR code to receive', scanTitle: '📷 Scan QR',
-        scanDesc: 'Point camera at QR', scanSuccess: '✅ Scan successful', scanInvalid: '❌ Invalid QR',
-        settingsTitle: '⚙️ Settings', settingsDesc: 'App settings', themeSection: '🎨 Theme',
-        themeDark: 'Dark', themeLight: 'Light', themeAutumn: 'Autumn', themeOcean: 'Ocean',
-        themeForest: 'Forest', themePurple: 'Purple', themeBlack: 'Black (OLED)', securitySection: '🔐 Security',
-        bioLoginTitle: '👆 Fingerprint Login', notificationsSection: '🔔 Notifications',
-        notifSoundTitle: '🔊 Notification Sound', notifSoundDesc: 'Play sound for notifications', notifVibrateTitle: '📳 Vibration',
-        notifVibrateDesc: 'Vibrate on notifications', bioChecking: 'Checking...', bioEnabled: '✅ Enabled',
-        bioDisabled: 'Disabled', bioNotSupported: 'Disabled (not supported)',
-        bioTelegramWarning: '⚠️ Telegram Mini App does not support biometrics.',
-        bioWebWarning: '⚠️ Not supported in web browser.', bioDeviceWarning: '⚠️ Your device has no fingerprint sensor.',
-        bioEnabledToast: '✅ Biometric enabled', bioDisabledToast: '🔓 Biometric disabled',
-        bioFailed: '❌ Authentication failed', bioSaveError: '❌ Save error',
-        bioNotSupportedToast: '❌ Device not supported', bioInfoNotFound: '❌ Saved info not found',
-        bioEnablePrompt: 'Confirm fingerprint enable', bioTxPrompt: 'Confirm transaction', bioSwapPrompt: 'Confirm swap',
-        bioSeedPrompt: 'Confirm viewing 12 words', bioLoginPrompt: 'Login to Fox Wallet', bioExitPrompt: 'Confirm deletion',
-        bioAuthTitle: 'Authentication', bioAuthSubtitle: 'Use fingerprint to confirm',
-        bioAuthDescription: 'Place your finger on the sensor', bioAuthFallback: 'Use device password',
-        balanceHidden: '🙈 Balance hidden', balanceShown: '👁️ Balance shown',
-        allNFTsTitle: '🖼️ All NFTs', nftDetailTitle: '🖼️ NFT Details', allTxTitle: '📜 Transaction History',
-        detailTokenId: '🆔 ID:', detailAmount: '📦 Amount:', detailFrom: '📤 From:', detailTo: '📥 To:',
-        detailGas: '⛽ Gas:', detailTime: '🕐 Time:', detailHash: '🔗 Hash:', detailValue: '💰 Value:',
-        detailPrice: '💎 Price:', detailTotalPrice: '💰 Total:', typeReceiveAVAX: '📥 Received AVAX',
-        typeSendAVAX: '📤 Sent AVAX', typeReceiveNFT: '📥 Received NFT', typeSendNFT: '📤 Sent NFT',
-        typeSwap: '🔄 Swap', promptTitle: '🔐 Confirm Identity', promptDesc: 'Enter your password',
-        noWallets: 'No wallets yet'
-    }
-};
+// متغیرهای کمکی (خارج از state چون نباید persist بشن)
+let passwordPromptResolve = null;
+let swapRateTimeout = null;
 
-function t(key) { return translations[currentLang][key] || key; }
 // ═══════════════════════════════════════════════════════════════
 // HELPERS
 // ═══════════════════════════════════════════════════════════════
@@ -2201,8 +2448,10 @@ function fullAddr(a) {
 }
 
 function formatAmount(amount, decimals = 6) { return parseFloat(amount).toFixed(decimals); }
-function formatUSD(amount) { return parseFloat(amount || 0).toFixed(2); }
-
+function formatUSD(amount) {
+    const num = parseFloat(amount || 0);
+    return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
 function formatTokenBalance(balance) {
     if (balance === undefined || balance === null) return '0';
     const b = parseFloat(balance);
@@ -2373,7 +2622,6 @@ async function loadAllTokenBalances(forceFetch = false) {
     const now = Date.now();
     const balances = {};
 
-    // AVAX
     if (state.provider) {
         try {
             const avaxBN = await state.provider.getBalance(state.address);
@@ -2391,7 +2639,6 @@ async function loadAllTokenBalances(forceFetch = false) {
         }
     }
 
-    // ERC20
     for (const token of EXTRA_TOKENS) {
         let bal = 0;
         if (state.provider) {
@@ -2416,7 +2663,6 @@ async function loadAllTokenBalances(forceFetch = false) {
             }
         }
 
-        // 🔒 نمایش فقط در صورت وجود موجودی
         if (bal <= 0) continue;
 
         balances[token.symbol] = {
@@ -2426,7 +2672,6 @@ async function loadAllTokenBalances(forceFetch = false) {
         };
     }
 
-    // آفلاین
     if (!state.provider) {
         try {
             const cached = await settingsDB.getItem(cacheKey);
@@ -2541,7 +2786,7 @@ function openTokenDetail(symbol) {
     const changeClass = (token.change24h || 0) >= 0 ? 'up' : 'down';
     const changeSign = (token.change24h || 0) >= 0 ? '+' : '';
     const contractHtml = token.isNative ? `<div class="token-detail-contract">🌐 ${t('native')}</div>` : `<div class="token-detail-contract" onclick="copyToClipboard('${token.address}').then(ok=>ok&&toast(t('copied')))"><span>${token.address.slice(0, 8)}...${token.address.slice(-6)}</span><span>📋</span></div>`;
-    const swapBtn = token.canSwap ? `<button class="token-action-btn" onclick="openSwapFromToken('${safeSymbol}')">🔄 Swap</button>` : '';
+    const swapBtn = token.canSwap ? `<button class="token-action-btn" onclick="openSwapFromToken('${safeSymbol}')">🔄 ${t('heroSwap')}</button>` : '';
     const descHtml = token.description ? `<div class="token-description"><div class="token-description-title">📝 ${t('aboutToken')}</div><div class="token-description-text">${token.description}</div></div>` : '';
     const statsHtml = token.priceUSD > 0 ? `<div class="token-stats-grid"><div class="token-stat-item"><div class="token-stat-label">${t('currentPrice')}</div><div class="token-stat-value gold">$${token.priceUSD.toFixed(4)}</div></div><div class="token-stat-item"><div class="token-stat-label">${t('change24h')}</div><div class="token-stat-value ${changeClass === 'up' ? 'green' : 'red'}">${changeSign}${(token.change24h || 0).toFixed(2)}%</div></div><div class="token-stat-item"><div class="token-stat-label">${t('yourBalance')}</div><div class="token-stat-value">${formatTokenBalance(token.balance)}</div></div><div class="token-stat-item"><div class="token-stat-label">${t('tokenValue')}</div><div class="token-stat-value green">$${formatUSD(token.valueUSD || 0)}</div></div></div>` : '';
     const chartHtml = token.priceUSD > 0 ? `<div class="chart-container-wrap"><div class="chart-range-tabs"><button class="chart-range-tab active" onclick="switchChartRange(7, this)">${t('days7')}</button><button class="chart-range-tab" onclick="switchChartRange(30, this)">${t('days30')}</button><button class="chart-range-tab" onclick="switchChartRange(90, this)">${t('days90')}</button></div><div class="chart-box" id="tokenChartBox"></div></div>` : '';
@@ -2572,7 +2817,7 @@ function closeTokenDetail() {
 function createCandleChart(token, days) {
     const container = document.getElementById('tokenChartBox');
     if (!container) return;
-    if (typeof LightweightCharts === 'undefined') { container.innerHTML = '<div class="empty-state">⚠️ Chart library not loaded</div>'; return; }
+    if (typeof LightweightCharts === 'undefined') { container.innerHTML = `<div class="empty-state">${t('noData')}</div>`; return; }
     if (tokenChart) { try { tokenChart.remove(); } catch (e) {} tokenChart = null; tokenCandleSeries = null; }
     try {
         tokenChart = LightweightCharts.createChart(container, {
@@ -2596,7 +2841,7 @@ function createCandleChart(token, days) {
         if (window._tokenChartResize) window.removeEventListener('resize', window._tokenChartResize);
         window._tokenChartResize = () => { if (tokenChart && container) tokenChart.applyOptions({ width: container.clientWidth, height: container.clientHeight }); };
         window.addEventListener('resize', window._tokenChartResize);
-    } catch (e) { container.innerHTML = '<div class="empty-state">⚠️ Chart error</div>'; }
+    } catch (e) { container.innerHTML = `<div class="empty-state">${t('error')}</div>`; }
 }
 
 function generateFallbackCandles(basePrice, days) {
@@ -2660,7 +2905,8 @@ function renderWalletListModal() {
 function openWalletMenu(index, btn) {
     const existing = document.getElementById('walletMenuDropdown'); if (existing) existing.remove();
     const menu = document.createElement('div'); menu.id = 'walletMenuDropdown'; menu.className = 'wallet-menu-dropdown';
-    menu.innerHTML = `<button class="menu-item" onclick="openRenameWallet(${index})">${t('renameWallet')}</button><button class="menu-item" onclick="openSeedForWallet(${index})">${t('exportSeed')}</button><button class="menu-item danger" onclick="openDeleteWalletConfirm(${index})">${t('deleteWallet')}</button>`;
+    const dir = currentLang === 'fa' ? 'right' : 'left';
+    menu.innerHTML = `<button class="menu-item" style="text-align:${dir};" onclick="openRenameWallet(${index})">${t('renameWallet')}</button><button class="menu-item" style="text-align:${dir};" onclick="openSeedForWallet(${index})">${t('exportSeed')}</button><button class="menu-item danger" style="text-align:${dir};" onclick="openDeleteWalletConfirm(${index})">${t('deleteWallet')}</button>`;
     document.body.appendChild(menu);
     setTimeout(() => { document.addEventListener('click', closeWalletMenuOnOutsideClick, { once: true }); }, 10);
 }
@@ -2769,7 +3015,7 @@ function startSeedVerification() {
     while (indices.length < 3) { const r = Math.floor(Math.random() * total); if (!indices.includes(r)) indices.push(r); }
     state.seedVerifyIndices = indices.sort((a, b) => a - b);
     const grid = document.getElementById('seedVerifyGrid'); let html = '';
-    state.seedVerifyIndices.forEach(idx => { html += `<input type="text" class="seed-verify-input" data-idx="${idx}" placeholder="#${idx + 1}" />`; });
+    state.seedVerifyIndices.forEach(idx => { html += `<input type="text" class="seed-verify-input import-word-input" data-idx="${idx}" placeholder="#${idx + 1}" />`; });
     grid.innerHTML = html; document.getElementById('seedRevealStep1').classList.add('hidden'); document.getElementById('seedRevealStep2').classList.remove('hidden'); document.getElementById('seedRevealStep3').classList.add('hidden');
 }
 
@@ -2783,10 +3029,12 @@ function verifySeedWords() {
     const finalContainer = document.getElementById('seedFinalContainer'); let html = '';
     state.seedCurrentWords.forEach((w, i) => { html += `<div class="seed-word-box"><div class="seed-word-num">${i + 1}</div><div class="seed-word-text">${w}</div></div>`; });
     finalContainer.innerHTML = html; document.getElementById('seedRevealStep2').classList.add('hidden'); document.getElementById('seedRevealStep3').classList.remove('hidden');
+    const verifiedMsg = document.getElementById('seedVerifiedMsg'); if (verifiedMsg) verifiedMsg.textContent = t('seedVerified');
 }
 
 async function copyAllSeedWords() { const text = state.seedCurrentWords.join(' '); const ok = await copyToClipboard(text); if (ok) toast(t('copied')); }
 function closeSeedReveal() { document.getElementById('seedRevealModal').classList.add('closed'); state.seedCurrentWords = []; state.seedVerifyIndices = []; state.seedRevealed = false; state.seedTargetIndex = null; }
+
 // ═══════════════════════════════════════════════════════════════
 // NFTs
 // ═══════════════════════════════════════════════════════════════
@@ -2834,7 +3082,7 @@ function openNFTDetail(contract, id, name, image, collection) {
     const body = document.getElementById('nftDetailBody'); const nftItem = state.allNFTs.find(n => n.contract.toLowerCase() === contract.toLowerCase() && n.id === id);
     let imageHtml = image ? `<img src="${image}" class="detail-nft-image" onerror="this.outerHTML='&lt;div class=\\'detail-nft-image placeholder\\'&gt;🎨&lt;/div&gt;'" />` : `<div class="detail-nft-image placeholder">🎨</div>`;
     let priceRows = ''; if (nftItem && nftItem.pricePerNFT > 0) priceRows = `<div class="detail-row"><span class="detail-label">${t('detailPrice')}</span><span class="detail-value gold">${nftItem.pricePerNFT.toFixed(2)} $</span></div><div class="detail-row"><span class="detail-label">${t('detailTotalPrice')}</span><span class="detail-value green">${nftItem.totalPrice.toFixed(2)} $</span></div>`;
-    body.innerHTML = `${imageHtml}<div class="detail-nft-name">${name}</div><div class="detail-nft-collection">📚 ${collection}</div><div class="detail-row"><span class="detail-label">${t('detailTokenId')}</span><span class="detail-value white">#${id}</span></div>${nftItem ? `<div class="detail-row"><span class="detail-label">${t('detailAmount')}</span><span class="detail-value green">×${nftItem.balance}</span></div>` : ''}${priceRows}<div class="detail-row"><span class="detail-label">📋 Contract:</span><span class="detail-value" title="${contract}">${contract.slice(0, 10)}...${contract.slice(-8)}</span></div><button class="btn btn-success btn-full" onclick="openSendNFTFromDetail('${contract}', ${id}, '${name.replace(/'/g, "\\'")}', '${(image || '').replace(/'/g, "\\'")}', '${collection.replace(/'/g, "\\'")}')" style="margin-top: 16px;">📤 ${t('sendNFTBtn')}</button>`;
+    body.innerHTML = `${imageHtml}<div class="detail-nft-name">${name}</div><div class="detail-nft-collection">📚 ${collection}</div><div class="detail-row"><span class="detail-label">${t('detailTokenId')}</span><span class="detail-value white">#${id}</span></div>${nftItem ? `<div class="detail-row"><span class="detail-label">${t('detailAmount')}</span><span class="detail-value green">×${nftItem.balance}</span></div>` : ''}${priceRows}<div class="detail-row"><span class="detail-label">📋 ${t('contract')}:</span><span class="detail-value" title="${contract}">${contract.slice(0, 10)}...${contract.slice(-8)}</span></div><button class="btn btn-success btn-full" onclick="openSendNFTFromDetail('${contract}', ${id}, '${name.replace(/'/g, "\\'")}', '${(image || '').replace(/'/g, "\\'")}', '${collection.replace(/'/g, "\\'")}')" style="margin-top: 16px;">📤 ${t('sendNFTBtn')}</button>`;
     document.getElementById('nftDetailModal').classList.remove('closed');
 }
 function closeNFTDetail() { document.getElementById('nftDetailModal').classList.add('closed'); }
@@ -2905,22 +3153,26 @@ function showQRCode() {
     if (!state.address) { showNotification('error', '❌', t('notConnected')); return; }
     const modal = document.getElementById('qrModal'); const addressText = document.getElementById('qrAddressText'); const qrContainer = document.getElementById('qrContainer');
     if (!modal || !qrContainer) return; modal.classList.remove('closed'); addressText.textContent = state.address; qrContainer.innerHTML = '';
-    if (typeof QRCode === 'undefined') { qrContainer.innerHTML = '<div style="color:#e94560;padding:20px;text-align:center;">❌ QR library not loaded</div>'; return; }
+    if (typeof QRCode === 'undefined') { qrContainer.innerHTML = `<div style="color:#e94560;padding:20px;text-align:center;">${t('qrNotLoaded')}</div>`; return; }
     try { new QRCode(qrContainer, { text: state.address, width: 240, height: 240, colorDark: '#000000', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.M }); }
-    catch (e) { qrContainer.innerHTML = `<div style="color:#e94560;padding:20px;text-align:center;">❌ Error: ${e.message}</div>`; }
+    catch (e) { qrContainer.innerHTML = `<div style="color:#e94560;padding:20px;text-align:center;">${t('qrError')}: ${e.message}</div>`; }
 }
 function closeQRModal() { const m = document.getElementById('qrModal'); if (m) m.classList.add('closed'); }
 async function copyQrAddress() { if (state.address) { const ok = await copyToClipboard(state.address); if (ok) toast(t('copied')); } }
 
 async function startQRScanner(target) {
-    if (typeof Html5Qrcode === 'undefined') { showNotification('error', '❌', 'Scanner library not loaded'); return; }
+    if (typeof Html5Qrcode === 'undefined') { showNotification('error', '❌', t('scannerNotLoaded')); return; }
     state.scanTarget = target; const modal = document.getElementById('scanModal'); if (!modal) return; modal.classList.remove('closed');
     setTimeout(async () => {
         try {
             if (state.qrScanner) { try { await state.qrScanner.stop(); state.qrScanner.clear(); } catch (e) {} state.qrScanner = null; }
             state.qrScanner = new Html5Qrcode('qrReader');
             await state.qrScanner.start({ facingMode: 'environment' }, { fps: 10, qrbox: { width: 250, height: 250 } }, (decodedText) => handleScanSuccess(decodedText), (err) => {});
-        } catch (e) { let errMsg = 'Camera unavailable'; if (e.message?.includes('Permission') || e.message?.includes('NotAllowed')) errMsg = 'Camera permission denied'; showNotification('error', '❌', errMsg); closeScanner(); }
+        } catch (e) {
+            let errMsg = t('cameraUnavailable');
+            if (e.message?.includes('Permission') || e.message?.includes('NotAllowed')) errMsg = t('cameraDenied');
+            showNotification('error', '❌', errMsg); closeScanner();
+        }
     }, 300);
 }
 function handleScanSuccess(decodedText) {
@@ -2959,7 +3211,7 @@ async function saveFavorite() {
     const name = document.getElementById('favNameInput').value.trim(); const address = document.getElementById('favAddressInput').value.trim();
     if (!name) { toast(t('favoriteNameRequired'), 'error'); return; }
     if (!address || !ethers.utils.isAddress(address)) { toast(t('favoriteInvalidAddress'), 'error'); return; }
-    const exists = state.favorites.some(f => f.address.toLowerCase() === address.toLowerCase()); if (exists) { toast('❌ Already saved', 'error'); return; }
+    const exists = state.favorites.some(f => f.address.toLowerCase() === address.toLowerCase()); if (exists) { toast(t('favoriteAlreadySaved'), 'error'); return; }
     state.favorites.push({ name, address, addedAt: Date.now() }); await saveFavorites(); updateFavoritesList(); closeAddFavorite(); toast(t('favoriteAdded'));
 }
 async function deleteFavorite(index) { state.favorites.splice(index, 1); await saveFavorites(); updateFavoritesList(); toast(t('favoriteDeleted')); }
@@ -3031,7 +3283,7 @@ function startSendToken() {
     if (!to || !ethers.utils.isAddress(to)) { showNotification('error', '❌', t('invalidAddress')); return; }
     if (to.toLowerCase() === state.address.toLowerCase()) { showNotification('error', '❌', t('cantSendToSelf')); return; }
     const amount = parseFloat(amountStr); if (!amount || amount <= 0) { showNotification('error', '❌', t('invalidAmount')); return; }
-    const selected = tokenBalances[currentSendToken]; if (!selected) { showNotification('error', '❌', 'Token not found'); return; }
+    const selected = tokenBalances[currentSendToken]; if (!selected) { showNotification('error', '❌', t('tokenNotFound')); return; }
     if (amount > selected.balance) { showNotification('error', '❌', t('insufficientBalance')); return; }
     if (currentSendToken === 'AVAX' && amount < 0.001) { showNotification('error', '❌', t('minAmount')); return; }
     if (currentSendToken === 'AVAX' && amount >= selected.balance) { showNotification('error', '❌', t('insufficientBalance')); return; }
@@ -3073,7 +3325,7 @@ async function executeTxByType(tx) { if (tx.type === 'token') await executeSendT
 
 async function executeSendToken(tx) {
     try {
-        if (!state.provider) { showNotification('error', '❌', 'No provider'); return; }
+        if (!state.provider) { showNotification('error', '❌', t('error')); return; }
         if (!state.signer.provider) state.signer = state.signer.connect(state.provider);
         status(t('sending'), 'info'); let transaction;
         if (tx.tokenIsNative) { transaction = await state.signer.sendTransaction({ to: tx.to, value: tx.amountWei }); }
@@ -3083,18 +3335,18 @@ async function executeSendToken(tx) {
         const gasFeeWei = gasUsed.mul(effectiveGasPrice); const gasFeeAvax = parseFloat(ethers.utils.formatEther(gasFeeWei)).toFixed(6);
         const txRecord = { hash: receipt.transactionHash, type: tx.tokenIsNative ? 'avax' : 'token', tokenSymbol: tx.tokenSymbol, direction: 'out', from: state.address, to: tx.to, value: tx.amount, gasFee: gasFeeAvax, timestamp: Date.now(), blockNumber: receipt.blockNumber };
         await addTxToHistory(txRecord); await renderTxHistory(); showSuccessModal(txRecord);
-        await NativeNotifications.send('✅ ' + t('successTitle'), `${formatTokenBalance(tx.amount)} ${tx.tokenSymbol} → ${shortAddr(tx.to)}`, 'success');
+        await NativeNotifications.send(t('notificationSentTitle'), `${formatTokenBalance(tx.amount)} ${tx.tokenSymbol} → ${shortAddr(tx.to)}`, 'success');
         document.getElementById('tokenSendTo').value = ''; document.getElementById('tokenAmount').value = ''; state.pendingTx = null; closeSendModal();
         status(t('successTitle'), 'success'); await refreshAll(true); setTimeout(restoreConnectedStatus, 3000);
     } catch (e) {
-        let errMsg = e.message || 'Error'; if (e.code === 'ACTION_REJECTED' || errMsg.includes('user rejected')) errMsg = t('txCancelled');
+        let errMsg = e.message || t('error'); if (e.code === 'ACTION_REJECTED' || errMsg.includes('user rejected') || errMsg.includes('user rejects')) errMsg = t('txCancelled');
         showNotification('error', '❌ ' + t('sendingError'), errMsg); status(t('sendingError'), 'error'); state.pendingTx = null; setTimeout(restoreConnectedStatus, 3000);
     }
 }
 
 async function executeSendNFT(tx) {
     try {
-        if (!state.provider) { showNotification('error', '❌', 'No provider'); return; }
+        if (!state.provider) { showNotification('error', '❌', t('error')); return; }
         if (!state.signer.provider) state.signer = state.signer.connect(state.provider);
         status(t('sending'), 'info');
         const contract = new ethers.Contract(tx.contract, ['function safeTransferFrom(address, address, uint, uint, bytes)'], state.signer);
@@ -3104,11 +3356,11 @@ async function executeSendNFT(tx) {
         const gasFeeWei = gasUsed.mul(effectiveGasPrice); const gasFeeAvax = parseFloat(ethers.utils.formatEther(gasFeeWei)).toFixed(6);
         const txRecord = { hash: receipt.transactionHash, type: 'nft', direction: 'out', from: state.address, to: tx.to, contract: tx.contract, tokenId: tx.tokenId, amount: tx.amount, nftName: tx.nftName, image: tx.image, collection: tx.collection, gasFee: gasFeeAvax, timestamp: Date.now(), blockNumber: receipt.blockNumber };
         await addTxToHistory(txRecord); await renderTxHistory(); showSuccessModal(txRecord);
-        await NativeNotifications.send('✅ NFT', `${tx.nftName} → ${shortAddr(tx.to)}`, 'success');
+        await NativeNotifications.send(t('notificationNFTTitle'), `${tx.nftName} → ${shortAddr(tx.to)}`, 'success');
         document.getElementById('nftSendTo').value = ''; document.getElementById('nftAmount').value = '1'; state.selectedNFT = null; state.pendingTx = null; closeSendModal();
         status(t('successTitle'), 'success'); await refreshAll(true); setTimeout(restoreConnectedStatus, 3000);
     } catch (e) {
-        let errMsg = e.message || 'Error'; if (e.code === 'ACTION_REJECTED' || errMsg.includes('user rejects')) errMsg = t('txCancelled');
+        let errMsg = e.message || t('error'); if (e.code === 'ACTION_REJECTED' || errMsg.includes('user rejects')) errMsg = t('txCancelled');
         showNotification('error', '❌ ' + t('sendingError'), errMsg); status(t('sendingError'), 'error'); state.pendingTx = null; setTimeout(restoreConnectedStatus, 3000);
     }
 }
@@ -3143,7 +3395,6 @@ async function updateSwapBalanceInfo() {
 }
 function setSwapFromMax() { if (state.swapFromBalance) { const fromToken = CONFIG.pangolin.tokens[state.swapFromToken]; let maxVal = parseFloat(state.swapFromBalance); if (fromToken.isNative && maxVal > 0.01) maxVal = maxVal - 0.01; document.getElementById('swapFromAmount').value = maxVal.toFixed(6); updateSwapRate(); } }
 
-let swapRateTimeout = null;
 async function updateSwapRate() {
     const fromAmount = parseFloat(document.getElementById('swapFromAmount').value) || 0;
     const rateEl = document.getElementById('swapRateInfo'); const feeEl = document.getElementById('swapFeeInfo'); const toAmountEl = document.getElementById('swapToAmount');
@@ -3152,7 +3403,7 @@ async function updateSwapRate() {
     swapRateTimeout = setTimeout(async () => {
         try {
             const fromToken = CONFIG.pangolin.tokens[state.swapFromToken]; const toToken = CONFIG.pangolin.tokens[state.swapToToken];
-            if (fromToken.address.toLowerCase() === toToken.address.toLowerCase()) { rateEl.textContent = 'Same token'; toAmountEl.value = fromAmount.toFixed(6); return; }
+            if (fromToken.address.toLowerCase() === toToken.address.toLowerCase()) { rateEl.textContent = t('sameToken'); toAmountEl.value = fromAmount.toFixed(6); return; }
             const router = new ethers.Contract(CONFIG.pangolin.routerAddress, CONFIG.pangolin.routerABI, state.provider);
             const amountIn = ethers.utils.parseUnits(fromAmount.toString(), fromToken.decimals); const path = [fromToken.address, toToken.address];
             const amounts = await router.getAmountsOut(amountIn, path); const amountOut = amounts[1];
@@ -3160,7 +3411,7 @@ async function updateSwapRate() {
             state.swapFromAmount = fromAmount; state.swapToAmount = amountOutFormatted; state.swapAmountOutWei = amountOut;
             toAmountEl.value = amountOutFormatted.toFixed(6);
             const rate = amountOutFormatted / fromAmount; rateEl.textContent = `1 ${state.swapFromToken} ≈ ${rate.toFixed(6)} ${state.swapToToken}`; feeEl.textContent = '~0.3% (Pangolin)';
-        } catch (e) { rateEl.textContent = '❌ Error'; toAmountEl.value = ''; }
+        } catch (e) { rateEl.textContent = '❌ ' + t('error'); toAmountEl.value = ''; }
     }, 500);
 }
 
@@ -3168,8 +3419,8 @@ function startSwap() {
     if (!state.signer) { showNotification('error', '❌', t('openWalletFirst')); return; }
     const fromAmount = parseFloat(document.getElementById('swapFromAmount').value) || 0;
     if (fromAmount <= 0) { showNotification('error', '❌', t('invalidAmount')); return; }
-    if (state.swapFromToken === state.swapToToken) { showNotification('error', '❌', 'Same token'); return; }
-    if (!state.swapToAmount || state.swapToAmount <= 0) { showNotification('error', '❌', 'Rate not ready'); return; }
+    if (state.swapFromToken === state.swapToToken) { showNotification('error', '❌', t('sameToken')); return; }
+    if (!state.swapToAmount || state.swapToAmount <= 0) { showNotification('error', '❌', t('rateNotReady')); return; }
     const fromToken = CONFIG.pangolin.tokens[state.swapFromToken]; const toToken = CONFIG.pangolin.tokens[state.swapToToken];
     state.pendingTx = { type: 'swap', fromToken: state.swapFromToken, toToken: state.swapToToken, fromAmount, toAmount: state.swapToAmount, fromTokenInfo: fromToken, toTokenInfo: toToken, amountOutWei: state.swapAmountOutWei, timestamp: Date.now() };
     closeSwapModal(); showConfirmModal();
@@ -3177,7 +3428,7 @@ function startSwap() {
 
 async function executeSwap(tx) {
     try {
-        if (!state.provider) { showNotification('error', '❌', 'No provider'); return; }
+        if (!state.provider) { showNotification('error', '❌', t('error')); return; }
         if (!state.signer.provider) state.signer = state.signer.connect(state.provider);
         status(t('swapping'), 'info');
         const fromToken = tx.fromTokenInfo; const toToken = tx.toTokenInfo;
@@ -3190,12 +3441,12 @@ async function executeSwap(tx) {
         else if (toToken.isNative) {
             const tc = new ethers.Contract(fromToken.address, ['function approve(address, uint) returns (bool)', 'function allowance(address, address) view returns (uint)'], state.signer);
             const allowance = await tc.allowance(state.address, CONFIG.pangolin.routerAddress);
-            if (allowance.lt(amountIn)) { status('⏳ Approving...', 'info'); const approveTx = await tc.approve(CONFIG.pangolin.routerAddress, ethers.constants.MaxUint256); await approveTx.wait(); }
+            if (allowance.lt(amountIn)) { status(t('approving'), 'info'); const approveTx = await tc.approve(CONFIG.pangolin.routerAddress, ethers.constants.MaxUint256); await approveTx.wait(); }
             transaction = await router.swapExactTokensForAVAX(amountIn, amountOutMin, path, state.address, deadline);
         } else {
             const tc = new ethers.Contract(fromToken.address, ['function approve(address, uint) returns (bool)', 'function allowance(address, address) view returns (uint)'], state.signer);
             const allowance = await tc.allowance(state.address, CONFIG.pangolin.routerAddress);
-            if (allowance.lt(amountIn)) { status('⏳ Approving...', 'info'); const approveTx = await tc.approve(CONFIG.pangolin.routerAddress, ethers.constants.MaxUint256); await approveTx.wait(); }
+            if (allowance.lt(amountIn)) { status(t('approving'), 'info'); const approveTx = await tc.approve(CONFIG.pangolin.routerAddress, ethers.constants.MaxUint256); await approveTx.wait(); }
             transaction = await router.swapExactTokensForTokens(amountIn, amountOutMin, path, state.address, deadline);
         }
         status(t('waitingNetwork'), 'info'); const receipt = await transaction.wait();
@@ -3203,10 +3454,10 @@ async function executeSwap(tx) {
         const gasFeeWei = gasUsed.mul(effectiveGasPrice); const gasFeeAvax = parseFloat(ethers.utils.formatEther(gasFeeWei)).toFixed(6);
         const txRecord = { hash: receipt.transactionHash, type: 'swap', direction: 'out', from: state.address, to: state.address, fromSymbol: tx.fromToken, toSymbol: tx.toToken, fromAmount: tx.fromAmount, toAmount: tx.toAmount, gasFee: gasFeeAvax, timestamp: Date.now(), blockNumber: receipt.blockNumber };
         await addTxToHistory(txRecord); await renderTxHistory(); showSuccessModal(txRecord);
-        await NativeNotifications.send(t('successSwapTitle'), `${formatAmount(tx.fromAmount)} ${tx.fromToken} → ${formatAmount(tx.toAmount)} ${tx.toToken}`, 'success');
+        await NativeNotifications.send(t('notificationSwapTitle'), `${formatAmount(tx.fromAmount)} ${tx.fromToken} → ${formatAmount(tx.toAmount)} ${tx.toToken}`, 'success');
         state.pendingTx = null; status(t('successSwapTitle'), 'success'); await refreshAll(true); setTimeout(restoreConnectedStatus, 3000);
     } catch (e) {
-        let errMsg = e.message || 'Error'; if (e.code === 'ACTION_REJECTED' || errMsg.includes('user rejected')) errMsg = t('txCancelled');
+        let errMsg = e.message || t('error'); if (e.code === 'ACTION_REJECTED' || errMsg.includes('user rejected')) errMsg = t('txCancelled');
         showNotification('error', '❌ ' + t('swapError'), errMsg); status(t('swapError'), 'error'); state.pendingTx = null; setTimeout(restoreConnectedStatus, 3000);
     }
 }
@@ -3244,28 +3495,92 @@ function showSuccessModal(tx) {
 function closeSuccessModal() { document.getElementById('successModal').classList.add('closed'); }
 
 // ═══════════════════════════════════════════════════════════════
-// SETTINGS & LOGIN (Trust Style - Import Grid)
+// SETTINGS MODAL
 // ═══════════════════════════════════════════════════════════════
-function showSettings() { document.getElementById('settingsModal').classList.remove('closed'); Settings.updateThemeUI(Settings.getTheme()); updateBioStatus(); document.getElementById('notifSoundToggle').checked = Settings.getNotifSound(); document.getElementById('notifVibrateToggle').checked = Settings.getNotifVibrate(); }
+function showSettings() {
+    document.getElementById('settingsModal').classList.remove('closed');
+    Settings.updateThemeUI(Settings.getTheme());
+    updateBioStatus();
+    document.getElementById('notifSoundToggle').checked = Settings.getNotifSound();
+    document.getElementById('notifVibrateToggle').checked = Settings.getNotifVibrate();
+    updateLanguageSettingUI();
+}
 function closeSettings() { document.getElementById('settingsModal').classList.add('closed'); }
 
-function updateBioStatus() {
-    const toggle = document.getElementById('bioToggle'); const statusText = document.getElementById('bioStatusText'); const warning = document.getElementById('bioWarning');
-    if (!toggle || !statusText) return; const enabled = Settings.getBiometricEnabled();
-    if (!biometricAvailable) { toggle.disabled = true; toggle.checked = false; statusText.textContent = t('bioNotSupported'); statusText.style.color = 'var(--accent-primary)'; warning.style.display = 'block'; if (isTelegram) warning.textContent = t('bioTelegramWarning'); else if (!isNative) warning.textContent = t('bioWebWarning'); else warning.textContent = t('bioDeviceWarning'); return; }
-    toggle.disabled = false; toggle.checked = enabled; warning.style.display = 'none';
-    if (enabled) { statusText.textContent = t('bioEnabled'); statusText.style.color = 'var(--accent-success)'; } else { statusText.textContent = t('bioDisabled'); statusText.style.color = 'var(--text-secondary)'; }
+function updateLanguageSettingUI() {
+    const btn = document.getElementById('changeLangBtn');
+    if (btn) btn.textContent = currentLang === 'fa' ? '🇮🇷 فارسی' : '🇺🇸 English';
 }
+
+function changeTheme(theme) {
+    Settings.setTheme(theme);
+    const names = {
+        fa: { dark: 'تیره', light: 'روشن', autumn: 'پاییزی', ocean: 'اقیانوس', forest: 'جنگل', purple: 'بنفش', black: 'مشکی' },
+        en: { dark: 'Dark', light: 'Light', autumn: 'Autumn', ocean: 'Ocean', forest: 'Forest', purple: 'Purple', black: 'Black' }
+    };
+    showNotification('info', '🎨', names[currentLang][theme] || theme);
+}
+
+function toggleNotificationSound() {
+    const t2 = document.getElementById('notifSoundToggle');
+    Settings.setNotifSound(t2.checked);
+    showNotification('info', '🔊', t2.checked ? t('soundOn') : t('soundOff'));
+}
+
+function toggleNotificationVibrate() {
+    const t2 = document.getElementById('notifVibrateToggle');
+    Settings.setNotifVibrate(t2.checked);
+    if (t2.checked && navigator.vibrate) navigator.vibrate(100);
+    showNotification('info', '📳', t2.checked ? t('vibrateOn') : t('vibrateOff'));
+}
+
+function updateBioStatus() {
+    const toggle = document.getElementById('bioToggle');
+    const statusText = document.getElementById('bioStatusText');
+    const warning = document.getElementById('bioWarning');
+    if (!toggle || !statusText) return;
+    const enabled = Settings.getBiometricEnabled();
+    if (!biometricAvailable) {
+        toggle.disabled = true; toggle.checked = false;
+        statusText.textContent = t('bioNotSupported');
+        statusText.style.color = 'var(--accent-primary)';
+        warning.style.display = 'block';
+        if (isTelegram) warning.textContent = t('bioTelegramWarning');
+        else if (!isNative) warning.textContent = t('bioWebWarning');
+        else warning.textContent = t('bioDeviceWarning');
+        return;
+    }
+    toggle.disabled = false; toggle.checked = enabled; warning.style.display = 'none';
+    if (enabled) { statusText.textContent = t('bioEnabled'); statusText.style.color = 'var(--accent-success)'; }
+    else { statusText.textContent = t('bioDisabled'); statusText.style.color = 'var(--text-secondary)'; }
+}
+
 async function toggleBiometricFromSettings() {
     const toggle = document.getElementById('bioToggle');
     if (!biometricAvailable) { showNotification('error', '❌', t('bioNotSupportedToast')); toggle.checked = false; return; }
     if (!state.unlocked || !state.currentPassword) { showNotification('error', '❌', t('openWalletFirst')); toggle.checked = false; return; }
-    if (toggle.checked) { const verify = await BiometricAuth.verify(t('bioEnablePrompt')); if (!verify.success) { showNotification('error', '❌', t('bioFailed')); toggle.checked = false; return; } const saved = await BiometricAuth.saveCredentials(state.address, state.currentPassword); if (saved) { Settings.setBiometricEnabled(true); showNotification('success', '✅', t('bioEnabledToast')); } else { showNotification('error', '❌', t('bioSaveError')); toggle.checked = false; } }
-    else { await BiometricAuth.deleteCredentials(); Settings.setBiometricEnabled(false); showNotification('info', '🔓', t('bioDisabledToast')); }
+    if (toggle.checked) {
+        const verify = await BiometricAuth.verify(t('bioEnablePrompt'));
+        if (!verify.success) { showNotification('error', '❌', t('bioFailed')); toggle.checked = false; return; }
+        const saved = await BiometricAuth.saveCredentials(state.address, state.currentPassword);
+        if (saved) { Settings.setBiometricEnabled(true); showNotification('success', '✅', t('bioEnabledToast')); }
+        else { showNotification('error', '❌', t('bioSaveError')); toggle.checked = false; }
+    } else {
+        await BiometricAuth.deleteCredentials();
+        Settings.setBiometricEnabled(false);
+        showNotification('info', '🔓', t('bioDisabledToast'));
+    }
     updateBioStatus();
 }
-async function checkBiometricSupport() { const result = await BiometricAuth.checkAvailability(); biometricAvailable = result.available; }
 
+async function checkBiometricSupport() {
+    const result = await BiometricAuth.checkAvailability();
+    biometricAvailable = result.available;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// LOGIN / CREATE / IMPORT
+// ═══════════════════════════════════════════════════════════════
 function showCreateWallet() {
     document.getElementById('loginOptions').classList.add('hidden'); document.getElementById('createSection').classList.remove('hidden');
     document.getElementById('createVerifySection').classList.add('hidden'); document.getElementById('createPasswordSection').classList.add('hidden'); document.getElementById('importSection').classList.add('hidden'); document.getElementById('unlockSection').classList.add('hidden');
@@ -3298,7 +3613,7 @@ function startCreateWalletVerification() {
         const correctWord = loginTempMnemonicWords[idx]; let wrongOptions = [];
         while (wrongOptions.length < 2) { const randIdx = Math.floor(Math.random() * 12); const randWord = loginTempMnemonicWords[randIdx]; if (randWord !== correctWord && !wrongOptions.includes(randWord)) wrongOptions.push(randWord); }
         const options = [correctWord, ...wrongOptions].sort(() => Math.random() - 0.5);
-        html += `<div class="verify-question" data-idx="${idx}"><div class="verify-question-title">کلمه شماره ${idx + 1} کدام است؟</div><div class="verify-options-row">${options.map(opt => `<button class="verify-option-btn" onclick="selectLoginVerifyOption(this, '${opt}')">${opt}</button>`).join('')}</div></div>`;
+        html += `<div class="verify-question" data-idx="${idx}"><div class="verify-question-title">${t('wordNumber', { n: idx + 1 })}</div><div class="verify-options-row">${options.map(opt => `<button class="verify-option-btn" onclick="selectLoginVerifyOption(this, '${opt}')">${opt}</button>`).join('')}</div></div>`;
     });
     container.innerHTML = html; document.getElementById('createSection').classList.add('hidden'); document.getElementById('createVerifySection').classList.remove('hidden');
 }
@@ -3307,7 +3622,7 @@ function selectLoginVerifyOption(btn, word) { const parent = btn.closest('.verif
 function verifyCreateWalletWords() {
     const questions = document.querySelectorAll('#createVerifyQuestions .verify-question'); let allCorrect = true;
     questions.forEach(q => { const idx = parseInt(q.dataset.idx); const correctWord = loginTempMnemonicWords[idx]; const selectedBtn = q.querySelector('.verify-option-btn.selected'); if (!selectedBtn || selectedBtn.dataset.selectedWord !== correctWord) { allCorrect = false; q.style.borderColor = 'var(--accent-primary)'; } else { q.style.borderColor = 'var(--accent-success)'; } });
-    if (!allCorrect) { showNotification('error', '❌', 'کلمات اشتباه هستند.'); return; }
+    if (!allCorrect) { showNotification('error', '❌', t('seedWrong')); return; }
     document.getElementById('createVerifySection').classList.add('hidden'); document.getElementById('createPasswordSection').classList.remove('hidden');
 }
 function backToSeedDisplayLogin() { document.getElementById('createVerifySection').classList.add('hidden'); document.getElementById('createSection').classList.remove('hidden'); }
@@ -3380,7 +3695,7 @@ function startAddWalletVerification() {
         const correctWord = addTempMnemonicWords[idx]; let wrongOptions = [];
         while (wrongOptions.length < 2) { const randIdx = Math.floor(Math.random() * 12); const randWord = addTempMnemonicWords[randIdx]; if (randWord !== correctWord && !wrongOptions.includes(randWord)) wrongOptions.push(randWord); }
         const options = [correctWord, ...wrongOptions].sort(() => Math.random() - 0.5);
-        html += `<div class="verify-question" data-idx="${idx}"><div class="verify-question-title">کلمه شماره ${idx + 1} کدام است؟</div><div class="verify-options-row">${options.map(opt => `<button class="verify-option-btn" onclick="selectAddVerifyOption(this, '${opt}')">${opt}</button>`).join('')}</div></div>`;
+        html += `<div class="verify-question" data-idx="${idx}"><div class="verify-question-title">${t('wordNumber', { n: idx + 1 })}</div><div class="verify-options-row">${options.map(opt => `<button class="verify-option-btn" onclick="selectAddVerifyOption(this, '${opt}')">${opt}</button>`).join('')}</div></div>`;
     });
     container.innerHTML = html; document.getElementById('addCreateSection').classList.add('hidden'); document.getElementById('addVerifySection').classList.remove('hidden');
 }
@@ -3388,7 +3703,7 @@ function selectAddVerifyOption(btn, word) { const parent = btn.closest('.verify-
 function verifyAddWalletWords() {
     const questions = document.querySelectorAll('#addVerifyQuestions .verify-question'); let allCorrect = true;
     questions.forEach(q => { const idx = parseInt(q.dataset.idx); const correctWord = addTempMnemonicWords[idx]; const selectedBtn = q.querySelector('.verify-option-btn.selected'); if (!selectedBtn || selectedBtn.dataset.selectedWord !== correctWord) { allCorrect = false; q.style.borderColor = 'var(--accent-primary)'; } else { q.style.borderColor = 'var(--accent-success)'; } });
-    if (!allCorrect) { showNotification('error', '❌', 'کلمات اشتباه هستند.'); return; }
+    if (!allCorrect) { showNotification('error', '❌', t('seedWrong')); return; }
     document.getElementById('addVerifySection').classList.add('hidden'); document.getElementById('addPasswordSection').classList.remove('hidden');
 }
 function backToSeedDisplayAdd() { document.getElementById('addVerifySection').classList.add('hidden'); document.getElementById('addCreateSection').classList.remove('hidden'); }
@@ -3431,13 +3746,26 @@ async function verifyIdentityForNewWallet() {
     const pass = await showPasswordPrompt(); if (!pass || pass.length < 6) { toast(t('passMin'), 'error'); return null; } return pass;
 }
 
-let passwordPromptResolve = null;
-function showPasswordPrompt() { return new Promise(resolve => { passwordPromptResolve = resolve; document.getElementById('promptPasswordInput').value = ''; document.getElementById('passwordPromptModal').classList.remove('closed'); }); }
-function submitPromptPassword() { const pass = document.getElementById('promptPasswordInput').value; document.getElementById('passwordPromptModal').classList.add('closed'); if (passwordPromptResolve) { passwordPromptResolve(pass); passwordPromptResolve = null; } }
-function closePasswordPrompt() { document.getElementById('passwordPromptModal').classList.add('closed'); if (passwordPromptResolve) { passwordPromptResolve(null); passwordPromptResolve = null; } }
+function showPasswordPrompt() {
+    return new Promise(resolve => {
+        passwordPromptResolve = resolve;
+        document.getElementById('promptPasswordInput').value = '';
+        document.getElementById('passwordPromptModal').classList.remove('closed');
+    });
+}
+function submitPromptPassword() {
+    const pass = document.getElementById('promptPasswordInput').value;
+    document.getElementById('passwordPromptModal').classList.add('closed');
+    if (passwordPromptResolve) { passwordPromptResolve(pass); passwordPromptResolve = null; }
+}
+function closePasswordPrompt() {
+    document.getElementById('passwordPromptModal').classList.add('closed');
+    if (passwordPromptResolve) { passwordPromptResolve(null); passwordPromptResolve = null; }
+}
 
 async function addWalletToStorage(address, encryptedSeed, name) {
-    const exists = state.wallets.some(w => w.address.toLowerCase() === address.toLowerCase()); if (exists) { showNotification('error', '⚠️', t('walletExists')); return false; }
+    const exists = state.wallets.some(w => w.address.toLowerCase() === address.toLowerCase());
+    if (exists) { showNotification('error', '⚠️', t('walletExists')); return false; }
     state.wallets.push({ address, encryptedSeed, name }); state.activeWalletIndex = state.wallets.length - 1;
     state.address = address; state.encryptedSeed = encryptedSeed; await saveWallets(); return true;
 }
@@ -3447,17 +3775,21 @@ function showUnlockModal() {
     document.getElementById('unlockSection').classList.remove('hidden'); document.getElementById('createSection').classList.add('hidden');
     document.getElementById('createVerifySection').classList.add('hidden'); document.getElementById('createPasswordSection').classList.add('hidden'); document.getElementById('importSection').classList.add('hidden');
     document.getElementById('unlockPass').value = '';
-    const fpBtn = document.getElementById('fingerprintUnlockBtn'); if (fpBtn) fpBtn.style.display = (Settings.getBiometricEnabled() && biometricAvailable) ? 'block' : 'none';
+    const fpBtn = document.getElementById('fingerprintUnlockBtn');
+    if (fpBtn) fpBtn.style.display = (Settings.getBiometricEnabled() && biometricAvailable) ? 'block' : 'none';
     status(t('locked'), 'info');
 }
 async function tryBiometricUnlock() {
     if (!Settings.getBiometricEnabled() || !biometricAvailable) return false;
     const result = await BiometricAuth.verify(t('bioLoginPrompt')); if (!result.success) return false;
-    const creds = await BiometricAuth.getCredentials(); if (!creds || !creds.password) { showNotification('error', '❌', t('bioInfoNotFound')); return false; }
-    document.getElementById('unlockPass').value = creds.password; try { await unlockWallet(); return true; } catch (e) { return false; }
+    const creds = await BiometricAuth.getCredentials();
+    if (!creds || !creds.password) { showNotification('error', '❌', t('bioInfoNotFound')); return false; }
+    document.getElementById('unlockPass').value = creds.password;
+    try { await unlockWallet(); return true; } catch (e) { return false; }
 }
 async function unlockWallet() {
-    const pass = document.getElementById('unlockPass').value; if (!pass) { toast(t('enterPassword'), 'error'); return; }
+    const pass = document.getElementById('unlockPass').value;
+    if (!pass) { toast(t('enterPassword'), 'error'); return; }
     try {
         const wallet = state.wallets[state.activeWalletIndex]; if (!wallet) return;
         const seed = await decryptSecure(wallet.encryptedSeed, pass); const walletInstance = ethers.Wallet.fromMnemonic(seed);
@@ -3467,8 +3799,10 @@ async function unlockWallet() {
         document.getElementById('loginModal').classList.add('closed'); document.getElementById('unlockPass').value = '';
         status(t('walletUnlocked'), 'success'); showNotification('success', '🔓', t('walletUnlocked'));
         await loadFavorites();
-        if (state.pendingSwitchIndex !== undefined && state.pendingSwitchIndex !== state.activeWalletIndex) { const targetIndex = state.pendingSwitchIndex; state.pendingSwitchIndex = undefined; setTimeout(() => switchWalletFromList(targetIndex), 500); }
-        else { await loadTxHistoryFromCache(); await renderTxHistory(); await refreshAll(false); await loadFullTxHistory(); }
+        if (state.pendingSwitchIndex !== undefined && state.pendingSwitchIndex !== state.activeWalletIndex) {
+            const targetIndex = state.pendingSwitchIndex; state.pendingSwitchIndex = undefined;
+            setTimeout(() => switchWalletFromList(targetIndex), 500);
+        } else { await loadTxHistoryFromCache(); await renderTxHistory(); await refreshAll(false); await loadFullTxHistory(); }
     } catch (e) { toast(t('passWrong'), 'error'); }
 }
 
@@ -3489,7 +3823,10 @@ async function fetchAVAXTransactions(address) { try { const url = `${CONFIG.avaC
 async function fetchNFTTransactions(address) { try { const url = `${CONFIG.avaCloud.baseUrl}/v1/chains/${CONFIG.avaCloud.chainId}/addresses/${address}/nft-transactions?pageSize=${CONFIG.avaCloud.pageSize}`; const r = await fetch(url); if (!r.ok) return []; const d = await r.json(); return d.transactions || []; } catch (e) { return []; } }
 
 async function mergeAvaCloudTransactions(avaxTxs, nftTxs) {
-    if (!state.address) return 0; const myAddress = state.address.toLowerCase(); const existingHashes = new Set(state.txHistory.map(t => t.hash)); let newCount = 0;
+    if (!state.address) return 0;
+    const myAddress = state.address.toLowerCase();
+    const existingHashes = new Set(state.txHistory.map(t => t.hash));
+    let newCount = 0;
     for (const avaxTx of avaxTxs) {
         if (existingHashes.has(avaxTx.txHash)) continue; if (avaxTx.txStatus && avaxTx.txStatus !== 'success') continue;
         const valueWei = avaxTx.value || '0'; if (valueWei === '0') continue;
@@ -3515,7 +3852,8 @@ async function mergeAvaCloudTransactions(avaxTxs, nftTxs) {
         state.txHistory.push({ hash: nftTx.txHash, type: 'nft', direction: isIncoming ? 'in' : 'out', from: nftTx.from?.address || '', to: nftTx.to?.address || '', contract: contractAddr, tokenId, amount, nftName: finalName, image: finalImage, collection, gasFee: null, timestamp: (nftTx.blockTimestamp || 0) * 1000, blockNumber: nftTx.blockNumber || 0, fromAvaCloud: true });
         existingHashes.add(nftTx.txHash); newCount++;
     }
-    state.txHistory.sort((a, b) => b.timestamp - a.timestamp); await saveTxToCache(); await renderTxHistory(); return newCount;
+    state.txHistory.sort((a, b) => b.timestamp - a.timestamp);
+    await saveTxToCache(); await renderTxHistory(); return newCount;
 }
 
 async function loadFullTxHistory() {
@@ -3528,50 +3866,75 @@ async function refreshAll(forceFetch = false) {
     try { await loadAllTokenBalances(forceFetch); await loadAllNFTs(forceFetch); renderHeroBalance(); } catch (e) { console.error('Refresh error:', e); }
 }
 
-function applyBalanceVisibility() { const balanceEl = document.getElementById('totalBalanceValue'); const eyeBtn = document.getElementById('balanceEyeBtn'); if (!balanceEl || !eyeBtn) return; if (state.balanceHidden) { balanceEl.classList.add('hidden-balance'); eyeBtn.textContent = '🙈'; } else { balanceEl.classList.remove('hidden-balance'); eyeBtn.textContent = '👁️'; } renderHeroBalance(); }
-function toggleBalanceVisibility() { state.balanceHidden = !state.balanceHidden; Settings.setBalanceHidden(state.balanceHidden); applyBalanceVisibility(); showNotification('info', state.balanceHidden ? '🙈' : '👁️', state.balanceHidden ? t('balanceHidden') : t('balanceShown')); }
-function toggleLanguage() { currentLang = currentLang === 'fa' ? 'en' : 'fa'; Settings.setLang(currentLang); document.documentElement.dir = currentLang === 'en' ? 'ltr' : 'rtl'; document.documentElement.lang = currentLang; updateUI(); }
+function applyBalanceVisibility() {
+    const balanceEl = document.getElementById('totalBalanceValue'); const eyeBtn = document.getElementById('balanceEyeBtn');
+    if (!balanceEl || !eyeBtn) return;
+    if (state.balanceHidden) { balanceEl.classList.add('hidden-balance'); eyeBtn.textContent = '🙈'; }
+    else { balanceEl.classList.remove('hidden-balance'); eyeBtn.textContent = '👁️'; }
+    renderHeroBalance();
+}
+function toggleBalanceVisibility() {
+    state.balanceHidden = !state.balanceHidden; Settings.setBalanceHidden(state.balanceHidden); applyBalanceVisibility();
+    showNotification('info', state.balanceHidden ? '🙈' : '👁️', state.balanceHidden ? t('balanceHidden') : t('balanceShown'));
+}
 
 // ═══════════════════════════════════════════════════════════════
-// UPDATE UI (بروزرسانی داینامیک زبان و تم)
+// UPDATE UI (کامل — همه متن‌ها با t())
 // ═══════════════════════════════════════════════════════════════
 function updateUI() {
+    // Language selection screen
+    const lsTitle = document.getElementById('langSelectTitle'); if (lsTitle) lsTitle.textContent = t('langChooseTitle');
+    const lsDesc = document.getElementById('langSelectDesc'); if (lsDesc) lsDesc.textContent = t('langChooseDesc');
+    const lsBtn = document.getElementById('langConfirmBtn'); if (lsBtn) lsBtn.textContent = t('langContinue');
+
+    // Header
     const walletBtn = document.getElementById('walletSelectorBtn'); if (walletBtn) walletBtn.textContent = t('walletsBtn');
     const langBtn = document.getElementById('langBtn'); if (langBtn) langBtn.textContent = currentLang === 'fa' ? '🇺🇸 EN' : '🇮🇷 FA';
 
+    // Hero
     const heroTotalLabel = document.getElementById('totalBalanceLabel'); if (heroTotalLabel) heroTotalLabel.textContent = t('heroTotalBalance');
     const heroSendLabel = document.getElementById('heroSendLabel'); if (heroSendLabel) heroSendLabel.textContent = t('heroSend');
     const heroReceiveLabel = document.getElementById('heroReceiveLabel'); if (heroReceiveLabel) heroReceiveLabel.textContent = t('heroReceive');
     const heroSwapLabel = document.getElementById('heroSwapLabel'); if (heroSwapLabel) heroSwapLabel.textContent = t('heroSwap');
 
+    // Tabs
     const tabTokensLabel = document.getElementById('tabTokensLabel'); if (tabTokensLabel) tabTokensLabel.textContent = t('tabTokens');
     const tabNFTsLabel = document.getElementById('tabNFTsLabel'); if (tabNFTsLabel) tabNFTsLabel.textContent = t('tabNFTs');
     const tabHistoryLabel = document.getElementById('tabHistoryLabel'); if (tabHistoryLabel) tabHistoryLabel.textContent = t('tabHistory');
 
+    // Settings button & favorites
     const settingsLabel = document.getElementById('settingsLabel'); if (settingsLabel) settingsLabel.textContent = t('settingsLabel');
     const openSettingsBtn = document.getElementById('openSettingsBtn'); if (openSettingsBtn) openSettingsBtn.textContent = t('openSettings');
     const favoritesBtn = document.getElementById('favoritesBtn'); if (favoritesBtn) favoritesBtn.textContent = t('favoritesBtn');
     const footerText = document.getElementById('footerText'); if (footerText) footerText.textContent = t('footer');
 
+    // Status
     const statusEl = document.getElementById('status');
-    if (statusEl) { if (statusEl.classList.contains('success') && state.address && state.unlocked) statusEl.textContent = t('connected'); else if (statusEl.classList.contains('info') && state.address && !state.unlocked) statusEl.textContent = t('locked'); }
+    if (statusEl) {
+        if (statusEl.classList.contains('success') && state.address && state.unlocked) statusEl.textContent = t('connected');
+        else if (statusEl.classList.contains('info') && state.address && !state.unlocked) statusEl.textContent = t('locked');
+    }
 
+    // Wallet list modal
     const walletListTitle = document.getElementById('walletListTitle'); if (walletListTitle) walletListTitle.textContent = t('walletsTitle');
     const walletListDesc = document.getElementById('walletListDesc'); if (walletListDesc) walletListDesc.textContent = t('selectWallet');
     const addWalletFromListBtn = document.getElementById('addWalletFromListBtn'); if (addWalletFromListBtn) addWalletFromListBtn.textContent = t('addNewWallet');
     const walletListCloseBtn = document.getElementById('walletListCloseBtn'); if (walletListCloseBtn) walletListCloseBtn.textContent = t('close');
 
+    // Rename modal
     const renameTitle = document.getElementById('renameTitle'); if (renameTitle) renameTitle.textContent = t('renameWallet');
     const renameDesc = document.getElementById('renameDesc'); if (renameDesc) renameDesc.textContent = t('renameDesc');
     const renameInput = document.getElementById('renameInput'); if (renameInput) renameInput.placeholder = t('walletName');
     const renameSaveBtn = document.getElementById('renameSaveBtn'); if (renameSaveBtn) renameSaveBtn.textContent = t('save');
     const renameCancelBtn = document.getElementById('renameCancelBtn'); if (renameCancelBtn) renameCancelBtn.textContent = t('cancel');
 
+    // Delete modal
     const deleteWalletTitle = document.getElementById('deleteWalletTitle'); if (deleteWalletTitle) deleteWalletTitle.textContent = t('deleteWallet');
     const deleteWalletDesc = document.getElementById('deleteWalletDesc'); if (deleteWalletDesc) deleteWalletDesc.textContent = t('deleteWalletDesc');
     const deleteWalletConfirmBtn = document.getElementById('deleteWalletConfirmBtn'); if (deleteWalletConfirmBtn) deleteWalletConfirmBtn.textContent = t('deleteBtn');
     const deleteWalletCancelBtn = document.getElementById('deleteWalletCancelBtn'); if (deleteWalletCancelBtn) deleteWalletCancelBtn.textContent = t('cancel');
 
+    // Seed verify modal
     const seedVerifyTitle = document.getElementById('seedVerifyTitle'); if (seedVerifyTitle) seedVerifyTitle.textContent = t('seedVerifyTitle');
     const seedVerifyDescText = document.getElementById('seedVerifyDescText'); if (seedVerifyDescText) seedVerifyDescText.textContent = t('seedVerifyDesc');
     const seedVerifyBioBtn = document.getElementById('seedVerifyBioBtn'); if (seedVerifyBioBtn) seedVerifyBioBtn.textContent = t('fingerprint');
@@ -3579,6 +3942,7 @@ function updateUI() {
     const seedVerifyPassBtn = document.getElementById('seedVerifyPassBtn'); if (seedVerifyPassBtn) seedVerifyPassBtn.textContent = t('continue');
     const seedVerifyCancelBtn = document.getElementById('seedVerifyCancelBtn'); if (seedVerifyCancelBtn) seedVerifyCancelBtn.textContent = t('cancel');
 
+    // Seed reveal modal
     const seedRevealTitle = document.getElementById('seedRevealTitle'); if (seedRevealTitle) seedRevealTitle.textContent = t('seedRevealTitle');
     const seedRevealWarning = document.getElementById('seedRevealWarning'); if (seedRevealWarning) seedRevealWarning.textContent = t('seedRevealWarning');
     const seedRevealDesc1 = document.getElementById('seedRevealDesc1'); if (seedRevealDesc1) seedRevealDesc1.textContent = t('seedRevealDesc1');
@@ -3588,52 +3952,61 @@ function updateUI() {
     const seedVerifySubmitBtn = document.getElementById('seedVerifySubmitBtn'); if (seedVerifySubmitBtn) seedVerifySubmitBtn.textContent = t('verify');
     const seedCopyBtn = document.getElementById('seedCopyBtn'); if (seedCopyBtn) seedCopyBtn.textContent = t('copyAll');
     const seedFinalCloseBtn = document.getElementById('seedFinalCloseBtn'); if (seedFinalCloseBtn) seedFinalCloseBtn.textContent = t('close');
+    const seedVerifiedMsg = document.getElementById('seedVerifiedMsg'); if (seedVerifiedMsg) seedVerifiedMsg.textContent = t('seedVerified');
 
+    // Login modal
     const loginCreateBtn = document.getElementById('loginCreateBtn'); if (loginCreateBtn) loginCreateBtn.textContent = t('createWallet');
     const loginImportBtn = document.getElementById('loginImportBtn'); if (loginImportBtn) loginImportBtn.textContent = t('importWallet');
+    const loginDesc = document.getElementById('loginDesc'); if (loginDesc) loginDesc.textContent = t('loginDesc');
     const createWarning = document.getElementById('createWarning'); if (createWarning) createWarning.textContent = t('createWarning');
     const genSeedBtn = document.getElementById('genSeedBtn'); if (genSeedBtn) genSeedBtn.textContent = t('generate');
-    const createVerifyNextBtn = document.getElementById('createVerifyNextBtn'); if (createVerifyNextBtn) createVerifyNextBtn.textContent = '✅ ' + t('continue');
+    const createVerifyNextBtn = document.getElementById('createVerifyNextBtn'); if (createVerifyNextBtn) createVerifyNextBtn.textContent = t('saveSeedBtn');
     const createBackBtn = document.getElementById('createBackBtn'); if (createBackBtn) createBackBtn.textContent = t('back');
+    const createVerifyDesc = document.getElementById('createVerifyDesc'); if (createVerifyDesc) createVerifyDesc.textContent = t('chooseWords');
     const createVerifySubmitBtn = document.getElementById('createVerifySubmitBtn'); if (createVerifySubmitBtn) createVerifySubmitBtn.textContent = t('verify');
-    const createWalletName = document.getElementById('createWalletName'); if (createWalletName) createWalletName.placeholder = t('walletName');
+    const createWalletName = document.getElementById('createWalletName'); if (createWalletName) createWalletName.placeholder = t('walletNamePlaceholder');
     const createPass = document.getElementById('createPass'); if (createPass) createPass.placeholder = t('passwordFull');
     const createPass2 = document.getElementById('createPass2'); if (createPass2) createPass2.placeholder = t('repeatPassword');
-    const createSubmitBtn = document.getElementById('createSubmitBtn'); if (createSubmitBtn) createSubmitBtn.textContent = '✅ ' + t('save');
+    const createSubmitBtn = document.getElementById('createSubmitBtn'); if (createSubmitBtn) createSubmitBtn.textContent = t('createWalletBtn');
     const importWarning = document.getElementById('importWarning'); if (importWarning) importWarning.textContent = t('importWarning');
-    const importWalletName = document.getElementById('importWalletName'); if (importWalletName) importWalletName.placeholder = t('walletName');
+    const importWalletName = document.getElementById('importWalletName'); if (importWalletName) importWalletName.placeholder = t('walletNamePlaceholder');
     const importPass = document.getElementById('importPass'); if (importPass) importPass.placeholder = t('passwordFull');
     const importPass2 = document.getElementById('importPass2'); if (importPass2) importPass2.placeholder = t('repeatPassword');
-    const importSubmitBtn = document.getElementById('importSubmitBtn'); if (importSubmitBtn) importSubmitBtn.textContent = t('importWallet');
+    const importSubmitBtn = document.getElementById('importSubmitBtn'); if (importSubmitBtn) importSubmitBtn.textContent = t('importWalletBtn');
     const importBackBtn = document.getElementById('importBackBtn'); if (importBackBtn) importBackBtn.textContent = t('back');
     const unlockPass = document.getElementById('unlockPass'); if (unlockPass) unlockPass.placeholder = t('enterPassword');
     const unlockBtn = document.getElementById('unlockBtn'); if (unlockBtn) unlockBtn.textContent = t('unlock');
     const fingerprintUnlockBtn = document.getElementById('fingerprintUnlockBtn'); if (fingerprintUnlockBtn) fingerprintUnlockBtn.textContent = t('fingerprintLogin');
 
+    // Add Wallet modal
     const addWalletTitle = document.getElementById('addWalletTitle'); if (addWalletTitle) addWalletTitle.textContent = t('addNewWallet');
     const addWalletDesc = document.getElementById('addWalletDesc'); if (addWalletDesc) addWalletDesc.textContent = t('selectWallet');
     const addCreateBtn = document.getElementById('addCreateBtn'); if (addCreateBtn) addCreateBtn.textContent = t('createWallet');
     const addImportBtn = document.getElementById('addImportBtn'); if (addImportBtn) addImportBtn.textContent = t('importWallet');
     const addCancelBtn = document.getElementById('addCancelBtn'); if (addCancelBtn) addCancelBtn.textContent = t('cancel');
+    const addCreateWarning = document.getElementById('addCreateWarning'); if (addCreateWarning) addCreateWarning.textContent = t('createWarning');
     const addGenBtn = document.getElementById('addGenBtn'); if (addGenBtn) addGenBtn.textContent = t('generate');
-    const addVerifyNextBtn = document.getElementById('addVerifyNextBtn'); if (addVerifyNextBtn) addVerifyNextBtn.textContent = '✅ ' + t('continue');
+    const addVerifyNextBtn = document.getElementById('addVerifyNextBtn'); if (addVerifyNextBtn) addVerifyNextBtn.textContent = t('saveSeedBtn');
     const addBackBtn = document.getElementById('addBackBtn'); if (addBackBtn) addBackBtn.textContent = t('back');
+    const addVerifyDesc = document.getElementById('addVerifyDesc'); if (addVerifyDesc) addVerifyDesc.textContent = t('chooseWordsVerify');
     const addVerifySubmitBtn = document.getElementById('addVerifySubmitBtn'); if (addVerifySubmitBtn) addVerifySubmitBtn.textContent = t('verify');
-    const addWalletName = document.getElementById('addWalletName'); if (addWalletName) addWalletName.placeholder = t('walletName');
+    const addWalletName = document.getElementById('addWalletName'); if (addWalletName) addWalletName.placeholder = t('walletNamePlaceholder');
     const addWalletPass = document.getElementById('addWalletPass'); if (addWalletPass) addWalletPass.placeholder = t('passwordFull');
     const addWalletPass2 = document.getElementById('addWalletPass2'); if (addWalletPass2) addWalletPass2.placeholder = t('repeatPassword');
-    const addSubmitBtn = document.getElementById('addSubmitBtn'); if (addSubmitBtn) addSubmitBtn.textContent = '✅ ' + t('save');
+    const addSubmitBtn = document.getElementById('addSubmitBtn'); if (addSubmitBtn) addSubmitBtn.textContent = t('addWalletBtn');
     const addImportWarning = document.getElementById('addImportWarning'); if (addImportWarning) addImportWarning.textContent = t('importWarning');
-    const addImportWalletName = document.getElementById('addImportWalletName'); if (addImportWalletName) addImportWalletName.placeholder = t('walletName');
-    const addImportSubmitBtn = document.getElementById('addImportSubmitBtn'); if (addImportSubmitBtn) addImportSubmitBtn.textContent = t('importWallet');
+    const addImportWalletName = document.getElementById('addImportWalletName'); if (addImportWalletName) addImportWalletName.placeholder = t('walletNamePlaceholder');
+    const addImportSubmitBtn = document.getElementById('addImportSubmitBtn'); if (addImportSubmitBtn) addImportSubmitBtn.textContent = t('importWalletBtn');
     const addImportBackBtn = document.getElementById('addImportBackBtn'); if (addImportBackBtn) addImportBackBtn.textContent = t('back');
 
+    // Password prompt
     const promptTitle = document.getElementById('promptTitle'); if (promptTitle) promptTitle.textContent = t('promptTitle');
     const promptDesc = document.getElementById('promptDesc'); if (promptDesc) promptDesc.textContent = t('promptDesc');
     const promptPasswordInput = document.getElementById('promptPasswordInput'); if (promptPasswordInput) promptPasswordInput.placeholder = t('password');
     const promptConfirmBtn = document.getElementById('promptConfirmBtn'); if (promptConfirmBtn) promptConfirmBtn.textContent = t('confirm');
     const promptCancelBtn = document.getElementById('promptCancelBtn'); if (promptCancelBtn) promptCancelBtn.textContent = t('cancel');
 
+    // Send modal
     const sendModalTitle = document.getElementById('sendModalTitle'); if (sendModalTitle) sendModalTitle.textContent = t('sendTitle');
     const sendModalDesc = document.getElementById('sendModalDesc'); if (sendModalDesc) sendModalDesc.textContent = t('sendDesc');
     const tabToken = document.getElementById('tabToken'); if (tabToken) tabToken.textContent = t('sendTokenTab');
@@ -3647,29 +4020,38 @@ function updateUI() {
     const nftSendBtn = document.getElementById('nftSendBtn'); if (nftSendBtn) nftSendBtn.textContent = t('sendNFTBtn');
     const sendCancelBtn = document.getElementById('sendCancelBtn'); if (sendCancelBtn) sendCancelBtn.textContent = t('cancel');
 
+    // Swap modal
     const swapModalTitle = document.getElementById('swapModalTitle'); if (swapModalTitle) swapModalTitle.textContent = t('swapTitle');
     const swapModalDesc = document.getElementById('swapModalDesc'); if (swapModalDesc) swapModalDesc.textContent = t('swapDesc');
     const swapFromLabel = document.getElementById('swapFromLabel'); if (swapFromLabel) swapFromLabel.textContent = t('from');
     const swapToLabel = document.getElementById('swapToLabel'); if (swapToLabel) swapToLabel.textContent = t('to');
     const swapRateLabel = document.getElementById('swapRateLabel'); if (swapRateLabel) swapRateLabel.textContent = t('rate');
     const swapFeeLabel = document.getElementById('swapFeeLabel'); if (swapFeeLabel) swapFeeLabel.textContent = t('fee');
+    const swapBtn = document.getElementById('swapBtn'); if (swapBtn) swapBtn.textContent = t('swapBtn');
     const swapCancelBtn = document.getElementById('swapCancelBtn'); if (swapCancelBtn) swapCancelBtn.textContent = t('cancel');
     const swapPickerTitle = document.getElementById('swapPickerTitle'); if (swapPickerTitle) swapPickerTitle.textContent = t('selectToken');
     const swapPickerCloseBtn = document.getElementById('swapPickerCloseBtn'); if (swapPickerCloseBtn) swapPickerCloseBtn.textContent = t('close');
 
+    // Confirm modal
     const confirmTitleText = document.getElementById('confirmTitleText'); if (confirmTitleText) confirmTitleText.textContent = t('confirmTitle');
     const confirmSubText = document.getElementById('confirmSubText'); if (confirmSubText) confirmSubText.textContent = t('confirmSub');
     const confirmBiometricBtn = document.getElementById('confirmBiometricBtn'); if (confirmBiometricBtn) confirmBiometricBtn.textContent = t('confirmBioBtn');
     const confirmPasswordBtn = document.getElementById('confirmPasswordBtn'); if (confirmPasswordBtn) confirmPasswordBtn.textContent = t('confirmPassBtn');
     const confirmCancelBtn = document.getElementById('confirmCancelBtn'); if (confirmCancelBtn) confirmCancelBtn.textContent = t('cancel');
     const confirmPass = document.getElementById('confirmPass'); if (confirmPass) confirmPass.placeholder = t('password');
+
+    // Success modal
     const successTitleText = document.getElementById('successTitleText'); if (successTitleText) successTitleText.textContent = t('successTitle');
     const successSubText = document.getElementById('successSubText'); if (successSubText) successSubText.textContent = t('successSub');
     const successConfirmBtn = document.getElementById('successConfirmBtn'); if (successConfirmBtn) successConfirmBtn.textContent = t('confirm');
     const txDetailCloseBtn = document.getElementById('txDetailCloseBtn'); if (txDetailCloseBtn) txDetailCloseBtn.textContent = t('close');
 
+    // Settings modal
     const settingsTitleText = document.getElementById('settingsTitleText'); if (settingsTitleText) settingsTitleText.textContent = t('settingsTitle');
     const settingsDescText = document.getElementById('settingsDescText'); if (settingsDescText) settingsDescText.textContent = t('settingsDesc');
+    const languageSectionLabel = document.getElementById('languageSectionLabel'); if (languageSectionLabel) languageSectionLabel.textContent = t('languageSection');
+    const languageSettingTitle = document.getElementById('languageSettingTitle'); if (languageSettingTitle) languageSettingTitle.textContent = t('languageTitle');
+    const languageSettingDesc = document.getElementById('languageSettingDesc'); if (languageSettingDesc) languageSettingDesc.textContent = t('languageDesc');
     const themeSectionLabel = document.getElementById('themeSectionLabel'); if (themeSectionLabel) themeSectionLabel.textContent = t('themeSection');
     const themeDarkName = document.getElementById('themeDarkName'); if (themeDarkName) themeDarkName.textContent = t('themeDark');
     const themeLightName = document.getElementById('themeLightName'); if (themeLightName) themeLightName.textContent = t('themeLight');
@@ -3687,7 +4069,9 @@ function updateUI() {
     const notifVibrateDesc = document.getElementById('notifVibrateDesc'); if (notifVibrateDesc) notifVibrateDesc.textContent = t('notifVibrateDesc');
     const settingsCloseBtn = document.getElementById('settingsCloseBtn'); if (settingsCloseBtn) settingsCloseBtn.textContent = t('close');
     updateBioStatus();
+    updateLanguageSettingUI();
 
+    // Favorites modal
     const favoritesModalTitle = document.getElementById('favoritesModalTitle'); if (favoritesModalTitle) favoritesModalTitle.textContent = t('favoritesTitle');
     const favoritesModalDesc = document.getElementById('favoritesModalDesc'); if (favoritesModalDesc) favoritesModalDesc.textContent = t('favoritesDesc');
     const addFavBtn = document.getElementById('addFavBtn'); if (addFavBtn) addFavBtn.textContent = t('addAddress');
@@ -3699,6 +4083,7 @@ function updateUI() {
     const addFavSaveBtn = document.getElementById('addFavSaveBtn'); if (addFavSaveBtn) addFavSaveBtn.textContent = t('save');
     const addFavCancelBtn = document.getElementById('addFavCancelBtn'); if (addFavCancelBtn) addFavCancelBtn.textContent = t('cancel');
 
+    // QR / Scanner
     const qrTitle = document.getElementById('qrTitle'); if (qrTitle) qrTitle.textContent = t('qrTitle');
     const qrDesc = document.getElementById('qrDesc'); if (qrDesc) qrDesc.textContent = t('qrDesc');
     const qrCloseBtn = document.getElementById('qrCloseBtn'); if (qrCloseBtn) qrCloseBtn.textContent = t('close');
@@ -3706,6 +4091,7 @@ function updateUI() {
     const scanDesc = document.getElementById('scanDesc'); if (scanDesc) scanDesc.textContent = t('scanDesc');
     const scanCloseBtn = document.getElementById('scanCloseBtn'); if (scanCloseBtn) scanCloseBtn.textContent = t('close');
 
+    // All NFTs / NFT detail / All tx
     const allNFTsTitle = document.getElementById('allNFTsTitle'); if (allNFTsTitle) allNFTsTitle.textContent = t('allNFTsTitle');
     const nftDetailTitle = document.getElementById('nftDetailTitle'); if (nftDetailTitle) nftDetailTitle.textContent = t('nftDetailTitle');
     const allTxTitle = document.getElementById('allTxTitle'); if (allTxTitle) allTxTitle.textContent = t('allTxTitle');
@@ -3713,6 +4099,7 @@ function updateUI() {
     const emptyNFTMsg = document.getElementById('emptyNFTMsg'); if (emptyNFTMsg) emptyNFTMsg.textContent = t('emptyNFTs');
     const emptyTxMsg = document.getElementById('emptyTxMsg'); if (emptyTxMsg) emptyTxMsg.textContent = t('emptyTx');
 
+    // Re-render dynamic lists
     renderTokenList(); renderHeroBalance(); renderTxHistory(); updateFavoritesList(); applyBalanceVisibility();
 }
 
@@ -3739,6 +4126,40 @@ async function init() {
         applyBalanceVisibility();
         updateUI();
 
+        // ─── اول: انتخاب زبان در اولین ورود ───
+        if (!Settings.isLangChosen()) {
+            const overlay = document.getElementById('langSelectOverlay');
+            if (overlay) {
+                // پیش‌فرض روی فارسی
+                selectedFirstLang = currentLang || 'fa';
+                document.querySelectorAll('.lang-option-btn').forEach(b => b.classList.toggle('selected', b.dataset.lang === selectedFirstLang));
+                const btn = document.getElementById('langConfirmBtn');
+                if (btn) btn.disabled = false;
+                overlay.classList.remove('closed');
+            }
+            // اتصال رویداد کلیک به کل صفحه تا با انتخاب زبان، UI آپدیت بشه
+            document.querySelectorAll('.lang-option-btn').forEach(b => {
+                b.addEventListener('click', function() {
+                    selectedFirstLang = this.dataset.lang;
+                    // آپدیت پیش‌نمایش زبان صفحه انتخاب (فقط روی عنوان/دکمه‌ها)
+                    const titleEl = document.getElementById('langSelectTitle');
+                    const descEl = document.getElementById('langSelectDesc');
+                    const cBtn = document.getElementById('langConfirmBtn');
+                    if (this.dataset.lang === 'en') {
+                        if (titleEl) titleEl.textContent = '🌐 Choose your language';
+                        if (descEl) descEl.textContent = 'Please select your preferred language';
+                        if (cBtn) cBtn.textContent = 'Continue';
+                    } else {
+                        if (titleEl) titleEl.textContent = '🌐 زبان خود را انتخاب کنید';
+                        if (descEl) descEl.textContent = 'زبان مورد نظر خود را انتخاب کنید';
+                        if (cBtn) cBtn.textContent = 'ادامه';
+                    }
+                });
+            });
+            return; // منتظر انتخاب زبان
+        }
+
+        // ─── ادامه init طبیعی ───
         if (state.wallets.length > 0) {
             if (state.activeWalletIndex === -1 || state.activeWalletIndex >= state.wallets.length) state.activeWalletIndex = 0;
             const wallet = state.wallets[state.activeWalletIndex];
@@ -3773,8 +4194,8 @@ async function init() {
 
         const provider = await findBestRPC();
         if (!provider) {
-            status('⚠️ Offline - showing cached data', 'info');
-            showNotification('info', '📡 Offline', 'Network unavailable. Showing cached data.');
+            status(t('offline'), 'info');
+            showNotification('info', '📡 ' + t('offline'), t('offlineMsg'));
             await loadAllTokenBalances(false); await loadAllNFTs(false); return;
         }
         state.provider = provider;
@@ -3784,7 +4205,7 @@ async function init() {
             await refreshAll(true); await loadFullTxHistory(); restoreConnectedStatus();
             setInterval(() => { if (!document.hidden && state.unlocked && state.address && state.provider) checkAvaCloudUpdates(); }, 16000);
         }
-    } catch (e) { console.error('Init error:', e); status('⚠️ Error', 'error'); }
+    } catch (e) { console.error('Init error:', e); status(t('error'), 'error'); }
 }
 
 document.addEventListener('DOMContentLoaded', function () {
