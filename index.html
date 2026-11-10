@@ -454,6 +454,20 @@ body {
 .confirm-title { text-align: center; font-size: 1.15rem; color: var(--accent-warning); margin-bottom: 8px; font-weight: 700; }
 .success-sub, .confirm-sub { text-align: center; font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 20px; }
 
+/* LOADING SPINNER */
+.loading-spinner {
+    width: 60px; height: 60px;
+    border: 5px solid var(--bg-input);
+    border-top: 5px solid var(--accent-warning);
+    border-radius: 50%;
+    margin: 0 auto 16px;
+    animation: spin 1s linear infinite;
+}
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
 .detail-nft-image {
     width: 100%; max-width: 180px; aspect-ratio: 1/1; border-radius: 20px;
     object-fit: cover; margin: 0 auto 16px; display: block;
@@ -916,7 +930,7 @@ body {
 .wallet-menu-dropdown .menu-item.danger { color: var(--accent-primary); background: rgba(233, 69, 96, 0.1); }
 .wallet-menu-dropdown .menu-item.danger:hover { background: rgba(233, 69, 96, 0.2); }
 
-/* SEED GRID (Trust style) */
+/* SEED GRID */
 .seed-grid-container {
     display: grid; grid-template-columns: repeat(3, 1fr);
     gap: 8px; margin: 16px 0;
@@ -947,7 +961,7 @@ body {
 }
 .verify-option-btn.selected { border-color: var(--accent-success); background: var(--accent-bg-success); }
 
-/* IMPORT GRID (Trust style) */
+/* IMPORT GRID */
 .import-grid-container {
     display: grid; grid-template-columns: repeat(3, 1fr);
     gap: 8px; margin: 16px 0;
@@ -960,6 +974,8 @@ body {
 }
 .import-word-input:focus { border-color: var(--accent-primary); }
 .import-word-input::placeholder { color: var(--text-placeholder); }
+.import-word-input.correct { border-color: var(--accent-success); background: var(--accent-bg-success); }
+.import-word-input.wrong { border-color: var(--accent-primary); background: rgba(233, 69, 96, 0.1); }
 
 /* LANGUAGE SELECTION SCREEN */
 .lang-select-overlay {
@@ -1042,6 +1058,7 @@ body {
 #seedVerifyModal { z-index: 1400 !important; }
 #seedRevealModal { z-index: 1450 !important; }
 #langSelectOverlay { z-index: 3000 !important; }
+#txLoadingModal { z-index: 2500 !important; }
     </style>
 </head>
 <body>
@@ -1168,6 +1185,9 @@ body {
                     <div id="emptyTxMsg">هنوز تراکنشی ثبت نشده</div>
                 </div>
             </div>
+            <button class="btn btn-secondary btn-full" onclick="showAllTxHistory()" id="showAllTxBtn" style="margin-top: 12px; display: none;">
+                📜 مشاهده همه تراکنش‌ها
+            </button>
         </div>
 
         <!-- SETTINGS -->
@@ -1207,12 +1227,8 @@ body {
             <div class="input-group">
                 <input type="text" id="renameInput" placeholder="نام کیف پول" maxlength="30" />
             </div>
-            <button class="btn btn-success btn-full" onclick="saveRenameWallet()" style="margin-top:12px;" id="renameSaveBtn">
-                ✅ ذخیره
-            </button>
-            <button class="btn btn-outline btn-full" onclick="closeRenameWallet()" style="margin-top:6px;" id="renameCancelBtn">
-                ❌ لغو
-            </button>
+            <button class="btn btn-success btn-full" onclick="saveRenameWallet()" style="margin-top:12px;" id="renameSaveBtn">✅ ذخیره</button>
+            <button class="btn btn-outline btn-full" onclick="closeRenameWallet()" style="margin-top:6px;" id="renameCancelBtn">❌ لغو</button>
         </div>
     </div>
 
@@ -1223,12 +1239,8 @@ body {
             <div class="warning-box" style="font-size:0.8rem; line-height:1.8;" id="deleteWalletDesc">
                 آیا مطمئنید؟ این کیف پول از برنامه حذف می‌شود. فقط با ۱۲ کلمه بازیابی می‌توانید بازگردانید.
             </div>
-            <button class="btn btn-primary btn-full" onclick="confirmDeleteWallet()" style="background:var(--accent-primary); margin-top:12px;" id="deleteWalletConfirmBtn">
-                🗑️ حذف
-            </button>
-            <button class="btn btn-outline btn-full" onclick="closeDeleteWalletConfirm()" style="margin-top:6px;" id="deleteWalletCancelBtn">
-                ❌ لغو
-            </button>
+            <button class="btn btn-primary btn-full" onclick="confirmDeleteWallet()" style="background:var(--accent-primary); margin-top:12px;" id="deleteWalletConfirmBtn">🗑️ حذف</button>
+            <button class="btn btn-outline btn-full" onclick="closeDeleteWalletConfirm()" style="margin-top:6px;" id="deleteWalletCancelBtn">❌ لغو</button>
         </div>
     </div>
 
@@ -1237,20 +1249,12 @@ body {
         <div class="modal">
             <h2 style="color:var(--accent-warning);" id="seedVerifyTitle">🔐 تأیید هویت</h2>
             <div class="desc" id="seedVerifyDescText">برای مشاهده عبارت بازیابی هویت خود را تأیید کنید</div>
-            <button class="btn btn-success btn-full" id="seedVerifyBioBtn" onclick="verifySeedWithBiometric()" style="display:none; margin-bottom: 8px;">
-                👆 اثر انگشت
-            </button>
+            <button class="btn btn-success btn-full" id="seedVerifyBioBtn" onclick="verifySeedWithBiometric()" style="display:none; margin-bottom: 8px;">👆 اثر انگشت</button>
             <div id="seedVerifyPasswordSection">
-                <div class="input-group">
-                    <input type="password" id="seedVerifyPass" placeholder="رمز عبور" />
-                </div>
-                <button class="btn btn-primary btn-full" onclick="verifySeedWithPassword()" id="seedVerifyPassBtn">
-                    🔓 ادامه
-                </button>
+                <div class="input-group"><input type="password" id="seedVerifyPass" placeholder="رمز عبور" /></div>
+                <button class="btn btn-primary btn-full" onclick="verifySeedWithPassword()" id="seedVerifyPassBtn">🔓 ادامه</button>
             </div>
-            <button class="btn btn-outline btn-full" onclick="closeSeedVerify()" style="margin-top:6px;" id="seedVerifyCancelBtn">
-                ❌ لغو
-            </button>
+            <button class="btn btn-outline btn-full" onclick="closeSeedVerify()" style="margin-top:6px;" id="seedVerifyCancelBtn">❌ لغو</button>
         </div>
     </div>
 
@@ -1262,37 +1266,23 @@ body {
                 <button class="modal-close-btn" onclick="closeSeedReveal()">✕</button>
             </div>
             <div class="modal-body">
-                <div class="warning-box" id="seedRevealWarning">
-                    ⚠️ این کلمات را با هیچ‌کس به اشتراک نگذارید. هر کسی که این کلمات را داشته باشد می‌تواند به کیف پول شما دسترسی پیدا کند.
-                </div>
+                <div class="warning-box" id="seedRevealWarning">⚠️ این کلمات را با هیچ‌کس به اشتراک نگذارید. هر کسی که این کلمات را داشته باشد می‌تواند به کیف پول شما دسترسی پیدا کند.</div>
                 <div id="seedRevealStep1">
                     <div class="desc" id="seedRevealDesc1" style="text-align:center;">برای دیدن ۱۲ کلمه روی «نمایش» بزنید</div>
                     <div class="seed-grid-container" id="seedWordsContainer"></div>
-                    <button class="btn btn-primary btn-full" onclick="revealSeedWords()" id="seedRevealBtn">
-                        👁️ نمایش
-                    </button>
-                    <button class="btn btn-success btn-full" onclick="startSeedVerification()" id="seedContinueBtn" style="margin-top:6px; display:none;">
-                        ✅ ادامه
-                    </button>
+                    <button class="btn btn-primary btn-full" onclick="revealSeedWords()" id="seedRevealBtn">👁️ نمایش</button>
+                    <button class="btn btn-success btn-full" onclick="startSeedVerification()" id="seedContinueBtn" style="margin-top:6px; display:none;">✅ ادامه</button>
                 </div>
                 <div id="seedRevealStep2" class="hidden">
                     <div class="desc" id="seedRevealDesc2" style="text-align:center;">۳ کلمه تصادفی را وارد کنید</div>
                     <div class="seed-verify-grid" id="seedVerifyGrid"></div>
-                    <button class="btn btn-success btn-full" onclick="verifySeedWords()" id="seedVerifySubmitBtn">
-                        ✅ تأیید
-                    </button>
+                    <button class="btn btn-success btn-full" onclick="verifySeedWords()" id="seedVerifySubmitBtn">✅ تأیید</button>
                 </div>
                 <div id="seedRevealStep3" class="hidden">
-                    <div class="desc" style="text-align:center; color:var(--accent-success); font-weight:700;" id="seedVerifiedMsg">
-                        ✅ تأیید شد!
-                    </div>
+                    <div class="desc" style="text-align:center; color:var(--accent-success); font-weight:700;" id="seedVerifiedMsg">✅ تأیید شد!</div>
                     <div class="seed-grid-container" id="seedFinalContainer"></div>
-                    <button class="btn btn-secondary btn-full" onclick="copyAllSeedWords()" id="seedCopyBtn">
-                        📋 کپی همه
-                    </button>
-                    <button class="btn btn-outline btn-full" onclick="closeSeedReveal()" style="margin-top:6px;" id="seedFinalCloseBtn">
-                        ❌ بستن
-                    </button>
+                    <button class="btn btn-secondary btn-full" onclick="copyAllSeedWords()" id="seedCopyBtn">📋 کپی همه</button>
+                    <button class="btn btn-outline btn-full" onclick="closeSeedReveal()" style="margin-top:6px;" id="seedFinalCloseBtn">❌ بستن</button>
                 </div>
             </div>
         </div>
@@ -1406,15 +1396,9 @@ body {
         <div class="modal">
             <h2 style="color:var(--accent-warning);" id="promptTitle">🔐 تأیید هویت</h2>
             <div class="desc" id="promptDesc">رمز عبور خود را وارد کنید</div>
-            <div class="input-group">
-                <input type="password" id="promptPasswordInput" placeholder="رمز عبور" />
-            </div>
-            <button class="btn btn-success btn-full" onclick="submitPromptPassword()" style="margin-top:12px;" id="promptConfirmBtn">
-                ✅ تأیید
-            </button>
-            <button class="btn btn-outline btn-full" onclick="closePasswordPrompt()" style="margin-top:6px;" id="promptCancelBtn">
-                ❌ لغو
-            </button>
+            <div class="input-group"><input type="password" id="promptPasswordInput" placeholder="رمز عبور" /></div>
+            <button class="btn btn-success btn-full" onclick="submitPromptPassword()" style="margin-top:12px;" id="promptConfirmBtn">✅ تأیید</button>
+            <button class="btn btn-outline btn-full" onclick="closePasswordPrompt()" style="margin-top:6px;" id="promptCancelBtn">❌ لغو</button>
         </div>
     </div>
 
@@ -1639,8 +1623,19 @@ body {
         </div>
     </div>
 
+    <!-- TX LOADING OVERLAY -->
+    <div class="modal-overlay closed" id="txLoadingModal" style="z-index: 2500;">
+        <div class="modal" style="text-align: center; padding: 30px;">
+            <div class="loading-spinner"></div>
+            <div class="confirm-title" id="txLoadingTitle" style="color: var(--accent-warning); margin-top: 16px;">در حال ارسال...</div>
+            <div class="confirm-sub" id="txLoadingSub">لطفاً صبر کنید و صفحه را نبندید</div>
+            <div id="txLoadingDetails" style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 8px;"></div>
+        </div>
+    </div>
+
     <div class="toast hidden" id="toast"></div>
 </div>
+
 <script>
 // ═══════════════════════════════════════════════════════════════
 // PLATFORM DETECTION
@@ -1674,7 +1669,7 @@ async function migrateLocalStorageToIndexedDB() {
             }
             localStorage.removeItem('foxWallets');
         }
-        const settingsKeys = ['foxTheme', 'foxLang', 'foxLangChosen', 'foxBiometricEnabled', 'foxNotifSound', 'foxNotifVibrate', 'foxBalanceHidden'];
+        const settingsKeys = ['foxTheme', 'foxLang', 'foxLangChosen', 'foxBiometricEnabled', 'foxNotifSound', 'foxNotifVibrate', 'foxBalanceHidden', 'foxActiveWalletIndex'];
         for (const key of settingsKeys) {
             const val = localStorage.getItem(key);
             if (val !== null) {
@@ -1728,7 +1723,8 @@ async function loadSettingsToCache() {
         biometricEnabled: (await settingsDB.getItem('foxBiometricEnabled')) === 'true',
         notifSound: (await settingsDB.getItem('foxNotifSound')) !== 'false',
         notifVibrate: (await settingsDB.getItem('foxNotifVibrate')) !== 'false',
-        balanceHidden: (await settingsDB.getItem('foxBalanceHidden')) === 'true'
+        balanceHidden: (await settingsDB.getItem('foxBalanceHidden')) === 'true',
+        activeWalletIndex: parseInt(await settingsDB.getItem('foxActiveWalletIndex')) || 0
     };
 }
 
@@ -1754,23 +1750,38 @@ const Settings = {
     getBiometricEnabled() { return settingsCache.biometricEnabled === true; },
     setBiometricEnabled(val) { settingsCache.biometricEnabled = val; settingsDB.setItem('foxBiometricEnabled', val ? 'true' : 'false'); },
     getBalanceHidden() { return settingsCache.balanceHidden === true; },
-    setBalanceHidden(val) { settingsCache.balanceHidden = val; settingsDB.setItem('foxBalanceHidden', val ? 'true' : 'false'); }
+    setBalanceHidden(val) { settingsCache.balanceHidden = val; settingsDB.setItem('foxBalanceHidden', val ? 'true' : 'false'); },
+    getActiveWalletIndex() { return settingsCache.activeWalletIndex || 0; },
+    setActiveWalletIndex(idx) { settingsCache.activeWalletIndex = idx; settingsDB.setItem('foxActiveWalletIndex', idx.toString()); }
 };
 
 document.documentElement.setAttribute('data-theme', 'dark');
 
 // ═══════════════════════════════════════════════════════════════
-// GLOBAL STATE (قبل از translations لازم برای استفاده در t())
+// GLOBAL VARIABLES
 // ═══════════════════════════════════════════════════════════════
 let currentLang = 'fa';
 let selectedFirstLang = null;
+let newMnemonic = '';
+let addNewMnemonic = '';
+let biometricAvailable = false;
+let tokenBalances = {};
+let currentSendToken = 'AVAX';
+let currentTokenDetail = null;
+let tokenChart = null;
+let tokenCandleSeries = null;
+let currentChartRange = 7;
+let swapPickerTarget = 'from';
+let loginTempMnemonicWords = [];
+let addTempMnemonicWords = [];
+let passwordPromptResolve = null;
+let swapRateTimeout = null;
 
 // ═══════════════════════════════════════════════════════════════
 // TRANSLATIONS (کامل فارسی + انگلیسی)
 // ═══════════════════════════════════════════════════════════════
 const translations = {
     fa: {
-        // عمومی
         appName: 'Fox Wallet', walletsBtn: '👛 کیف پول‌ها', connecting: '🔌 در حال اتصال...',
         connected: '✅ متصل به Avalanche', locked: '🔒 کیف پول قفل است', welcome: '👋 خوش آمدید',
         offline: '⚠️ آفلاین - نمایش داده‌های ذخیره‌شده', offlineMsg: 'شبکه در دسترس نیست. داده‌های ذخیره‌شده نمایش داده می‌شوند.',
@@ -1778,26 +1789,14 @@ const translations = {
         confirm: '✅ تأیید', cancel: '❌ لغو', close: '❌ بستن', back: '🔙 بازگشت', continue: 'ادامه',
         save: '✅ ذخیره', copy: '📋', copied: '✅ کپی شد', hashCopied: '✅ هش کپی شد',
         loading: 'در حال بارگذاری...', noData: 'داده‌ای نیست',
-
-        // زبان (اولین ورود)
-        langChooseTitle: '🌐 زبان خود را انتخاب کنید',
-        langChooseDesc: 'زبان مورد نظر خود را انتخاب کنید',
-        langContinue: 'ادامه',
-        langSelectTitle: '🌐 انتخاب زبان',
-        langSelectDesc: 'زبان مورد نظر خود را انتخاب کنید',
+        langChooseTitle: '🌐 زبان خود را انتخاب کنید', langChooseDesc: 'زبان مورد نظر خود را انتخاب کنید',
+        langContinue: 'ادامه', langSelectTitle: '🌐 انتخاب زبان', langSelectDesc: 'زبان مورد نظر خود را انتخاب کنید',
         languageSection: '🌐 زبان', languageTitle: '🌐 زبان', languageDesc: 'زبان مورد نظر خود را انتخاب کنید',
-        langPersian: 'فارسی', langEnglish: 'English',
-        languageChanged: '✅ زبان تغییر کرد',
-
-        // هدر و هیرو
+        langPersian: 'فارسی', langEnglish: 'English', languageChanged: '✅ زبان تغییر کرد',
         heroTotalBalance: 'ارزش کل', heroSend: 'ارسال', heroReceive: 'دریافت', heroSwap: 'Swap',
         balanceHidden: '🙈 موجودی مخفی شد', balanceShown: '👁️ موجودی نمایش داده شد',
-
-        // تب‌ها
         tabTokens: 'توکن‌ها', tabNFTs: 'NFTها', tabHistory: 'تاریخچه',
         emptyTokens: 'هنوز توکنی ندارید', emptyNFTs: 'هیچ NFT ای نیست', emptyTx: 'هنوز تراکنشی ثبت نشده',
-
-        // تنظیمات
         settingsLabel: '⚙️ تنظیمات', openSettings: '⚙️ باز کردن تنظیمات',
         settingsTitle: '⚙️ تنظیمات', settingsDesc: 'تنظیمات اپلیکیشن',
         themeSection: '🎨 تم رنگی', themeDark: 'تیره', themeLight: 'روشن', themeAutumn: 'پاییزی',
@@ -1819,8 +1818,6 @@ const translations = {
         bioAuthDescription: 'اثر انگشت خود را روی سنسور بگذارید', bioAuthFallback: 'استفاده از رمز دستگاه',
         soundOn: 'صدای اعلان فعال شد', soundOff: 'صدای اعلان غیرفعال شد',
         vibrateOn: 'ویبره فعال شد', vibrateOff: 'ویبره غیرفعال شد',
-
-        // کیف پول‌ها
         favoritesBtn: '⭐ آدرس‌های ذخیره‌شده', footer: '🦊 Fox Wallet - آینده مالی غیرمتمرکز',
         walletsTitle: '👛 کیف پول‌ها', selectWallet: 'یک کیف پول انتخاب کنید',
         addNewWallet: '➕ افزودن کیف پول جدید', activeBadge: 'فعال', renameWallet: '✏️ تغییر نام',
@@ -1831,8 +1828,6 @@ const translations = {
         walletAdded: '✅ کیف پول اضافه شد', walletDeletedPermanently: '🗑️ کیف پول حذف شد',
         walletRenamed: '✅ نام تغییر کرد', walletExists: '❌ این کیف پول قبلاً وجود دارد',
         selectWalletFirst: '❌ ابتدا یک کیف پول انتخاب کنید',
-
-        // Seed / بازیابی
         seedVerifyTitle: '🔐 تأیید هویت', seedVerifyDesc: 'برای مشاهده عبارت بازیابی هویت خود را تأیید کنید',
         fingerprint: '👆 اثر انگشت', seedRevealTitle: '🔑 عبارت بازیابی',
         seedRevealWarning: '⚠️ این کلمات را با هیچ‌کس به اشتراک نگذارید. هر کسی که این کلمات را داشته باشد می‌تواند به کیف پول شما دسترسی پیدا کند.',
@@ -1842,8 +1837,6 @@ const translations = {
         seedVerified: '✅ تأیید شد!', wordNumber: 'کلمه شماره {n} کدام است؟',
         seedPlaceholder: 'کلمه', generateClick: 'برای تولید کلیک کنید',
         seedAllWords: 'همه کلمات',
-
-        // ورود
         loginTitle: '🦊 Fox Wallet', loginDesc: 'به کیف پول خود خوش آمدید',
         createWallet: '🆕 ساخت کیف پول جدید', importWallet: '📥 وارد کردن کیف پول',
         createWarning: '⚠️ این ۱۲ کلمه را در جای امنی ذخیره کنید!',
@@ -1861,14 +1854,10 @@ const translations = {
         chooseWords: '۳ کلمه خواسته شده را انتخاب کنید',
         chooseWordsVerify: 'برای اطمینان، ۳ کلمه خواسته شده را انتخاب کنید',
         backToSeed: '🔙 بازگشت به کلمات',
-
-        // توکن
         selectToken: 'انتخاب توکن', noTxForToken: 'تراکنشی برای این توکن نیست',
         days7: '۷ روز', days30: '۳۰ روز', days90: '۹۰ روز',
         native: 'بومی', currentPrice: 'قیمت فعلی', change24h: 'تغییر ۲۴س', yourBalance: 'موجودی',
         tokenValue: 'ارزش', aboutToken: 'درباره', contract: 'قرارداد',
-
-        // ارسال
         sendTitle: '📤 ارسال', sendDesc: 'چه چیزی ارسال می‌کنید؟',
         sendTokenTab: '💰 توکن', sendNFTTab: '🖼️ NFT', recipient: 'آدرس گیرنده', tokenAmount: 'مقدار',
         balanceInfo: 'موجودی', sendTokenBtn: 'ارسال توکن', sendNFTBtn: 'ارسال NFT', nftAmount: 'تعداد',
@@ -1876,14 +1865,10 @@ const translations = {
         invalidAddress: '❌ آدرس معتبر نیست', cantSendToSelf: '❌ نمی‌توانید به خودتان بفرستید',
         invalidAmount: '❌ مقدار نامعتبر است', insufficientBalance: '❌ موجودی کافی نیست',
         minAmount: '❌ حداقل مقدار 0.001 AVAX است', tokenNotFound: '❌ توکن پیدا نشد',
-
-        // Swap
         swapTitle: '🔄 Swap', swapDesc: 'توکن‌های خود را تبدیل کنید',
         from: 'از', to: 'به', rate: 'نرخ:', fee: 'کارمزد:',
         sameToken: '❌ توکن‌ها یکسان هستند', rateNotReady: '❌ نرخ آماده نیست',
         approving: '⏳ در حال تأیید دسترسی...', swapBtn: '🔄 Swap', slippage: 'Slippage',
-
-        // تأیید و تراکنش
         confirmTitle: '⚠️ تأیید', confirmSub: 'برای ادامه هویت خود را تأیید کنید', confirmSubBio: 'اثر انگشت خود را بزنید',
         confirmBioBtn: '👆 اثر انگشت', confirmPassBtn: '✅ تأیید', confirmSwapTitle: '⚠️ تأیید Swap',
         confirmSwapSub: 'برای تبدیل هویت خود را تأیید کنید', confirmSwapBtn: '✅ تأیید و تبدیل',
@@ -1892,15 +1877,11 @@ const translations = {
         successTitle: '✅ ارسال موفق!', successSub: 'تراکنش انجام شد', successSwapTitle: '✅ Swap موفق!',
         successSwapSub: 'تبدیل انجام شد',
         notificationSentTitle: '✅ ارسال موفق', notificationSwapTitle: '✅ Swap موفق', notificationNFTTitle: '✅ NFT ارسال شد',
-
-        // QR / Scanner
         qrTitle: '📥 دریافت', qrDesc: 'برای دریافت این کد را اسکن کنید', scanTitle: '📷 اسکن QR',
         scanDesc: 'دوربین را سمت QR بگیرید', scanSuccess: '✅ اسکن موفق', scanInvalid: '❌ QR معتبر نیست',
         cameraUnavailable: 'دوربین در دسترس نیست', cameraDenied: 'دسترسی به دوربین رد شد',
         scannerNotLoaded: '❌ کتابخانه اسکنر بارگذاری نشد', qrNotLoaded: '❌ کتابخانه QR بارگذاری نشد',
         qrError: '❌ خطا در ساخت QR',
-
-        // Favorites
         favoritesTitle: '⭐ آدرس‌های ذخیره‌شده', favoritesDesc: 'آدرس‌های مورد علاقه شما',
         favoritesPickerTitle: '⭐ انتخاب آدرس', favoritesPickerDesc: 'یک آدرس انتخاب کنید',
         noFavorites: 'آدرسی ذخیره نشده', addAddress: '➕ افزودن آدرس',
@@ -1908,23 +1889,19 @@ const translations = {
         name: 'نام', favoriteNameRequired: '❌ نام را وارد کنید', favoriteInvalidAddress: '❌ آدرس معتبر نیست',
         favoriteAdded: '✅ آدرس ذخیره شد', favoriteDeleted: '🗑️ آدرس حذف شد',
         favoriteAlreadySaved: '❌ قبلاً ذخیره شده',
-
-        // NFT
         allNFTsTitle: '🖼️ همه NFT ها', nftDetailTitle: '🖼️ جزئیات NFT',
         detailTokenId: '🆔 شناسه:', detailAmount: '📦 تعداد:', detailFrom: '📤 از:', detailTo: '📥 به:',
         detailGas: '⛽ کارمزد:', detailTime: '🕐 زمان:', detailHash: '🔗 هش:', detailValue: '💰 مقدار:',
         detailPrice: '💎 قیمت:', detailTotalPrice: '💰 قیمت کل:',
-
-        // تاریخچه
         allTxTitle: '📜 تاریخچه تراکنش ها',
         typeReceiveAVAX: '📥 دریافت AVAX', typeSendAVAX: '📤 ارسال AVAX',
         typeReceiveNFT: '📥 دریافت NFT', typeSendNFT: '📤 ارسال NFT', typeSwap: '🔄 Swap',
-
-        // Prompt
-        promptTitle: '🔐 تأیید هویت', promptDesc: 'رمز عبور خود را وارد کنید'
+        promptTitle: '🔐 تأیید هویت', promptDesc: 'رمز عبور خود را وارد کنید',
+        txLoadingTitle: 'در حال ارسال تراکنش...', txLoadingSub: 'لطفاً صبر کنید و صفحه را نبندید',
+        txLoadingConfirming: 'در حال تایید در شبکه...', txLoadingSigning: 'در حال امضای تراکنش...',
+        txLoadingHash: 'هش تراکنش:', txLoadingSuccess: 'تراکنش با موفقیت انجام شد'
     },
     en: {
-        // General
         appName: 'Fox Wallet', walletsBtn: '👛 Wallets', connecting: '🔌 Connecting...',
         connected: '✅ Connected to Avalanche', locked: '🔒 Wallet is locked', welcome: '👋 Welcome',
         offline: '⚠️ Offline - showing cached data', offlineMsg: 'Network unavailable. Showing cached data.',
@@ -1932,26 +1909,14 @@ const translations = {
         confirm: '✅ Confirm', cancel: '❌ Cancel', close: '❌ Close', back: '🔙 Back', continue: 'Continue',
         save: '✅ Save', copy: '📋', copied: '✅ Copied', hashCopied: '✅ Hash copied',
         loading: 'Loading...', noData: 'No data',
-
-        // Language
-        langChooseTitle: '🌐 Choose your language',
-        langChooseDesc: 'Please select your preferred language',
-        langContinue: 'Continue',
-        langSelectTitle: '🌐 Select Language',
-        langSelectDesc: 'Choose your preferred language',
+        langChooseTitle: '🌐 Choose your language', langChooseDesc: 'Please select your preferred language',
+        langContinue: 'Continue', langSelectTitle: '🌐 Select Language', langSelectDesc: 'Choose your preferred language',
         languageSection: '🌐 Language', languageTitle: '🌐 Language', languageDesc: 'Choose your preferred language',
-        langPersian: 'فارسی', langEnglish: 'English',
-        languageChanged: '✅ Language changed',
-
-        // Header & Hero
+        langPersian: 'فارسی', langEnglish: 'English', languageChanged: '✅ Language changed',
         heroTotalBalance: 'Total Balance', heroSend: 'Send', heroReceive: 'Receive', heroSwap: 'Swap',
         balanceHidden: '🙈 Balance hidden', balanceShown: '👁️ Balance shown',
-
-        // Tabs
         tabTokens: 'Tokens', tabNFTs: 'NFTs', tabHistory: 'History',
         emptyTokens: 'No tokens yet', emptyNFTs: 'No NFTs', emptyTx: 'No transactions yet',
-
-        // Settings
         settingsLabel: '⚙️ Settings', openSettings: '⚙️ Open Settings',
         settingsTitle: '⚙️ Settings', settingsDesc: 'App settings',
         themeSection: '🎨 Theme', themeDark: 'Dark', themeLight: 'Light', themeAutumn: 'Autumn',
@@ -1973,8 +1938,6 @@ const translations = {
         bioAuthDescription: 'Place your finger on the sensor', bioAuthFallback: 'Use device password',
         soundOn: 'Sound enabled', soundOff: 'Sound disabled',
         vibrateOn: 'Vibration enabled', vibrateOff: 'Vibration disabled',
-
-        // Wallets
         favoritesBtn: '⭐ Saved Addresses', footer: '🦊 Fox Wallet - The Future of DeFi',
         walletsTitle: '👛 Wallets', selectWallet: 'Select a wallet',
         addNewWallet: '➕ Add New Wallet', activeBadge: 'Active', renameWallet: '✏️ Rename Wallet',
@@ -1985,8 +1948,6 @@ const translations = {
         walletAdded: '✅ Wallet added', walletDeletedPermanently: '🗑️ Wallet deleted',
         walletRenamed: '✅ Name changed', walletExists: '❌ Wallet already exists',
         selectWalletFirst: '❌ Select a wallet first',
-
-        // Seed
         seedVerifyTitle: '🔐 Confirm Identity', seedVerifyDesc: 'Authenticate to view your recovery phrase',
         fingerprint: '👆 Fingerprint', seedRevealTitle: '🔑 Recovery Phrase',
         seedRevealWarning: '⚠️ Never share these words with anyone. Anyone with these words can access your wallet.',
@@ -1996,8 +1957,6 @@ const translations = {
         seedVerified: '✅ Verified!', wordNumber: 'What is word #{n}?',
         seedPlaceholder: 'Word', generateClick: 'Click to generate',
         seedAllWords: 'All words',
-
-        // Login
         loginTitle: '🦊 Fox Wallet', loginDesc: 'Welcome to your wallet',
         createWallet: '🆕 Create New Wallet', importWallet: '📥 Import Wallet',
         createWarning: '⚠️ Save these 12 words in a safe place!',
@@ -2015,14 +1974,10 @@ const translations = {
         chooseWords: 'Select 3 requested words',
         chooseWordsVerify: 'For security, select 3 requested words',
         backToSeed: '🔙 Back to words',
-
-        // Token
         selectToken: 'Select Token', noTxForToken: 'No transactions for this token',
         days7: '7D', days30: '30D', days90: '90D',
         native: 'Native', currentPrice: 'Current Price', change24h: '24h Change', yourBalance: 'Balance',
         tokenValue: 'Value', aboutToken: 'About', contract: 'Contract',
-
-        // Send
         sendTitle: '📤 Send', sendDesc: 'What would you like to send?',
         sendTokenTab: '💰 Token', sendNFTTab: '🖼️ NFT', recipient: 'Recipient Address', tokenAmount: 'Amount',
         balanceInfo: 'Balance', sendTokenBtn: 'Send Token', sendNFTBtn: 'Send NFT', nftAmount: 'Quantity',
@@ -2030,14 +1985,10 @@ const translations = {
         invalidAddress: '❌ Invalid address', cantSendToSelf: '❌ Cannot send to yourself',
         invalidAmount: '❌ Invalid amount', insufficientBalance: '❌ Insufficient balance',
         minAmount: '❌ Minimum is 0.001 AVAX', tokenNotFound: '❌ Token not found',
-
-        // Swap
         swapTitle: '🔄 Swap', swapDesc: 'Convert your tokens',
         from: 'From', to: 'To', rate: 'Rate:', fee: 'Fee:',
         sameToken: '❌ Same token', rateNotReady: '❌ Rate not ready',
         approving: '⏳ Approving...', swapBtn: '🔄 Swap', slippage: 'Slippage',
-
-        // Confirm & Tx
         confirmTitle: '⚠️ Confirm', confirmSub: 'Authenticate to continue', confirmSubBio: 'Place your finger to confirm',
         confirmBioBtn: '👆 Fingerprint', confirmPassBtn: '✅ Confirm', confirmSwapTitle: '⚠️ Confirm Swap',
         confirmSwapSub: 'Authenticate to swap', confirmSwapBtn: '✅ Confirm & Swap',
@@ -2046,15 +1997,11 @@ const translations = {
         successTitle: '✅ Success!', successSub: 'Transaction completed', successSwapTitle: '✅ Swap Successful!',
         successSwapSub: 'Swap completed',
         notificationSentTitle: '✅ Sent', notificationSwapTitle: '✅ Swap Successful', notificationNFTTitle: '✅ NFT Sent',
-
-        // QR / Scanner
         qrTitle: '📥 Receive', qrDesc: 'Scan this QR code to receive', scanTitle: '📷 Scan QR',
         scanDesc: 'Point camera at QR', scanSuccess: '✅ Scan successful', scanInvalid: '❌ Invalid QR',
         cameraUnavailable: 'Camera unavailable', cameraDenied: 'Camera permission denied',
         scannerNotLoaded: '❌ Scanner library not loaded', qrNotLoaded: '❌ QR library not loaded',
         qrError: '❌ QR generation error',
-
-        // Favorites
         favoritesTitle: '⭐ Saved Addresses', favoritesDesc: 'Your saved addresses',
         favoritesPickerTitle: '⭐ Select Address', favoritesPickerDesc: 'Choose an address',
         noFavorites: 'No saved addresses', addAddress: '➕ Add Address',
@@ -2062,20 +2009,17 @@ const translations = {
         name: 'Name', favoriteNameRequired: '❌ Enter a name', favoriteInvalidAddress: '❌ Invalid address',
         favoriteAdded: '✅ Address saved', favoriteDeleted: '🗑️ Address deleted',
         favoriteAlreadySaved: '❌ Already saved',
-
-        // NFT
         allNFTsTitle: '🖼️ All NFTs', nftDetailTitle: '🖼️ NFT Details',
         detailTokenId: '🆔 ID:', detailAmount: '📦 Amount:', detailFrom: '📤 From:', detailTo: '📥 To:',
         detailGas: '⛽ Gas:', detailTime: '🕐 Time:', detailHash: '🔗 Hash:', detailValue: '💰 Value:',
         detailPrice: '💎 Price:', detailTotalPrice: '💰 Total:',
-
-        // History
         allTxTitle: '📜 Transaction History',
         typeReceiveAVAX: '📥 Received AVAX', typeSendAVAX: '📤 Sent AVAX',
         typeReceiveNFT: '📥 Received NFT', typeSendNFT: '📤 Sent NFT', typeSwap: '🔄 Swap',
-
-        // Prompt
-        promptTitle: '🔐 Confirm Identity', promptDesc: 'Enter your password'
+        promptTitle: '🔐 Confirm Identity', promptDesc: 'Enter your password',
+        txLoadingTitle: 'Sending transaction...', txLoadingSub: 'Please wait and do not close the page',
+        txLoadingConfirming: 'Confirming on network...', txLoadingSigning: 'Signing transaction...',
+        txLoadingHash: 'Transaction hash:', txLoadingSuccess: 'Transaction completed successfully'
     }
 };
 
@@ -2086,59 +2030,177 @@ function t(key, vars) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// LANGUAGE MANAGEMENT
+// GLOBAL STATE
 // ═══════════════════════════════════════════════════════════════
-function applyLanguage(lang) {
-    currentLang = lang;
-    Settings.setLang(lang);
-    document.documentElement.lang = lang;
-    document.documentElement.dir = lang === 'en' ? 'ltr' : 'rtl';
-    updateUI();
-}
+let state = {
+    address: null, encryptedSeed: null, signer: null, provider: null,
+    unlocked: false, wallets: [], activeWalletIndex: -1, currentPassword: null,
+    pendingSwitchIndex: undefined, allNFTs: [], selectedNFT: null, pendingTx: null,
+    lastHash: null, txHistory: [], currentSendTab: 'token',
+    lastAvaxBalance: 0, avaxPrice: 0, avaxChange24h: 0, priceUpdateInterval: null,
+    balanceHidden: false, favorites: [], swapFromToken: 'AVAX',
+    swapToToken: 'USDC', swapFromAmount: 0, swapToAmount: 0, swapFromBalance: '0',
+    swapAmountOutWei: null, qrScanner: null, scanTarget: null, favoritesForTarget: null,
+    renameTargetIndex: null, deleteTargetIndex: null, seedTargetIndex: null,
+    seedCurrentWords: [], seedVerifyIndices: [], seedRevealed: false
+};
 
-function toggleLanguage() {
-    const newLang = currentLang === 'fa' ? 'en' : 'fa';
-    applyLanguage(newLang);
-    showNotification('info', '🌐', t('languageChanged'));
+// ═══════════════════════════════════════════════════════════════
+// 🧹 CLEAR SENSITIVE STATE — امنیت رمز
+// ═══════════════════════════════════════════════════════════════
+function clearSensitiveState() {
+    state.currentPassword = null;
+    passwordPromptResolve = null;
 }
 
 // ═══════════════════════════════════════════════════════════════
-// FIRST-TIME LANGUAGE SELECT
+// HELPERS
 // ═══════════════════════════════════════════════════════════════
-function selectFirstLang(lang) {
-    selectedFirstLang = lang;
-    document.querySelectorAll('.lang-option-btn').forEach(b => b.classList.toggle('selected', b.dataset.lang === lang));
-    const btn = document.getElementById('langConfirmBtn');
-    if (btn) btn.disabled = false;
+function toast(msg, type = 'success') {
+    const el = document.getElementById('toast');
+    if (!el) return;
+    el.textContent = msg;
+    el.className = `toast ${type}`;
+    el.classList.remove('hidden');
+    setTimeout(() => el.classList.add('hidden'), 4000);
 }
 
-function confirmFirstLang() {
-    if (!selectedFirstLang) return;
-    Settings.setLang(selectedFirstLang);
-    Settings.setLangChosen(true);
-    currentLang = selectedFirstLang;
-    document.documentElement.lang = currentLang;
-    document.documentElement.dir = currentLang === 'en' ? 'ltr' : 'rtl';
-    const overlay = document.getElementById('langSelectOverlay');
-    if (overlay) overlay.classList.add('closed');
-    updateUI();
-    // بعد از انتخاب زبان، به صفحه ورود/ساخت والت برو
-    setTimeout(() => {
-        if (state.wallets.length === 0) {
-            document.getElementById('loginModal').classList.remove('closed');
-        } else {
-            showUnlockModal();
-        }
-    }, 100);
+function status(msg, type = 'info') {
+    const el = document.getElementById('status');
+    if (!el) return;
+    el.textContent = msg;
+    el.className = `status ${type}`;
 }
 
-function openLanguageSelectFromSettings() {
-    selectedFirstLang = currentLang;
-    document.querySelectorAll('.lang-option-btn').forEach(b => b.classList.toggle('selected', b.dataset.lang === currentLang));
-    const btn = document.getElementById('langConfirmBtn');
-    if (btn) btn.disabled = false;
-    document.getElementById('langSelectOverlay').classList.remove('closed');
+function restoreConnectedStatus() {
+    if (state.unlocked && state.address && state.provider) status(t('connected'), 'success');
 }
+
+function shortAddr(a) {
+    if (!a) return currentLang === 'fa' ? 'وارد نشده' : 'N/A';
+    return a.slice(0, 6) + '...' + a.slice(-4);
+}
+
+function fullAddr(a) {
+    if (!a) return '-';
+    return a.slice(0, 10) + '...' + a.slice(-8);
+}
+
+function formatAmount(amount, decimals = 6) { return parseFloat(amount).toFixed(decimals); }
+function formatUSD(amount) {
+    const num = parseFloat(amount || 0);
+    return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+function formatTokenBalance(balance) {
+    if (balance === undefined || balance === null) return '0';
+    const b = parseFloat(balance);
+    if (b === 0) return '0';
+    if (b < 0.0001) return b.toExponential(2);
+    if (b < 1) return b.toFixed(4);
+    if (b < 1000) return b.toFixed(4).replace(/\.?0+$/, '');
+    return b.toLocaleString('en-US', { maximumFractionDigits: 2 });
+}
+
+function formatTime(timestamp) {
+    const date = new Date(timestamp);
+    const locale = currentLang === 'fa' ? 'fa-IR' : 'en-US';
+    return date.toLocaleString(locale, { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+}
+
+async function copyToClipboard(text) {
+    try { await navigator.clipboard.writeText(text); return true; }
+    catch (e) {
+        try {
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+            return true;
+        } catch (e2) { return false; }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CRYPTO
+// ═══════════════════════════════════════════════════════════════
+async function encryptSecure(text, pass) {
+    const encoder = new TextEncoder();
+    const salt = crypto.getRandomValues(new Uint8Array(16));
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const keyMaterial = await crypto.subtle.importKey('raw', encoder.encode(pass), { name: 'PBKDF2' }, false, ['deriveKey']);
+    const key = await crypto.subtle.deriveKey(
+        { name: 'PBKDF2', salt, iterations: 100000, hash: 'SHA-256' },
+        keyMaterial, { name: 'AES-GCM', length: 256 }, false, ['encrypt']
+    );
+    const encrypted = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, encoder.encode(text));
+    const combined = new Uint8Array(salt.length + iv.length + encrypted.byteLength);
+    combined.set(salt, 0);
+    combined.set(iv, salt.length);
+    combined.set(new Uint8Array(encrypted), salt.length + iv.length);
+    let binary = '';
+    for (let i = 0; i < combined.length; i++) binary += String.fromCharCode(combined[i]);
+    return 'v2:' + btoa(binary);
+}
+
+async function decryptSecure(encryptedData, pass) {
+    if (encryptedData.startsWith('v2:')) {
+        const base64Data = encryptedData.substring(3);
+        const decoder = new TextDecoder();
+        const binary = atob(base64Data);
+        const combined = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) combined[i] = binary.charCodeAt(i);
+        const salt = combined.slice(0, 16);
+        const iv = combined.slice(16, 28);
+        const ciphertext = combined.slice(28);
+        const keyMaterial = await crypto.subtle.importKey('raw', new TextEncoder().encode(pass), { name: 'PBKDF2' }, false, ['deriveKey']);
+        const key = await crypto.subtle.deriveKey(
+            { name: 'PBKDF2', salt, iterations: 100000, hash: 'SHA-256' },
+            keyMaterial, { name: 'AES-GCM', length: 256 }, false, ['decrypt']
+        );
+        try {
+            const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ciphertext);
+            return decoder.decode(decrypted);
+        } catch (e) { throw new Error('Wrong password'); }
+    } else {
+        try {
+            const t2 = atob(encryptedData);
+            let r = '';
+            for (let i = 0; i < t2.length; i++) r += String.fromCharCode(t2.charCodeAt(i) ^ pass.charCodeAt(i % pass.length));
+            return r;
+        } catch (e) { throw new Error('Wrong password'); }
+    }
+}
+
+async function tryMigrateWallet(wallet, password) {
+    if (!wallet || !wallet.encryptedSeed) return;
+    if (wallet.encryptedSeed.startsWith('v2:')) return;
+    try {
+        const seed = await decryptSecure(wallet.encryptedSeed, password);
+        const newEnc = await encryptSecure(seed, password);
+        wallet.encryptedSeed = newEnc;
+        if (state.address && state.address.toLowerCase() === wallet.address.toLowerCase()) state.encryptedSeed = newEnc;
+        await saveWallets();
+    } catch (e) {}
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TX LOADING OVERLAY
+// ═══════════════════════════════════════════════════════════════
+function showTxLoading(title, sub) {
+    document.getElementById('txLoadingTitle').textContent = title || t('sending');
+    document.getElementById('txLoadingSub').textContent = sub || t('txLoadingSub');
+    document.getElementById('txLoadingDetails').textContent = '';
+    document.getElementById('txLoadingModal').classList.remove('closed');
+    status(title, 'info');
+}
+function updateTxLoading(title, sub, details) {
+    if (title) { document.getElementById('txLoadingTitle').textContent = title; status(title, 'info'); }
+    if (sub) document.getElementById('txLoadingSub').textContent = sub;
+    if (details) document.getElementById('txLoadingDetails').textContent = details;
+}
+function hideTxLoading() { document.getElementById('txLoadingModal').classList.add('closed'); }
 
 // ═══════════════════════════════════════════════════════════════
 // SOUND & VIBRATE
@@ -2382,168 +2444,61 @@ const EXTRA_TOKENS = [
 ];
 
 // ═══════════════════════════════════════════════════════════════
-// GLOBAL STATE
+// LANGUAGE MANAGEMENT
 // ═══════════════════════════════════════════════════════════════
-let state = {
-    address: null, encryptedSeed: null, signer: null, provider: null,
-    unlocked: false, wallets: [], activeWalletIndex: -1, currentPassword: null,
-    pendingSwitchIndex: undefined, allNFTs: [], selectedNFT: null, pendingTx: null,
-    lastHash: null, txHistory: [], currentSendTab: 'token',
-    lastAvaxBalance: 0, avaxPrice: 0, avaxChange24h: 0, priceUpdateInterval: null,
-    balanceHidden: false, favorites: [], swapFromToken: 'AVAX',
-    swapToToken: 'USDC', swapFromAmount: 0, swapToAmount: 0, swapFromBalance: '0',
-    swapAmountOutWei: null, qrScanner: null, scanTarget: null, favoritesForTarget: null,
-    renameTargetIndex: null, deleteTargetIndex: null, seedTargetIndex: null,
-    seedCurrentWords: [], seedVerifyIndices: [], seedRevealed: false
-};
-
-let newMnemonic = '';
-let addNewMnemonic = '';
-let biometricAvailable = false;
-let tokenBalances = {};
-let currentSendToken = 'AVAX';
-let currentTokenDetail = null;
-let tokenChart = null;
-let tokenCandleSeries = null;
-let currentChartRange = 7;
-let swapPickerTarget = 'from';
-let loginTempMnemonicWords = [];
-let addTempMnemonicWords = [];
-
-// متغیرهای کمکی (خارج از state چون نباید persist بشن)
-let passwordPromptResolve = null;
-let swapRateTimeout = null;
-
-// ═══════════════════════════════════════════════════════════════
-// HELPERS
-// ═══════════════════════════════════════════════════════════════
-function toast(msg, type = 'success') {
-    const el = document.getElementById('toast');
-    if (!el) return;
-    el.textContent = msg;
-    el.className = `toast ${type}`;
-    el.classList.remove('hidden');
-    setTimeout(() => el.classList.add('hidden'), 4000);
+function applyLanguage(lang) {
+    currentLang = lang;
+    Settings.setLang(lang);
+    document.documentElement.lang = lang;
+    document.documentElement.dir = lang === 'en' ? 'ltr' : 'rtl';
+    updateUI();
 }
 
-function status(msg, type = 'info') {
-    const el = document.getElementById('status');
-    if (!el) return;
-    el.textContent = msg;
-    el.className = `status ${type}`;
+function toggleLanguage() {
+    const newLang = currentLang === 'fa' ? 'en' : 'fa';
+    applyLanguage(newLang);
+    showNotification('info', '🌐', t('languageChanged'));
 }
 
-function restoreConnectedStatus() {
-    if (state.unlocked && state.address && state.provider) status(t('connected'), 'success');
-}
-
-function shortAddr(a) {
-    if (!a) return currentLang === 'fa' ? 'وارد نشده' : 'N/A';
-    return a.slice(0, 6) + '...' + a.slice(-4);
-}
-
-function fullAddr(a) {
-    if (!a) return '-';
-    return a.slice(0, 10) + '...' + a.slice(-8);
-}
-
-function formatAmount(amount, decimals = 6) { return parseFloat(amount).toFixed(decimals); }
-function formatUSD(amount) {
-    const num = parseFloat(amount || 0);
-    return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-function formatTokenBalance(balance) {
-    if (balance === undefined || balance === null) return '0';
-    const b = parseFloat(balance);
-    if (b === 0) return '0';
-    if (b < 0.0001) return b.toExponential(2);
-    if (b < 1) return b.toFixed(4);
-    if (b < 1000) return b.toFixed(4).replace(/\.?0+$/, '');
-    return b.toLocaleString('en-US', { maximumFractionDigits: 2 });
-}
-
-function formatTime(timestamp) {
-    const date = new Date(timestamp);
-    const locale = currentLang === 'fa' ? 'fa-IR' : 'en-US';
-    return date.toLocaleString(locale, { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' });
-}
-
-async function copyToClipboard(text) {
-    try { await navigator.clipboard.writeText(text); return true; }
-    catch (e) {
-        try {
-            const ta = document.createElement('textarea');
-            ta.value = text;
-            document.body.appendChild(ta);
-            ta.select();
-            document.execCommand('copy');
-            document.body.removeChild(ta);
-            return true;
-        } catch (e2) { return false; }
-    }
-}
-
-// ═══════════════════════════════════════════════════════════════
-// CRYPTO
-// ═══════════════════════════════════════════════════════════════
-async function encryptSecure(text, pass) {
-    const encoder = new TextEncoder();
-    const salt = crypto.getRandomValues(new Uint8Array(16));
-    const iv = crypto.getRandomValues(new Uint8Array(12));
-    const keyMaterial = await crypto.subtle.importKey('raw', encoder.encode(pass), { name: 'PBKDF2' }, false, ['deriveKey']);
-    const key = await crypto.subtle.deriveKey(
-        { name: 'PBKDF2', salt, iterations: 100000, hash: 'SHA-256' },
-        keyMaterial, { name: 'AES-GCM', length: 256 }, false, ['encrypt']
-    );
-    const encrypted = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, encoder.encode(text));
-    const combined = new Uint8Array(salt.length + iv.length + encrypted.byteLength);
-    combined.set(salt, 0);
-    combined.set(iv, salt.length);
-    combined.set(new Uint8Array(encrypted), salt.length + iv.length);
-    let binary = '';
-    for (let i = 0; i < combined.length; i++) binary += String.fromCharCode(combined[i]);
-    return 'v2:' + btoa(binary);
-}
-
-async function decryptSecure(encryptedData, pass) {
-    if (encryptedData.startsWith('v2:')) {
-        const base64Data = encryptedData.substring(3);
-        const decoder = new TextDecoder();
-        const binary = atob(base64Data);
-        const combined = new Uint8Array(binary.length);
-        for (let i = 0; i < binary.length; i++) combined[i] = binary.charCodeAt(i);
-        const salt = combined.slice(0, 16);
-        const iv = combined.slice(16, 28);
-        const ciphertext = combined.slice(28);
-        const keyMaterial = await crypto.subtle.importKey('raw', new TextEncoder().encode(pass), { name: 'PBKDF2' }, false, ['deriveKey']);
-        const key = await crypto.subtle.deriveKey(
-            { name: 'PBKDF2', salt, iterations: 100000, hash: 'SHA-256' },
-            keyMaterial, { name: 'AES-GCM', length: 256 }, false, ['decrypt']
-        );
-        try {
-            const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ciphertext);
-            return decoder.decode(decrypted);
-        } catch (e) { throw new Error('Wrong password'); }
+function selectFirstLang(lang) {
+    selectedFirstLang = lang;
+    document.querySelectorAll('.lang-option-btn').forEach(b => b.classList.toggle('selected', b.dataset.lang === lang));
+    const btn = document.getElementById('langConfirmBtn');
+    if (btn) btn.disabled = false;
+    // پیش‌نمایش زنده
+    const titleEl = document.getElementById('langSelectTitle');
+    const descEl = document.getElementById('langSelectDesc');
+    if (lang === 'en') {
+        if (titleEl) titleEl.textContent = '🌐 Choose your language';
+        if (descEl) descEl.textContent = 'Please select your preferred language';
+        if (btn) btn.textContent = 'Continue';
     } else {
-        try {
-            const t2 = atob(encryptedData);
-            let r = '';
-            for (let i = 0; i < t2.length; i++) r += String.fromCharCode(t2.charCodeAt(i) ^ pass.charCodeAt(i % pass.length));
-            return r;
-        } catch (e) { throw new Error('Wrong password'); }
+        if (titleEl) titleEl.textContent = '🌐 زبان خود را انتخاب کنید';
+        if (descEl) descEl.textContent = 'زبان مورد نظر خود را انتخاب کنید';
+        if (btn) btn.textContent = 'ادامه';
     }
 }
 
-async function tryMigrateWallet(wallet, password) {
-    if (!wallet || !wallet.encryptedSeed) return;
-    if (wallet.encryptedSeed.startsWith('v2:')) return;
-    try {
-        const seed = await decryptSecure(wallet.encryptedSeed, password);
-        const newEnc = await encryptSecure(seed, password);
-        wallet.encryptedSeed = newEnc;
-        if (state.address && state.address.toLowerCase() === wallet.address.toLowerCase()) state.encryptedSeed = newEnc;
-        await saveWallets();
-    } catch (e) {}
+// ✅ اصلاح باگ: بعد از انتخاب زبان، init() دوباره صدا زده می‌شه
+function confirmFirstLang() {
+    if (!selectedFirstLang) return;
+    Settings.setLang(selectedFirstLang);
+    Settings.setLangChosen(true);
+    currentLang = selectedFirstLang;
+    document.documentElement.lang = currentLang;
+    document.documentElement.dir = currentLang === 'en' ? 'ltr' : 'rtl';
+    const overlay = document.getElementById('langSelectOverlay');
+    if (overlay) overlay.classList.add('closed');
+    updateUI();
+    setTimeout(() => { init(); }, 100);
+}
+
+function openLanguageSelectFromSettings() {
+    selectedFirstLang = currentLang;
+    document.querySelectorAll('.lang-option-btn').forEach(b => b.classList.toggle('selected', b.dataset.lang === currentLang));
+    const btn = document.getElementById('langConfirmBtn');
+    if (btn) btn.disabled = false;
+    document.getElementById('langSelectOverlay').classList.remove('closed');
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -2614,7 +2569,7 @@ function startPriceUpdater() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// TOKEN SYSTEM
+// TOKEN SYSTEM — با موازی‌سازی (اصلاح #9)
 // ═══════════════════════════════════════════════════════════════
 async function loadAllTokenBalances(forceFetch = false) {
     if (!state.address) return;
@@ -2639,7 +2594,8 @@ async function loadAllTokenBalances(forceFetch = false) {
         }
     }
 
-    for (const token of EXTRA_TOKENS) {
+    // ✅ موازی‌سازی توکن‌های اضافی
+    const tokenResults = await Promise.all(EXTRA_TOKENS.map(async (token) => {
         let bal = 0;
         if (state.provider) {
             try {
@@ -2649,35 +2605,29 @@ async function loadAllTokenBalances(forceFetch = false) {
             } catch (e) {
                 try {
                     const cached = await settingsDB.getItem(cacheKey);
-                    if (cached && cached.balances && cached.balances[token.symbol]) bal = cached.balances[token.symbol].balance || 0;
+                    if (cached?.balances?.[token.symbol]) bal = cached.balances[token.symbol].balance || 0;
                 } catch (err) {}
             }
         }
-
         let priceUSD = 0, change24h = 0;
         if (window.getTokenInfo) {
             const priceInfo = window.getTokenInfo(token.address);
-            if (priceInfo) {
-                priceUSD = priceInfo.currentPrice || 0;
-                change24h = priceInfo.change24h || 0;
-            }
+            if (priceInfo) { priceUSD = priceInfo.currentPrice || 0; change24h = priceInfo.change24h || 0; }
         }
-
-        if (bal <= 0) continue;
-
-        balances[token.symbol] = {
+        if (bal <= 0) return null;
+        return {
             symbol: token.symbol, name: token.name, address: token.address, decimals: token.decimals,
             balance: bal, priceUSD, change24h, valueUSD: bal * priceUSD,
             image: token.image, isNative: false, canSwap: token.canSwap, description: token.description
         };
-    }
+    }));
+
+    for (const tk of tokenResults) { if (tk) balances[tk.symbol] = tk; }
 
     if (!state.provider) {
         try {
             const cached = await settingsDB.getItem(cacheKey);
-            if (cached && cached.balances) {
-                for (const sym in cached.balances) { if (!balances[sym]) balances[sym] = cached.balances[sym]; }
-            }
+            if (cached?.balances) { for (const sym in cached.balances) { if (!balances[sym]) balances[sym] = cached.balances[sym]; } }
         } catch (e) {}
     }
 
@@ -2768,7 +2718,7 @@ function switchMainTab(tab) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// TOKEN DETAIL + CHART
+// TOKEN DETAIL + CHART — با کندل اصلاح‌شده (اصلاح #5 و #6)
 // ═══════════════════════════════════════════════════════════════
 function openTokenDetail(symbol) {
     const token = tokenBalances[symbol];
@@ -2814,6 +2764,33 @@ function closeTokenDetail() {
     currentTokenDetail = null;
 }
 
+// ✅ اصلاح #5: کندل آخر با open/close هماهنگ
+function generateFallbackCandles(basePrice, days, dailyMin = -3, dailyMax = 4) {
+    const candles = [];
+    const now = Math.floor(Date.now() / 1000);
+    const daySec = 86400;
+    let price = basePrice;
+    for (let i = 0; i < days; i++) {
+        const time = now - (days - i) * daySec;
+        const open = price;
+        const randomChange = (Math.random() * (dailyMax - dailyMin) + dailyMin) / 100;
+        let close = open * (1 + randomChange);
+        const high = Math.max(open, close) * (1 + (Math.random() * 1.5) / 100);
+        const low = Math.min(open, close) * (1 - (Math.random() * 1.5) / 100);
+        candles.push({ time, open: +open.toFixed(4), high: +high.toFixed(4), low: +Math.max(low, 0.0001).toFixed(4), close: +close.toFixed(4) });
+        price = close;
+    }
+    // ✅ کندل آخر با قیمت فعلی هماهنگ
+    if (candles.length > 0) {
+        const lastCandle = candles[candles.length - 1];
+        lastCandle.close = basePrice;
+        lastCandle.high = Math.max(lastCandle.open, basePrice, lastCandle.high) * 1.002;
+        lastCandle.low = Math.min(lastCandle.open, basePrice, lastCandle.low) * 0.998;
+    }
+    return candles;
+}
+
+// ✅ اصلاح #6: برگشت به کد اول — همیشه از generateFallbackCandles استفاده کن
 function createCandleChart(token, days) {
     const container = document.getElementById('tokenChartBox');
     if (!container) return;
@@ -2828,30 +2805,22 @@ function createCandleChart(token, days) {
             rightPriceScale: { borderColor: 'rgba(42, 42, 80, 0.5)', scaleMargins: { top: 0.15, bottom: 0.15 } },
             timeScale: { borderColor: 'rgba(42, 42, 80, 0.5)', timeVisible: true, secondsVisible: false }
         });
-        tokenCandleSeries = tokenChart.addCandlestickSeries({ upColor: '#4ade80', downColor: '#e94560', borderUpColor: '#4ade80', borderDownColor: '#e94560', wickUpColor: '#4ade80', wickDownColor: '#e94560', priceFormat: { type: 'price', precision: 4, minMove: 0.0001 } });
-        let candles;
-        if (window.generatePriceHistory) {
-            const info = token.isNative ? null : window.getTokenInfo(token.address);
-            candles = window.generatePriceHistory(info?.basePrice || token.priceUSD, info?.dailyMin ?? -3, info?.dailyMax ?? 4, days);
-        } else {
-            candles = generateFallbackCandles(token.priceUSD, days);
-        }
+        tokenCandleSeries = tokenChart.addCandlestickSeries({
+            upColor: '#4ade80', downColor: '#e94560',
+            borderUpColor: '#4ade80', borderDownColor: '#e94560',
+            wickUpColor: '#4ade80', wickDownColor: '#e94560',
+            priceFormat: { type: 'price', precision: 4, minMove: 0.0001 }
+        });
+        const info = token.isNative ? null : (window.getTokenInfo ? window.getTokenInfo(token.address) : null);
+        const minPct = info && info.dailyMin !== undefined ? info.dailyMin : -3;
+        const maxPct = info && info.dailyMax !== undefined ? info.dailyMax : 4;
+        const candles = generateFallbackCandles(token.priceUSD, days, minPct, maxPct);
         tokenCandleSeries.setData(candles);
         tokenChart.timeScale().fitContent();
         if (window._tokenChartResize) window.removeEventListener('resize', window._tokenChartResize);
         window._tokenChartResize = () => { if (tokenChart && container) tokenChart.applyOptions({ width: container.clientWidth, height: container.clientHeight }); };
         window.addEventListener('resize', window._tokenChartResize);
     } catch (e) { container.innerHTML = `<div class="empty-state">${t('error')}</div>`; }
-}
-
-function generateFallbackCandles(basePrice, days) {
-    const candles = []; const now = Math.floor(Date.now() / 1000); const daySec = 86400; let price = basePrice;
-    for (let i = 0; i < days; i++) {
-        const time = now - (days - i) * daySec; const open = price; const close = open * (1 + (-3 + Math.random() * 7) / 100);
-        const high = Math.max(open, close) * (1 + Math.random() * 0.015); const low = Math.min(open, close) * (1 - Math.random() * 0.015);
-        candles.push({ time, open: +open.toFixed(4), high: +high.toFixed(4), low: +Math.max(low, 0.01).toFixed(4), close: +close.toFixed(4) }); price = close;
-    }
-    return candles;
 }
 
 function switchChartRange(days, btn) {
@@ -2882,7 +2851,7 @@ function openSwapFromToken(symbol) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// WALLET MANAGER
+// WALLET MANAGER — با اصلاح clearSensitiveState
 // ═══════════════════════════════════════════════════════════════
 async function loadWallets() { try { const data = await walletsDB.getItem('foxWallets'); state.wallets = data ? data : []; await ensureWalletNames(); } catch (e) { state.wallets = []; } }
 async function saveWallets() { try { await walletsDB.setItem('foxWallets', state.wallets); } catch (e) {} }
@@ -2921,6 +2890,7 @@ async function switchWalletFromList(index) {
             const seed = await decryptSecure(wallet.encryptedSeed, state.currentPassword);
             const walletInstance = ethers.Wallet.fromMnemonic(seed);
             state.address = wallet.address; state.encryptedSeed = wallet.encryptedSeed; state.activeWalletIndex = index;
+            Settings.setActiveWalletIndex(index);
             state.signer = walletInstance.connect(state.provider); state.selectedNFT = null;
             status(t('connected'), 'success'); showNotification('success', '🔄', wallet.name || shortAddr(wallet.address));
             await loadTxHistoryFromCache(); await renderTxHistory(); await loadFavorites(); await refreshAll(false);
@@ -2969,6 +2939,7 @@ async function confirmDeleteWallet() {
         else { await saveWallets(); document.getElementById('loginModal').classList.remove('closed'); document.getElementById('loginOptions').classList.remove('hidden'); document.getElementById('unlockSection').classList.add('hidden'); document.getElementById('createSection').classList.add('hidden'); document.getElementById('createVerifySection').classList.add('hidden'); document.getElementById('createPasswordSection').classList.add('hidden'); document.getElementById('importSection').classList.add('hidden'); }
     } else if (state.activeWalletIndex > index) { state.activeWalletIndex--; await saveWallets(); } else { await saveWallets(); }
     closeDeleteWalletConfirm(); renderWalletListModal(); showNotification('info', '🗑️', t('walletDeletedPermanently'));
+    clearSensitiveState();  // ✅ پاک‌سازی رمز
 }
 
 function openAddWalletFromList() {
@@ -2989,7 +2960,7 @@ function openSeedForWallet(index) {
     else { bioBtn.style.display = 'none'; passSection.style.display = 'block'; }
     document.getElementById('seedVerifyModal').classList.remove('closed');
 }
-function closeSeedVerify() { document.getElementById('seedVerifyModal').classList.add('closed'); state.seedTargetIndex = null; }
+function closeSeedVerify() { document.getElementById('seedVerifyModal').classList.add('closed'); state.seedTargetIndex = null; clearSensitiveState(); }
 async function verifySeedWithBiometric() { const result = await BiometricAuth.verify(t('bioSeedPrompt')); if (!result.success) { showNotification('error', '❌', t('bioFailed')); return; } const creds = await BiometricAuth.getCredentials(); if (!creds || !creds.password) { showNotification('error', '❌', t('bioInfoNotFound')); return; } await decryptAndRevealSeed(creds.password); }
 async function verifySeedWithPassword() { const pass = document.getElementById('seedVerifyPass').value; if (!pass) { toast(t('enterPassword'), 'error'); return; } await decryptAndRevealSeed(pass); }
 
@@ -3034,6 +3005,15 @@ function verifySeedWords() {
 
 async function copyAllSeedWords() { const text = state.seedCurrentWords.join(' '); const ok = await copyToClipboard(text); if (ok) toast(t('copied')); }
 function closeSeedReveal() { document.getElementById('seedRevealModal').classList.add('closed'); state.seedCurrentWords = []; state.seedVerifyIndices = []; state.seedRevealed = false; state.seedTargetIndex = null; }
+
+// ═══════════════════════════════════════════════════════════════
+// 🔒 VISIBILITY CHANGE — پاک‌سازی رمز
+// ═══════════════════════════════════════════════════════════════
+document.addEventListener('visibilitychange', function () {
+    if (document.hidden && state.unlocked) {
+        clearSensitiveState();
+    }
+});
 
 // ═══════════════════════════════════════════════════════════════
 // NFTs
@@ -3096,12 +3076,20 @@ async function loadTxHistoryFromCache() { try { const data = await txHistoryDB.g
 async function saveTxToCache() { try { await txHistoryDB.setItem(getTxHistoryKey(), state.txHistory); } catch (e) {} }
 async function addTxToHistory(tx) { const exists = state.txHistory.some(t => t.hash === tx.hash); if (exists) return; state.txHistory.unshift(tx); state.txHistory.sort((a, b) => b.timestamp - a.timestamp); await saveTxToCache(); }
 
+// ✅ اصلاح #8: دکمه «نمایش همه» فعال شد
 async function renderTxHistory() {
-    const container = document.getElementById('txHistory'); if (!container) return;
-    if (!state.address || state.txHistory.length === 0) { container.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📜</div><div>${t('emptyTx')}</div></div>`; return; }
+    const container = document.getElementById('txHistory');
+    const showAllBtn = document.getElementById('showAllTxBtn');
+    if (!container) return;
+    if (!state.address || state.txHistory.length === 0) {
+        container.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📜</div><div>${t('emptyTx')}</div></div>`;
+        if (showAllBtn) showAllBtn.style.display = 'none';
+        return;
+    }
     const displayItems = state.txHistory.slice(0, 5); let html = '<div class="tx-list">';
     for (let i = 0; i < displayItems.length; i++) html += await renderTxItem(displayItems[i], i);
     html += '</div>'; container.innerHTML = html;
+    if (showAllBtn) showAllBtn.style.display = 'block';
 }
 
 async function renderTxItem(tx, index) {
@@ -3119,10 +3107,17 @@ async function renderTxItem(tx, index) {
     return `<div class="tx-item ${directionClass}" onclick="openTxDetail(${index})">${tx.type === 'nft' ? iconHtml : `<div class="tx-icon ${directionClass}">${iconHtml}</div>`}<div class="tx-info"><div class="tx-title">${titleHtml}</div>${amountHtml}<div class="tx-date">🕐 ${dateStr}</div></div></div>`;
 }
 
+// ✅ اصلاح #7: showAllTxHistory برگشت
 async function showAllTxHistory() {
-    const modal = document.getElementById('allTxModal'); const body = document.getElementById('allTxBody');
+    const modal = document.getElementById('allTxModal');
+    const body = document.getElementById('allTxBody');
     if (state.txHistory.length === 0) body.innerHTML = `<div class="empty-state">${t('emptyTx')}</div>`;
-    else { let html = '<div class="tx-list">'; for (let index = 0; index < state.txHistory.length; index++) html += await renderTxItem(state.txHistory[index], index); html += '</div>'; body.innerHTML = html; }
+    else {
+        let html = '<div class="tx-list">';
+        for (let index = 0; index < state.txHistory.length; index++) html += await renderTxItem(state.txHistory[index], index);
+        html += '</div>';
+        body.innerHTML = html;
+    }
     modal.classList.remove('closed');
 }
 function closeAllTx() { document.getElementById('allTxModal').classList.add('closed'); }
@@ -3130,7 +3125,7 @@ function closeAllTx() { document.getElementById('allTxModal').classList.add('clo
 async function openTxDetail(index) {
     const tx = state.txHistory[index]; if (!tx) return; const isIncoming = tx.direction === 'in'; const body = document.getElementById('txDetailContent'); let contentHtml = '';
     if (tx.type === 'avax' || tx.type === 'token') {
-        const amountSign = isIncoming ? '+' : '-'; const amountColor = isIncoming ? 'green' : 'red'; const symbol = tx.tokenSymbol || 'AVAX'; const amountVal = tx.type === 'avax' ? tx.value : tx.value;
+        const amountSign = isIncoming ? '+' : '-'; const amountColor = isIncoming ? 'green' : 'red'; const symbol = tx.tokenSymbol || 'AVAX'; const amountVal = tx.value;
         contentHtml = `<div class="success-icon" style="background: ${isIncoming ? 'linear-gradient(135deg, var(--accent-success), #22c55e)' : 'linear-gradient(135deg, var(--accent-primary), #d63652)'};">${isIncoming ? '📥' : '📤'}</div><div class="success-title" style="color: var(--accent-${isIncoming ? 'success' : 'primary'});">${isIncoming ? '📥 ' + symbol : '📤 ' + symbol}</div><div class="success-sub">${formatTime(tx.timestamp)}</div><div class="detail-row"><span class="detail-label">${t('detailValue')}</span><span class="detail-value ${amountColor}">${amountSign}${formatTokenBalance(amountVal)} ${symbol}</span></div><div class="detail-row"><span class="detail-label">${t('detailFrom')}</span><span class="detail-value" title="${tx.from}">${fullAddr(tx.from)}</span></div><div class="detail-row"><span class="detail-label">${t('detailTo')}</span><span class="detail-value" title="${tx.to}">${fullAddr(tx.to)}</span></div>${tx.gasFee ? `<div class="detail-row"><span class="detail-label">${t('detailGas')}</span><span class="detail-value gold">${tx.gasFee} AVAX</span></div>` : ''}<div class="detail-row"><span class="detail-label">${t('detailTime')}</span><span class="detail-value white">${formatTime(tx.timestamp)}</span></div><div class="hash-row"><span class="hash-label">${t('detailHash')}</span><span class="hash-value" onclick="copyTxHash('${tx.hash}')">${tx.hash.slice(0, 12)}...${tx.hash.slice(-8)}</span><button class="hash-copy-btn" onclick="copyTxHash('${tx.hash}')">📋</button></div>`;
     } else if (tx.type === 'nft') {
         let displayImage = null; const contractAddr = tx.contract || tx.contractAddress;
@@ -3228,7 +3223,7 @@ function showFavoritesPicker() {
 function pickFavorite(address) { if (state.favoritesForTarget === 'send-token') document.getElementById('tokenSendTo').value = address; else if (state.favoritesForTarget === 'send-nft') document.getElementById('nftSendTo').value = address; toast('✅'); closeFavorites(); }
 
 // ═══════════════════════════════════════════════════════════════
-// SEND / SWAP / EXECUTE
+// SEND MODAL
 // ═══════════════════════════════════════════════════════════════
 function showSendModal() {
     if (!state.signer) { showNotification('error', '❌', t('openWalletFirst')); return; }
@@ -3323,22 +3318,36 @@ async function confirmWithPassword() {
 }
 async function executeTxByType(tx) { if (tx.type === 'token') await executeSendToken(tx); else if (tx.type === 'nft') await executeSendNFT(tx); else if (tx.type === 'swap') await executeSwap(tx); }
 
+// ═══════════════════════════════════════════════════════════════
+// EXECUTE TRANSACTIONS
+// ═══════════════════════════════════════════════════════════════
 async function executeSendToken(tx) {
     try {
-        if (!state.provider) { showNotification('error', '❌', t('error')); return; }
+        showTxLoading(t('sending'), t('txLoadingSub'));
+        if (!state.provider) { hideTxLoading(); showNotification('error', '❌', t('error')); return; }
         if (!state.signer.provider) state.signer = state.signer.connect(state.provider);
-        status(t('sending'), 'info'); let transaction;
+        updateTxLoading(t('sending'), t('txLoadingSigning'));
+        let transaction;
         if (tx.tokenIsNative) { transaction = await state.signer.sendTransaction({ to: tx.to, value: tx.amountWei }); }
         else { const tokenContract = new ethers.Contract(tx.tokenAddress, ['function transfer(address, uint) returns (bool)'], state.signer); transaction = await tokenContract.transfer(tx.to, tx.amountWei); }
-        status(t('waitingNetwork'), 'info'); const receipt = await transaction.wait();
+        updateTxLoading(t('waitingNetwork'), t('txLoadingConfirming'), `${t('txLoadingHash')} ${transaction.hash.slice(0, 16)}...`);
+        const receipt = await transaction.wait();
+        hideTxLoading();
         const gasUsed = receipt.gasUsed; const effectiveGasPrice = receipt.effectiveGasPrice || transaction.gasPrice || ethers.BigNumber.from(0);
         const gasFeeWei = gasUsed.mul(effectiveGasPrice); const gasFeeAvax = parseFloat(ethers.utils.formatEther(gasFeeWei)).toFixed(6);
         const txRecord = { hash: receipt.transactionHash, type: tx.tokenIsNative ? 'avax' : 'token', tokenSymbol: tx.tokenSymbol, direction: 'out', from: state.address, to: tx.to, value: tx.amount, gasFee: gasFeeAvax, timestamp: Date.now(), blockNumber: receipt.blockNumber };
         await addTxToHistory(txRecord); await renderTxHistory(); showSuccessModal(txRecord);
         await NativeNotifications.send(t('notificationSentTitle'), `${formatTokenBalance(tx.amount)} ${tx.tokenSymbol} → ${shortAddr(tx.to)}`, 'success');
+        if (tokenBalances[tx.tokenSymbol]) {
+            tokenBalances[tx.tokenSymbol].balance -= tx.amount;
+            tokenBalances[tx.tokenSymbol].valueUSD = tokenBalances[tx.tokenSymbol].balance * (tokenBalances[tx.tokenSymbol].priceUSD || 0);
+            if (tokenBalances[tx.tokenSymbol].balance <= 0 && tx.tokenSymbol !== 'AVAX') delete tokenBalances[tx.tokenSymbol];
+            renderTokenList(); renderHeroBalance();
+        }
         document.getElementById('tokenSendTo').value = ''; document.getElementById('tokenAmount').value = ''; state.pendingTx = null; closeSendModal();
-        status(t('successTitle'), 'success'); await refreshAll(true); setTimeout(restoreConnectedStatus, 3000);
+        status(t('successTitle'), 'success'); await loadFullTxHistory(); setTimeout(restoreConnectedStatus, 3000);
     } catch (e) {
+        hideTxLoading();
         let errMsg = e.message || t('error'); if (e.code === 'ACTION_REJECTED' || errMsg.includes('user rejected') || errMsg.includes('user rejects')) errMsg = t('txCancelled');
         showNotification('error', '❌ ' + t('sendingError'), errMsg); status(t('sendingError'), 'error'); state.pendingTx = null; setTimeout(restoreConnectedStatus, 3000);
     }
@@ -3346,25 +3355,39 @@ async function executeSendToken(tx) {
 
 async function executeSendNFT(tx) {
     try {
-        if (!state.provider) { showNotification('error', '❌', t('error')); return; }
+        showTxLoading(t('sending'), t('txLoadingSub'));
+        if (!state.provider) { hideTxLoading(); showNotification('error', '❌', t('error')); return; }
         if (!state.signer.provider) state.signer = state.signer.connect(state.provider);
-        status(t('sending'), 'info');
+        updateTxLoading(t('sending'), t('txLoadingSigning'));
         const contract = new ethers.Contract(tx.contract, ['function safeTransferFrom(address, address, uint, uint, bytes)'], state.signer);
         const transaction = await contract.safeTransferFrom(state.address, tx.to, tx.tokenId, tx.amount, '0x');
-        status(t('waitingNetwork'), 'info'); const receipt = await transaction.wait();
+        updateTxLoading(t('waitingNetwork'), t('txLoadingConfirming'), `${t('txLoadingHash')} ${transaction.hash.slice(0, 16)}...`);
+        const receipt = await transaction.wait();
+        hideTxLoading();
         const gasUsed = receipt.gasUsed; const effectiveGasPrice = receipt.effectiveGasPrice || transaction.gasPrice || ethers.BigNumber.from(0);
         const gasFeeWei = gasUsed.mul(effectiveGasPrice); const gasFeeAvax = parseFloat(ethers.utils.formatEther(gasFeeWei)).toFixed(6);
         const txRecord = { hash: receipt.transactionHash, type: 'nft', direction: 'out', from: state.address, to: tx.to, contract: tx.contract, tokenId: tx.tokenId, amount: tx.amount, nftName: tx.nftName, image: tx.image, collection: tx.collection, gasFee: gasFeeAvax, timestamp: Date.now(), blockNumber: receipt.blockNumber };
         await addTxToHistory(txRecord); await renderTxHistory(); showSuccessModal(txRecord);
         await NativeNotifications.send(t('notificationNFTTitle'), `${tx.nftName} → ${shortAddr(tx.to)}`, 'success');
+        const nftIndex = state.allNFTs.findIndex(n => n.contract.toLowerCase() === tx.contract.toLowerCase() && n.id === tx.tokenId);
+        if (nftIndex !== -1) {
+            state.allNFTs[nftIndex].balance -= tx.amount;
+            state.allNFTs[nftIndex].totalPrice = state.allNFTs[nftIndex].balance * (state.allNFTs[nftIndex].pricePerNFT || 0);
+            if (state.allNFTs[nftIndex].balance <= 0) state.allNFTs.splice(nftIndex, 1);
+            renderNFTs(state.allNFTs); renderHeroBalance();
+        }
         document.getElementById('nftSendTo').value = ''; document.getElementById('nftAmount').value = '1'; state.selectedNFT = null; state.pendingTx = null; closeSendModal();
-        status(t('successTitle'), 'success'); await refreshAll(true); setTimeout(restoreConnectedStatus, 3000);
+        status(t('successTitle'), 'success'); await loadFullTxHistory(); setTimeout(restoreConnectedStatus, 3000);
     } catch (e) {
+        hideTxLoading();
         let errMsg = e.message || t('error'); if (e.code === 'ACTION_REJECTED' || errMsg.includes('user rejects')) errMsg = t('txCancelled');
         showNotification('error', '❌ ' + t('sendingError'), errMsg); status(t('sendingError'), 'error'); state.pendingTx = null; setTimeout(restoreConnectedStatus, 3000);
     }
 }
 
+// ═══════════════════════════════════════════════════════════════
+// SWAP
+// ═══════════════════════════════════════════════════════════════
 function showSwapModal() {
     if (!state.signer) { showNotification('error', '❌', t('openWalletFirst')); return; }
     state.swapFromToken = 'AVAX'; state.swapToToken = 'USDC'; state.swapFromAmount = 0; state.swapToAmount = 0; state.swapAmountOutWei = null;
@@ -3428,35 +3451,50 @@ function startSwap() {
 
 async function executeSwap(tx) {
     try {
-        if (!state.provider) { showNotification('error', '❌', t('error')); return; }
+        showTxLoading(t('swapping'), t('txLoadingSub'));
+        if (!state.provider) { hideTxLoading(); showNotification('error', '❌', t('error')); return; }
         if (!state.signer.provider) state.signer = state.signer.connect(state.provider);
-        status(t('swapping'), 'info');
         const fromToken = tx.fromTokenInfo; const toToken = tx.toTokenInfo;
         const router = new ethers.Contract(CONFIG.pangolin.routerAddress, CONFIG.pangolin.routerABI, state.signer);
         const amountIn = ethers.utils.parseUnits(tx.fromAmount.toString(), fromToken.decimals);
         const slippage = CONFIG.pangolin.slippage / 100; const amountOutMin = tx.amountOutWei.mul(Math.floor((1 - slippage) * 10000)).div(10000);
         const path = [fromToken.address, toToken.address]; const deadline = Math.floor(Date.now() / 1000) + (CONFIG.pangolin.deadlineMinutes * 60);
         let transaction;
-        if (fromToken.isNative) { transaction = await router.swapExactAVAXForTokens(amountOutMin, path, state.address, deadline, { value: amountIn }); }
+        if (fromToken.isNative) { updateTxLoading(t('sending'), t('txLoadingSigning')); transaction = await router.swapExactAVAXForTokens(amountOutMin, path, state.address, deadline, { value: amountIn }); }
         else if (toToken.isNative) {
             const tc = new ethers.Contract(fromToken.address, ['function approve(address, uint) returns (bool)', 'function allowance(address, address) view returns (uint)'], state.signer);
             const allowance = await tc.allowance(state.address, CONFIG.pangolin.routerAddress);
-            if (allowance.lt(amountIn)) { status(t('approving'), 'info'); const approveTx = await tc.approve(CONFIG.pangolin.routerAddress, ethers.constants.MaxUint256); await approveTx.wait(); }
+            if (allowance.lt(amountIn)) { updateTxLoading(t('approving'), t('txLoadingSigning')); const approveTx = await tc.approve(CONFIG.pangolin.routerAddress, ethers.constants.MaxUint256); await approveTx.wait(); }
+            updateTxLoading(t('sending'), t('txLoadingSigning'));
             transaction = await router.swapExactTokensForAVAX(amountIn, amountOutMin, path, state.address, deadline);
         } else {
             const tc = new ethers.Contract(fromToken.address, ['function approve(address, uint) returns (bool)', 'function allowance(address, address) view returns (uint)'], state.signer);
             const allowance = await tc.allowance(state.address, CONFIG.pangolin.routerAddress);
-            if (allowance.lt(amountIn)) { status(t('approving'), 'info'); const approveTx = await tc.approve(CONFIG.pangolin.routerAddress, ethers.constants.MaxUint256); await approveTx.wait(); }
+            if (allowance.lt(amountIn)) { updateTxLoading(t('approving'), t('txLoadingSigning')); const approveTx = await tc.approve(CONFIG.pangolin.routerAddress, ethers.constants.MaxUint256); await approveTx.wait(); }
+            updateTxLoading(t('sending'), t('txLoadingSigning'));
             transaction = await router.swapExactTokensForTokens(amountIn, amountOutMin, path, state.address, deadline);
         }
-        status(t('waitingNetwork'), 'info'); const receipt = await transaction.wait();
+        updateTxLoading(t('waitingNetwork'), t('txLoadingConfirming'), `${t('txLoadingHash')} ${transaction.hash.slice(0, 16)}...`);
+        const receipt = await transaction.wait();
+        hideTxLoading();
         const gasUsed = receipt.gasUsed; const effectiveGasPrice = receipt.effectiveGasPrice || transaction.gasPrice || ethers.BigNumber.from(0);
         const gasFeeWei = gasUsed.mul(effectiveGasPrice); const gasFeeAvax = parseFloat(ethers.utils.formatEther(gasFeeWei)).toFixed(6);
         const txRecord = { hash: receipt.transactionHash, type: 'swap', direction: 'out', from: state.address, to: state.address, fromSymbol: tx.fromToken, toSymbol: tx.toToken, fromAmount: tx.fromAmount, toAmount: tx.toAmount, gasFee: gasFeeAvax, timestamp: Date.now(), blockNumber: receipt.blockNumber };
         await addTxToHistory(txRecord); await renderTxHistory(); showSuccessModal(txRecord);
         await NativeNotifications.send(t('notificationSwapTitle'), `${formatAmount(tx.fromAmount)} ${tx.fromToken} → ${formatAmount(tx.toAmount)} ${tx.toToken}`, 'success');
-        state.pendingTx = null; status(t('successSwapTitle'), 'success'); await refreshAll(true); setTimeout(restoreConnectedStatus, 3000);
+        if (tokenBalances[tx.fromToken]) {
+            tokenBalances[tx.fromToken].balance -= tx.fromAmount;
+            tokenBalances[tx.fromToken].valueUSD = tokenBalances[tx.fromToken].balance * (tokenBalances[tx.fromToken].priceUSD || 0);
+            if (tokenBalances[tx.fromToken].balance <= 0) delete tokenBalances[tx.fromToken];
+        }
+        if (tokenBalances[tx.toToken]) {
+            tokenBalances[tx.toToken].balance += tx.toAmount;
+            tokenBalances[tx.toToken].valueUSD = tokenBalances[tx.toToken].balance * (tokenBalances[tx.toToken].priceUSD || 0);
+        }
+        renderTokenList(); renderHeroBalance();
+        state.pendingTx = null; status(t('successSwapTitle'), 'success'); await loadFullTxHistory(); setTimeout(restoreConnectedStatus, 3000);
     } catch (e) {
+        hideTxLoading();
         let errMsg = e.message || t('error'); if (e.code === 'ACTION_REJECTED' || errMsg.includes('user rejected')) errMsg = t('txCancelled');
         showNotification('error', '❌ ' + t('swapError'), errMsg); status(t('swapError'), 'error'); state.pendingTx = null; setTimeout(restoreConnectedStatus, 3000);
     }
@@ -3506,12 +3544,10 @@ function showSettings() {
     updateLanguageSettingUI();
 }
 function closeSettings() { document.getElementById('settingsModal').classList.add('closed'); }
-
 function updateLanguageSettingUI() {
     const btn = document.getElementById('changeLangBtn');
     if (btn) btn.textContent = currentLang === 'fa' ? '🇮🇷 فارسی' : '🇺🇸 English';
 }
-
 function changeTheme(theme) {
     Settings.setTheme(theme);
     const names = {
@@ -3520,20 +3556,17 @@ function changeTheme(theme) {
     };
     showNotification('info', '🎨', names[currentLang][theme] || theme);
 }
-
 function toggleNotificationSound() {
     const t2 = document.getElementById('notifSoundToggle');
     Settings.setNotifSound(t2.checked);
     showNotification('info', '🔊', t2.checked ? t('soundOn') : t('soundOff'));
 }
-
 function toggleNotificationVibrate() {
     const t2 = document.getElementById('notifVibrateToggle');
     Settings.setNotifVibrate(t2.checked);
     if (t2.checked && navigator.vibrate) navigator.vibrate(100);
     showNotification('info', '📳', t2.checked ? t('vibrateOn') : t('vibrateOff'));
 }
-
 function updateBioStatus() {
     const toggle = document.getElementById('bioToggle');
     const statusText = document.getElementById('bioStatusText');
@@ -3554,7 +3587,6 @@ function updateBioStatus() {
     if (enabled) { statusText.textContent = t('bioEnabled'); statusText.style.color = 'var(--accent-success)'; }
     else { statusText.textContent = t('bioDisabled'); statusText.style.color = 'var(--text-secondary)'; }
 }
-
 async function toggleBiometricFromSettings() {
     const toggle = document.getElementById('bioToggle');
     if (!biometricAvailable) { showNotification('error', '❌', t('bioNotSupportedToast')); toggle.checked = false; return; }
@@ -3572,7 +3604,6 @@ async function toggleBiometricFromSettings() {
     }
     updateBioStatus();
 }
-
 async function checkBiometricSupport() {
     const result = await BiometricAuth.checkAvailability();
     biometricAvailable = result.available;
@@ -3595,7 +3626,6 @@ function backToLogin() {
     document.getElementById('loginOptions').classList.remove('hidden'); document.getElementById('createSection').classList.add('hidden');
     document.getElementById('createVerifySection').classList.add('hidden'); document.getElementById('createPasswordSection').classList.add('hidden'); document.getElementById('importSection').classList.add('hidden'); document.getElementById('unlockSection').classList.add('hidden');
 }
-
 function generateSeed() {
     try {
         const wallet = ethers.Wallet.createRandom(); newMnemonic = wallet.mnemonic.phrase; loginTempMnemonicWords = newMnemonic.split(' ');
@@ -3604,7 +3634,6 @@ function generateSeed() {
         container.innerHTML = html; document.getElementById('createVerifyNextBtn').style.display = 'block'; toast('✅');
     } catch (e) { toast('❌ ' + e.message, 'error'); }
 }
-
 function startCreateWalletVerification() {
     if (!newMnemonic || loginTempMnemonicWords.length !== 12) return;
     const indices = []; while (indices.length < 3) { const r = Math.floor(Math.random() * 12); if (!indices.includes(r)) indices.push(r); } indices.sort((a, b) => a - b);
@@ -3618,7 +3647,6 @@ function startCreateWalletVerification() {
     container.innerHTML = html; document.getElementById('createSection').classList.add('hidden'); document.getElementById('createVerifySection').classList.remove('hidden');
 }
 function selectLoginVerifyOption(btn, word) { const parent = btn.closest('.verify-options-row'); parent.querySelectorAll('.verify-option-btn').forEach(b => b.classList.remove('selected')); btn.classList.add('selected'); btn.dataset.selectedWord = word; }
-
 function verifyCreateWalletWords() {
     const questions = document.querySelectorAll('#createVerifyQuestions .verify-question'); let allCorrect = true;
     questions.forEach(q => { const idx = parseInt(q.dataset.idx); const correctWord = loginTempMnemonicWords[idx]; const selectedBtn = q.querySelector('.verify-option-btn.selected'); if (!selectedBtn || selectedBtn.dataset.selectedWord !== correctWord) { allCorrect = false; q.style.borderColor = 'var(--accent-primary)'; } else { q.style.borderColor = 'var(--accent-success)'; } });
@@ -3626,7 +3654,6 @@ function verifyCreateWalletWords() {
     document.getElementById('createVerifySection').classList.add('hidden'); document.getElementById('createPasswordSection').classList.remove('hidden');
 }
 function backToSeedDisplayLogin() { document.getElementById('createVerifySection').classList.add('hidden'); document.getElementById('createSection').classList.remove('hidden'); }
-
 async function finalizeCreateWallet() {
     const name = document.getElementById('createWalletName').value.trim() || `Wallet 1`; const pass = document.getElementById('createPass').value; const pass2 = document.getElementById('createPass2').value;
     if (pass.length < 6) { toast(t('passMin'), 'error'); return; } if (pass !== pass2) { toast(t('passMatch'), 'error'); return; }
@@ -3639,14 +3666,12 @@ async function finalizeCreateWallet() {
         }
     } catch (e) { toast('❌ ' + e.message, 'error'); }
 }
-
 function renderImportInputs(containerId) {
     const grid = document.getElementById(containerId); if (!grid) return;
     let html = '';
     for (let i = 1; i <= 12; i++) { html += `<input type="text" class="import-word-input" placeholder="${i}" id="${containerId}_word_${i}" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />`; }
     grid.innerHTML = html;
 }
-
 async function importWallet() {
     const containerId = 'loginImportGrid'; let words = [];
     for (let i = 1; i <= 12; i++) { const val = document.getElementById(`${containerId}_word_${i}`).value.trim(); words.push(val); }
@@ -3664,7 +3689,6 @@ async function importWallet() {
         }
     } catch (e) { toast(t('passWrong'), 'error'); }
 }
-
 function showAddCreateWallet() {
     document.getElementById('addWalletOptions').classList.add('hidden'); document.getElementById('addCreateSection').classList.remove('hidden');
     document.getElementById('addVerifySection').classList.add('hidden'); document.getElementById('addPasswordSection').classList.add('hidden'); document.getElementById('addImportSection').classList.add('hidden');
@@ -3707,7 +3731,6 @@ function verifyAddWalletWords() {
     document.getElementById('addVerifySection').classList.add('hidden'); document.getElementById('addPasswordSection').classList.remove('hidden');
 }
 function backToSeedDisplayAdd() { document.getElementById('addVerifySection').classList.add('hidden'); document.getElementById('addCreateSection').classList.remove('hidden'); }
-
 async function finalizeAddWallet() {
     const name = document.getElementById('addWalletName').value.trim() || `Wallet ${state.wallets.length + 1}`; const pass = document.getElementById('addWalletPass').value; const pass2 = document.getElementById('addWalletPass2').value;
     if (pass.length < 6) { toast(t('passMin'), 'error'); return; } if (pass !== pass2) { toast(t('passMatch'), 'error'); return; }
@@ -3719,7 +3742,6 @@ async function finalizeAddWallet() {
         }
     } catch (e) { toast('❌ ' + e.message, 'error'); }
 }
-
 async function addImportWallet() {
     const containerId = 'addImportGrid'; let words = [];
     for (let i = 1; i <= 12; i++) { const val = document.getElementById(`${containerId}_word_${i}`).value.trim(); words.push(val); }
@@ -3735,8 +3757,8 @@ async function addImportWallet() {
         }
     } catch (e) { toast(t('passWrong'), 'error'); }
 }
-
-function closeAddWalletModal() { document.getElementById('addWalletModal').classList.add('closed'); }
+// ✅ اصلاح: پاک کردن رمز هنگام بستن
+function closeAddWalletModal() { clearSensitiveState(); document.getElementById('addWalletModal').classList.add('closed'); }
 
 async function verifyIdentityForNewWallet() {
     if (state.unlocked && state.currentPassword) {
@@ -3745,7 +3767,6 @@ async function verifyIdentityForNewWallet() {
     }
     const pass = await showPasswordPrompt(); if (!pass || pass.length < 6) { toast(t('passMin'), 'error'); return null; } return pass;
 }
-
 function showPasswordPrompt() {
     return new Promise(resolve => {
         passwordPromptResolve = resolve;
@@ -3758,7 +3779,9 @@ function submitPromptPassword() {
     document.getElementById('passwordPromptModal').classList.add('closed');
     if (passwordPromptResolve) { passwordPromptResolve(pass); passwordPromptResolve = null; }
 }
+// ✅ اصلاح: پاک کردن رمز هنگام انصراف
 function closePasswordPrompt() {
+    clearSensitiveState();
     document.getElementById('passwordPromptModal').classList.add('closed');
     if (passwordPromptResolve) { passwordPromptResolve(null); passwordPromptResolve = null; }
 }
@@ -3767,13 +3790,21 @@ async function addWalletToStorage(address, encryptedSeed, name) {
     const exists = state.wallets.some(w => w.address.toLowerCase() === address.toLowerCase());
     if (exists) { showNotification('error', '⚠️', t('walletExists')); return false; }
     state.wallets.push({ address, encryptedSeed, name }); state.activeWalletIndex = state.wallets.length - 1;
+    Settings.setActiveWalletIndex(state.activeWalletIndex);
     state.address = address; state.encryptedSeed = encryptedSeed; await saveWallets(); return true;
 }
 
+// ✅ اصلاح باگ: پاک‌سازی رمز و pendingSwitchIndex
 function showUnlockModal() {
-    document.getElementById('loginModal').classList.remove('closed'); document.getElementById('loginOptions').classList.add('hidden');
-    document.getElementById('unlockSection').classList.remove('hidden'); document.getElementById('createSection').classList.add('hidden');
-    document.getElementById('createVerifySection').classList.add('hidden'); document.getElementById('createPasswordSection').classList.add('hidden'); document.getElementById('importSection').classList.add('hidden');
+    state.pendingSwitchIndex = undefined;
+    clearSensitiveState();
+    document.getElementById('loginModal').classList.remove('closed');
+    document.getElementById('loginOptions').classList.add('hidden');
+    document.getElementById('unlockSection').classList.remove('hidden');
+    document.getElementById('createSection').classList.add('hidden');
+    document.getElementById('createVerifySection').classList.add('hidden');
+    document.getElementById('createPasswordSection').classList.add('hidden');
+    document.getElementById('importSection').classList.add('hidden');
     document.getElementById('unlockPass').value = '';
     const fpBtn = document.getElementById('fingerprintUnlockBtn');
     if (fpBtn) fpBtn.style.display = (Settings.getBiometricEnabled() && biometricAvailable) ? 'block' : 'none';
@@ -3821,7 +3852,6 @@ async function checkAvaCloudUpdates() {
 }
 async function fetchAVAXTransactions(address) { try { const url = `${CONFIG.avaCloud.baseUrl}/v1/chains/${CONFIG.avaCloud.chainId}/addresses/${address}/transactions?pageSize=${CONFIG.avaCloud.pageSize}`; const r = await fetch(url); if (!r.ok) return []; const d = await r.json(); return d.transactions || []; } catch (e) { return []; } }
 async function fetchNFTTransactions(address) { try { const url = `${CONFIG.avaCloud.baseUrl}/v1/chains/${CONFIG.avaCloud.chainId}/addresses/${address}/nft-transactions?pageSize=${CONFIG.avaCloud.pageSize}`; const r = await fetch(url); if (!r.ok) return []; const d = await r.json(); return d.transactions || []; } catch (e) { return []; } }
-
 async function mergeAvaCloudTransactions(avaxTxs, nftTxs) {
     if (!state.address) return 0;
     const myAddress = state.address.toLowerCase();
@@ -3855,17 +3885,14 @@ async function mergeAvaCloudTransactions(avaxTxs, nftTxs) {
     state.txHistory.sort((a, b) => b.timestamp - a.timestamp);
     await saveTxToCache(); await renderTxHistory(); return newCount;
 }
-
 async function loadFullTxHistory() {
     if (!state.address) return;
     try { const [avaxTxs, nftTxs] = await Promise.all([fetchAVAXTransactions(state.address), fetchNFTTransactions(state.address)]); await mergeAvaCloudTransactions(avaxTxs, nftTxs); restoreConnectedStatus(); } catch (e) { restoreConnectedStatus(); }
 }
-
 async function refreshAll(forceFetch = false) {
     if (!state.address) return;
     try { await loadAllTokenBalances(forceFetch); await loadAllNFTs(forceFetch); renderHeroBalance(); } catch (e) { console.error('Refresh error:', e); }
 }
-
 function applyBalanceVisibility() {
     const balanceEl = document.getElementById('totalBalanceValue'); const eyeBtn = document.getElementById('balanceEyeBtn');
     if (!balanceEl || !eyeBtn) return;
@@ -3879,70 +3906,49 @@ function toggleBalanceVisibility() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// UPDATE UI (کامل — همه متن‌ها با t())
+// UPDATE UI
 // ═══════════════════════════════════════════════════════════════
 function updateUI() {
-    // Language selection screen
     const lsTitle = document.getElementById('langSelectTitle'); if (lsTitle) lsTitle.textContent = t('langChooseTitle');
     const lsDesc = document.getElementById('langSelectDesc'); if (lsDesc) lsDesc.textContent = t('langChooseDesc');
     const lsBtn = document.getElementById('langConfirmBtn'); if (lsBtn) lsBtn.textContent = t('langContinue');
-
-    // Header
     const walletBtn = document.getElementById('walletSelectorBtn'); if (walletBtn) walletBtn.textContent = t('walletsBtn');
     const langBtn = document.getElementById('langBtn'); if (langBtn) langBtn.textContent = currentLang === 'fa' ? '🇺🇸 EN' : '🇮🇷 FA';
-
-    // Hero
     const heroTotalLabel = document.getElementById('totalBalanceLabel'); if (heroTotalLabel) heroTotalLabel.textContent = t('heroTotalBalance');
     const heroSendLabel = document.getElementById('heroSendLabel'); if (heroSendLabel) heroSendLabel.textContent = t('heroSend');
     const heroReceiveLabel = document.getElementById('heroReceiveLabel'); if (heroReceiveLabel) heroReceiveLabel.textContent = t('heroReceive');
     const heroSwapLabel = document.getElementById('heroSwapLabel'); if (heroSwapLabel) heroSwapLabel.textContent = t('heroSwap');
-
-    // Tabs
     const tabTokensLabel = document.getElementById('tabTokensLabel'); if (tabTokensLabel) tabTokensLabel.textContent = t('tabTokens');
     const tabNFTsLabel = document.getElementById('tabNFTsLabel'); if (tabNFTsLabel) tabNFTsLabel.textContent = t('tabNFTs');
     const tabHistoryLabel = document.getElementById('tabHistoryLabel'); if (tabHistoryLabel) tabHistoryLabel.textContent = t('tabHistory');
-
-    // Settings button & favorites
     const settingsLabel = document.getElementById('settingsLabel'); if (settingsLabel) settingsLabel.textContent = t('settingsLabel');
     const openSettingsBtn = document.getElementById('openSettingsBtn'); if (openSettingsBtn) openSettingsBtn.textContent = t('openSettings');
     const favoritesBtn = document.getElementById('favoritesBtn'); if (favoritesBtn) favoritesBtn.textContent = t('favoritesBtn');
     const footerText = document.getElementById('footerText'); if (footerText) footerText.textContent = t('footer');
-
-    // Status
     const statusEl = document.getElementById('status');
     if (statusEl) {
         if (statusEl.classList.contains('success') && state.address && state.unlocked) statusEl.textContent = t('connected');
         else if (statusEl.classList.contains('info') && state.address && !state.unlocked) statusEl.textContent = t('locked');
     }
-
-    // Wallet list modal
     const walletListTitle = document.getElementById('walletListTitle'); if (walletListTitle) walletListTitle.textContent = t('walletsTitle');
     const walletListDesc = document.getElementById('walletListDesc'); if (walletListDesc) walletListDesc.textContent = t('selectWallet');
     const addWalletFromListBtn = document.getElementById('addWalletFromListBtn'); if (addWalletFromListBtn) addWalletFromListBtn.textContent = t('addNewWallet');
     const walletListCloseBtn = document.getElementById('walletListCloseBtn'); if (walletListCloseBtn) walletListCloseBtn.textContent = t('close');
-
-    // Rename modal
     const renameTitle = document.getElementById('renameTitle'); if (renameTitle) renameTitle.textContent = t('renameWallet');
     const renameDesc = document.getElementById('renameDesc'); if (renameDesc) renameDesc.textContent = t('renameDesc');
     const renameInput = document.getElementById('renameInput'); if (renameInput) renameInput.placeholder = t('walletName');
     const renameSaveBtn = document.getElementById('renameSaveBtn'); if (renameSaveBtn) renameSaveBtn.textContent = t('save');
     const renameCancelBtn = document.getElementById('renameCancelBtn'); if (renameCancelBtn) renameCancelBtn.textContent = t('cancel');
-
-    // Delete modal
     const deleteWalletTitle = document.getElementById('deleteWalletTitle'); if (deleteWalletTitle) deleteWalletTitle.textContent = t('deleteWallet');
     const deleteWalletDesc = document.getElementById('deleteWalletDesc'); if (deleteWalletDesc) deleteWalletDesc.textContent = t('deleteWalletDesc');
     const deleteWalletConfirmBtn = document.getElementById('deleteWalletConfirmBtn'); if (deleteWalletConfirmBtn) deleteWalletConfirmBtn.textContent = t('deleteBtn');
     const deleteWalletCancelBtn = document.getElementById('deleteWalletCancelBtn'); if (deleteWalletCancelBtn) deleteWalletCancelBtn.textContent = t('cancel');
-
-    // Seed verify modal
     const seedVerifyTitle = document.getElementById('seedVerifyTitle'); if (seedVerifyTitle) seedVerifyTitle.textContent = t('seedVerifyTitle');
     const seedVerifyDescText = document.getElementById('seedVerifyDescText'); if (seedVerifyDescText) seedVerifyDescText.textContent = t('seedVerifyDesc');
     const seedVerifyBioBtn = document.getElementById('seedVerifyBioBtn'); if (seedVerifyBioBtn) seedVerifyBioBtn.textContent = t('fingerprint');
     const seedVerifyPass = document.getElementById('seedVerifyPass'); if (seedVerifyPass) seedVerifyPass.placeholder = t('password');
     const seedVerifyPassBtn = document.getElementById('seedVerifyPassBtn'); if (seedVerifyPassBtn) seedVerifyPassBtn.textContent = t('continue');
     const seedVerifyCancelBtn = document.getElementById('seedVerifyCancelBtn'); if (seedVerifyCancelBtn) seedVerifyCancelBtn.textContent = t('cancel');
-
-    // Seed reveal modal
     const seedRevealTitle = document.getElementById('seedRevealTitle'); if (seedRevealTitle) seedRevealTitle.textContent = t('seedRevealTitle');
     const seedRevealWarning = document.getElementById('seedRevealWarning'); if (seedRevealWarning) seedRevealWarning.textContent = t('seedRevealWarning');
     const seedRevealDesc1 = document.getElementById('seedRevealDesc1'); if (seedRevealDesc1) seedRevealDesc1.textContent = t('seedRevealDesc1');
@@ -3953,8 +3959,6 @@ function updateUI() {
     const seedCopyBtn = document.getElementById('seedCopyBtn'); if (seedCopyBtn) seedCopyBtn.textContent = t('copyAll');
     const seedFinalCloseBtn = document.getElementById('seedFinalCloseBtn'); if (seedFinalCloseBtn) seedFinalCloseBtn.textContent = t('close');
     const seedVerifiedMsg = document.getElementById('seedVerifiedMsg'); if (seedVerifiedMsg) seedVerifiedMsg.textContent = t('seedVerified');
-
-    // Login modal
     const loginCreateBtn = document.getElementById('loginCreateBtn'); if (loginCreateBtn) loginCreateBtn.textContent = t('createWallet');
     const loginImportBtn = document.getElementById('loginImportBtn'); if (loginImportBtn) loginImportBtn.textContent = t('importWallet');
     const loginDesc = document.getElementById('loginDesc'); if (loginDesc) loginDesc.textContent = t('loginDesc');
@@ -3977,8 +3981,6 @@ function updateUI() {
     const unlockPass = document.getElementById('unlockPass'); if (unlockPass) unlockPass.placeholder = t('enterPassword');
     const unlockBtn = document.getElementById('unlockBtn'); if (unlockBtn) unlockBtn.textContent = t('unlock');
     const fingerprintUnlockBtn = document.getElementById('fingerprintUnlockBtn'); if (fingerprintUnlockBtn) fingerprintUnlockBtn.textContent = t('fingerprintLogin');
-
-    // Add Wallet modal
     const addWalletTitle = document.getElementById('addWalletTitle'); if (addWalletTitle) addWalletTitle.textContent = t('addNewWallet');
     const addWalletDesc = document.getElementById('addWalletDesc'); if (addWalletDesc) addWalletDesc.textContent = t('selectWallet');
     const addCreateBtn = document.getElementById('addCreateBtn'); if (addCreateBtn) addCreateBtn.textContent = t('createWallet');
@@ -3998,15 +4000,11 @@ function updateUI() {
     const addImportWalletName = document.getElementById('addImportWalletName'); if (addImportWalletName) addImportWalletName.placeholder = t('walletNamePlaceholder');
     const addImportSubmitBtn = document.getElementById('addImportSubmitBtn'); if (addImportSubmitBtn) addImportSubmitBtn.textContent = t('importWalletBtn');
     const addImportBackBtn = document.getElementById('addImportBackBtn'); if (addImportBackBtn) addImportBackBtn.textContent = t('back');
-
-    // Password prompt
     const promptTitle = document.getElementById('promptTitle'); if (promptTitle) promptTitle.textContent = t('promptTitle');
     const promptDesc = document.getElementById('promptDesc'); if (promptDesc) promptDesc.textContent = t('promptDesc');
     const promptPasswordInput = document.getElementById('promptPasswordInput'); if (promptPasswordInput) promptPasswordInput.placeholder = t('password');
     const promptConfirmBtn = document.getElementById('promptConfirmBtn'); if (promptConfirmBtn) promptConfirmBtn.textContent = t('confirm');
     const promptCancelBtn = document.getElementById('promptCancelBtn'); if (promptCancelBtn) promptCancelBtn.textContent = t('cancel');
-
-    // Send modal
     const sendModalTitle = document.getElementById('sendModalTitle'); if (sendModalTitle) sendModalTitle.textContent = t('sendTitle');
     const sendModalDesc = document.getElementById('sendModalDesc'); if (sendModalDesc) sendModalDesc.textContent = t('sendDesc');
     const tabToken = document.getElementById('tabToken'); if (tabToken) tabToken.textContent = t('sendTokenTab');
@@ -4019,8 +4017,6 @@ function updateUI() {
     const nftAmount = document.getElementById('nftAmount'); if (nftAmount) nftAmount.placeholder = t('nftAmount');
     const nftSendBtn = document.getElementById('nftSendBtn'); if (nftSendBtn) nftSendBtn.textContent = t('sendNFTBtn');
     const sendCancelBtn = document.getElementById('sendCancelBtn'); if (sendCancelBtn) sendCancelBtn.textContent = t('cancel');
-
-    // Swap modal
     const swapModalTitle = document.getElementById('swapModalTitle'); if (swapModalTitle) swapModalTitle.textContent = t('swapTitle');
     const swapModalDesc = document.getElementById('swapModalDesc'); if (swapModalDesc) swapModalDesc.textContent = t('swapDesc');
     const swapFromLabel = document.getElementById('swapFromLabel'); if (swapFromLabel) swapFromLabel.textContent = t('from');
@@ -4031,22 +4027,16 @@ function updateUI() {
     const swapCancelBtn = document.getElementById('swapCancelBtn'); if (swapCancelBtn) swapCancelBtn.textContent = t('cancel');
     const swapPickerTitle = document.getElementById('swapPickerTitle'); if (swapPickerTitle) swapPickerTitle.textContent = t('selectToken');
     const swapPickerCloseBtn = document.getElementById('swapPickerCloseBtn'); if (swapPickerCloseBtn) swapPickerCloseBtn.textContent = t('close');
-
-    // Confirm modal
     const confirmTitleText = document.getElementById('confirmTitleText'); if (confirmTitleText) confirmTitleText.textContent = t('confirmTitle');
     const confirmSubText = document.getElementById('confirmSubText'); if (confirmSubText) confirmSubText.textContent = t('confirmSub');
     const confirmBiometricBtn = document.getElementById('confirmBiometricBtn'); if (confirmBiometricBtn) confirmBiometricBtn.textContent = t('confirmBioBtn');
     const confirmPasswordBtn = document.getElementById('confirmPasswordBtn'); if (confirmPasswordBtn) confirmPasswordBtn.textContent = t('confirmPassBtn');
     const confirmCancelBtn = document.getElementById('confirmCancelBtn'); if (confirmCancelBtn) confirmCancelBtn.textContent = t('cancel');
     const confirmPass = document.getElementById('confirmPass'); if (confirmPass) confirmPass.placeholder = t('password');
-
-    // Success modal
     const successTitleText = document.getElementById('successTitleText'); if (successTitleText) successTitleText.textContent = t('successTitle');
     const successSubText = document.getElementById('successSubText'); if (successSubText) successSubText.textContent = t('successSub');
     const successConfirmBtn = document.getElementById('successConfirmBtn'); if (successConfirmBtn) successConfirmBtn.textContent = t('confirm');
     const txDetailCloseBtn = document.getElementById('txDetailCloseBtn'); if (txDetailCloseBtn) txDetailCloseBtn.textContent = t('close');
-
-    // Settings modal
     const settingsTitleText = document.getElementById('settingsTitleText'); if (settingsTitleText) settingsTitleText.textContent = t('settingsTitle');
     const settingsDescText = document.getElementById('settingsDescText'); if (settingsDescText) settingsDescText.textContent = t('settingsDesc');
     const languageSectionLabel = document.getElementById('languageSectionLabel'); if (languageSectionLabel) languageSectionLabel.textContent = t('languageSection');
@@ -4070,8 +4060,6 @@ function updateUI() {
     const settingsCloseBtn = document.getElementById('settingsCloseBtn'); if (settingsCloseBtn) settingsCloseBtn.textContent = t('close');
     updateBioStatus();
     updateLanguageSettingUI();
-
-    // Favorites modal
     const favoritesModalTitle = document.getElementById('favoritesModalTitle'); if (favoritesModalTitle) favoritesModalTitle.textContent = t('favoritesTitle');
     const favoritesModalDesc = document.getElementById('favoritesModalDesc'); if (favoritesModalDesc) favoritesModalDesc.textContent = t('favoritesDesc');
     const addFavBtn = document.getElementById('addFavBtn'); if (addFavBtn) addFavBtn.textContent = t('addAddress');
@@ -4082,24 +4070,19 @@ function updateUI() {
     const favAddressInput = document.getElementById('favAddressInput'); if (favAddressInput) favAddressInput.placeholder = '0x...';
     const addFavSaveBtn = document.getElementById('addFavSaveBtn'); if (addFavSaveBtn) addFavSaveBtn.textContent = t('save');
     const addFavCancelBtn = document.getElementById('addFavCancelBtn'); if (addFavCancelBtn) addFavCancelBtn.textContent = t('cancel');
-
-    // QR / Scanner
     const qrTitle = document.getElementById('qrTitle'); if (qrTitle) qrTitle.textContent = t('qrTitle');
     const qrDesc = document.getElementById('qrDesc'); if (qrDesc) qrDesc.textContent = t('qrDesc');
     const qrCloseBtn = document.getElementById('qrCloseBtn'); if (qrCloseBtn) qrCloseBtn.textContent = t('close');
     const scanTitle = document.getElementById('scanTitle'); if (scanTitle) scanTitle.textContent = t('scanTitle');
     const scanDesc = document.getElementById('scanDesc'); if (scanDesc) scanDesc.textContent = t('scanDesc');
     const scanCloseBtn = document.getElementById('scanCloseBtn'); if (scanCloseBtn) scanCloseBtn.textContent = t('close');
-
-    // All NFTs / NFT detail / All tx
     const allNFTsTitle = document.getElementById('allNFTsTitle'); if (allNFTsTitle) allNFTsTitle.textContent = t('allNFTsTitle');
     const nftDetailTitle = document.getElementById('nftDetailTitle'); if (nftDetailTitle) nftDetailTitle.textContent = t('nftDetailTitle');
     const allTxTitle = document.getElementById('allTxTitle'); if (allTxTitle) allTxTitle.textContent = t('allTxTitle');
     const emptyTokensMsg = document.getElementById('emptyTokensMsg'); if (emptyTokensMsg) emptyTokensMsg.textContent = t('emptyTokens');
     const emptyNFTMsg = document.getElementById('emptyNFTMsg'); if (emptyNFTMsg) emptyNFTMsg.textContent = t('emptyNFTs');
     const emptyTxMsg = document.getElementById('emptyTxMsg'); if (emptyTxMsg) emptyTxMsg.textContent = t('emptyTx');
-
-    // Re-render dynamic lists
+    const showAllTxBtn = document.getElementById('showAllTxBtn'); if (showAllTxBtn) showAllTxBtn.textContent = currentLang === 'fa' ? '📜 مشاهده همه تراکنش‌ها' : '📜 View All Transactions';
     renderTokenList(); renderHeroBalance(); renderTxHistory(); updateFavoritesList(); applyBalanceVisibility();
 }
 
@@ -4107,6 +4090,27 @@ document.addEventListener('click', function (event) {
     const menu = document.getElementById('walletMenuDropdown');
     if (menu && !menu.contains(event.target)) { if (!event.target.closest('.wallet-menu-btn')) menu.remove(); }
 });
+
+// ═══════════════════════════════════════════════════════════════
+// AUTO-LOCK (قفل خودکار بعد از ۵ دقیقه بی‌کاری) ✅ اصلاح #10
+// ═══════════════════════════════════════════════════════════════
+let idleTimer = null;
+function setupAutoLock() {
+    const resetIdle = () => {
+        if (idleTimer) clearTimeout(idleTimer);
+        if (state.unlocked) {
+            idleTimer = setTimeout(() => {
+                state.unlocked = false;
+                state.signer = null;
+                clearSensitiveState();
+                showUnlockModal();
+                showNotification('info', '🔒', t('locked'));
+            }, 5 * 60 * 1000);
+        }
+    };
+    ['click', 'touchstart', 'keydown'].forEach(ev => document.addEventListener(ev, resetIdle, { passive: true }));
+    resetIdle();
+}
 
 // ═══════════════════════════════════════════════════════════════
 // INIT
@@ -4126,42 +4130,24 @@ async function init() {
         applyBalanceVisibility();
         updateUI();
 
-        // ─── اول: انتخاب زبان در اولین ورود ───
+        // ─── انتخاب زبان در اولین ورود ───
         if (!Settings.isLangChosen()) {
             const overlay = document.getElementById('langSelectOverlay');
             if (overlay) {
-                // پیش‌فرض روی فارسی
                 selectedFirstLang = currentLang || 'fa';
                 document.querySelectorAll('.lang-option-btn').forEach(b => b.classList.toggle('selected', b.dataset.lang === selectedFirstLang));
                 const btn = document.getElementById('langConfirmBtn');
                 if (btn) btn.disabled = false;
                 overlay.classList.remove('closed');
             }
-            // اتصال رویداد کلیک به کل صفحه تا با انتخاب زبان، UI آپدیت بشه
-            document.querySelectorAll('.lang-option-btn').forEach(b => {
-                b.addEventListener('click', function() {
-                    selectedFirstLang = this.dataset.lang;
-                    // آپدیت پیش‌نمایش زبان صفحه انتخاب (فقط روی عنوان/دکمه‌ها)
-                    const titleEl = document.getElementById('langSelectTitle');
-                    const descEl = document.getElementById('langSelectDesc');
-                    const cBtn = document.getElementById('langConfirmBtn');
-                    if (this.dataset.lang === 'en') {
-                        if (titleEl) titleEl.textContent = '🌐 Choose your language';
-                        if (descEl) descEl.textContent = 'Please select your preferred language';
-                        if (cBtn) cBtn.textContent = 'Continue';
-                    } else {
-                        if (titleEl) titleEl.textContent = '🌐 زبان خود را انتخاب کنید';
-                        if (descEl) descEl.textContent = 'زبان مورد نظر خود را انتخاب کنید';
-                        if (cBtn) cBtn.textContent = 'ادامه';
-                    }
-                });
-            });
-            return; // منتظر انتخاب زبان
+            return;
         }
 
         // ─── ادامه init طبیعی ───
         if (state.wallets.length > 0) {
-            if (state.activeWalletIndex === -1 || state.activeWalletIndex >= state.wallets.length) state.activeWalletIndex = 0;
+            let savedIndex = Settings.getActiveWalletIndex();
+            if (savedIndex < 0 || savedIndex >= state.wallets.length) savedIndex = 0;
+            state.activeWalletIndex = savedIndex;
             const wallet = state.wallets[state.activeWalletIndex];
             state.address = wallet.address; state.encryptedSeed = wallet.encryptedSeed;
 
@@ -4187,7 +4173,6 @@ async function init() {
         if (typeof window.TOKEN_PRICES === 'undefined') console.warn('⚠️ price.js: TOKEN_PRICES not loaded');
 
         await loadCachedAVAXPrice();
-
         await NativeNotifications.createChannels();
         await NativeNotifications.requestPermission();
         await NativeNotifications.checkPermission();
@@ -4200,6 +4185,7 @@ async function init() {
         }
         state.provider = provider;
         startPriceUpdater();
+        setupAutoLock();  // ✅ قفل خودکار
 
         if (state.unlocked && state.address) {
             await refreshAll(true); await loadFullTxHistory(); restoreConnectedStatus();
@@ -4218,12 +4204,13 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 window.addEventListener('load', function () { updateUI(); });
-
 window.addEventListener('beforeunload', function () {
     if (state.priceUpdateInterval) clearInterval(state.priceUpdateInterval);
     if (state.qrScanner) { try { state.qrScanner.stop(); } catch (e) {} }
 });
 </script>
+</body>
+</html>
 
 </body>
     </html>
