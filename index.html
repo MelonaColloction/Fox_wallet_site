@@ -2811,10 +2811,26 @@ function createCandleChart(token, days) {
             wickUpColor: '#4ade80', wickDownColor: '#e94560',
             priceFormat: { type: 'price', precision: 4, minMove: 0.0001 }
         });
-        const info = token.isNative ? null : (window.getTokenInfo ? window.getTokenInfo(token.address) : null);
-        const minPct = info && info.dailyMin !== undefined ? info.dailyMin : -3;
-        const maxPct = info && info.dailyMax !== undefined ? info.dailyMax : 4;
-        const candles = generateFallbackCandles(token.priceUSD, days, minPct, maxPct);
+        
+        let candles;
+        if (token.isNative) {
+            // ← AVAX: از کندل تصادفی استفاده کن (چون قیمتش از CoinPaprika میاد)
+            candles = generateFallbackCandles(token.priceUSD, days, -3, 4);
+        } else {
+            // ← توکن‌های سفارشی (FLCY): از price.js پایدار
+            const info = window.getTokenInfo ? window.getTokenInfo(token.address) : null;
+            if (info && window.generatePriceHistory) {
+                candles = window.generatePriceHistory(
+                    info.basePrice, info.dailyMin, info.dailyMax, days, token.address
+                );
+            } else {
+                // fallback
+                const minPct = info?.dailyMin ?? -3;
+                const maxPct = info?.dailyMax ?? 4;
+                candles = generateFallbackCandles(token.priceUSD, days, minPct, maxPct);
+            }
+        }
+        
         tokenCandleSeries.setData(candles);
         tokenChart.timeScale().fitContent();
         if (window._tokenChartResize) window.removeEventListener('resize', window._tokenChartResize);
