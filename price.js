@@ -1,8 +1,7 @@
 // ═══════════════════════════════════════════════════════════════
-// FoxEggs Wallet - Price Configuration
+// Fox Wallet - Price Configuration
 // ═══════════════════════════════════════════════════════════════
 
-// ─── NFT PRICES ───
 window.NFT_PRICES = {
     collections: {
         "0x4B1e65f73D8433043Bbe0AB8Cb3f118FAC662F9a": { name: "Guardian Collection", pricePerNFT: 25.00 },
@@ -12,22 +11,15 @@ window.NFT_PRICES = {
     overridePrices: {}
 };
 
-// ─── TOKEN PRICES ───
+// فقط قیمت و نوسان اینجاست
 window.TOKEN_PRICES = {
     "0xafeabf57f4540e6ae19b3ea34c0d207e06bf20ca": {
-        name: "Fox Legacy",
-        symbol: "FLCY",
-        decimals: 18,
         basePrice: 4.00,
         dailyMin: -3,
-        dailyMax: +4,
-        image: "FLCY.png",
-        canSwap: false,
-        description: "The official equity token of the Fox Eggs Ecosystem. A private, non-transferable vault representing the founder's infinite legacy and absolute ownership. Built on Avalanche. Own Your Legacy. Infinite Future."
+        dailyMax: +4
     }
 };
 
-// ─── PRICE GENERATORS ───
 window.generatePriceHistory = function(basePrice, dailyMin, dailyMax, days) {
     const candles = [];
     const now = Math.floor(Date.now() / 1000);
@@ -81,7 +73,6 @@ window.getTokenInfo = function(contractAddress) {
             const info = window.TOKEN_PRICES[key];
             const current = window.getCurrentTokenPrice(addr, info.basePrice, info.dailyMin, info.dailyMax);
             return {
-                ...info,
                 contract: key,
                 basePrice: info.basePrice,
                 dailyMin: info.dailyMin,
@@ -94,4 +85,4 @@ window.getTokenInfo = function(contractAddress) {
     return null;
 };
 
-console.log("✅ price.js loaded (TOKEN_PRICES + NFT_PRICES + Chart)");
+console.log("✅ price.js loaded (Prices only)");
