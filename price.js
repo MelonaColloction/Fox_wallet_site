@@ -1,66 +1,97 @@
 // ═══════════════════════════════════════════════════════════════
-// 💎 FoxEggs NFT Prices (USDT)
-// ═══════════════════════════════════════════════════════════════
-//
-// 📌 راهنمای ویرایش:
-//   • قیمت‌ها به دلار (USDT) هستن
-//   • هر کالکشن یه قیمت پایه داره (pricePerNFT)
-//   • اگه می‌خوای قیمت ID خاصی فرق کنه، توی overridePrices بذار
-//   • بعد از ویرایش، فقط این فایل رو آپلود کن (کد اصلی دست نمی‌خوره)
-//   • کاربرا با refresh قیمت جدید می‌گیرن
-//
+// FoxEggs Wallet - Price Configuration
 // ═══════════════════════════════════════════════════════════════
 
+// ─── NFT PRICES ───
 window.NFT_PRICES = {
-    
-    // 💵 واحد قیمت (فقط برای نمایش — همه چیز دلاری حساب میشه)
-    currency: 'USDT',
-    
-    // 📅 آخرین بروزرسانی
-    lastUpdate: '2026-10-18',
-    
-    // ═══════════════════════════════════════════════════════════
-    // 💰 قیمت هر کالکشن (به دلار)
-    // ═══════════════════════════════════════════════════════════
     collections: {
-        
-        // 🛡️ Guardian Collection — ۳۰ دلار
-        '0x4B1e65f73D8433043Bbe0AB8Cb3f118FAC662F9a': {
-            name: 'Guardian Collection',
-            pricePerNFT: 30
-        },
-        
-        // 🍂 FoxEggs Autumn Edition — ۲۰ دلار (ارتقا از ۱۵)
-        '0xcfd6c099bc8B3c91D47D62156AEc6BA128eB6B92': {
-            name: 'FoxEggs Autumn Edition',
-            pricePerNFT: 20
-        },
-        
-        // ❄️ Fox Eggs: Frozen Realm — ۲۵ دلار
-        '0xaa890ebf2a6356c9da9e5b13c01db4ac88a70c8a': {
-            name: 'Fox Eggs: Frozen Realm',
-            pricePerNFT: 25
-        }
+        "0x4B1e65f73D8433043Bbe0AB8Cb3f118FAC662F9a": { name: "Guardian Collection", pricePerNFT: 25.00 },
+        "0xcfd6c099bc8B3c91D47D62156AEc6BA128eB6B92": { name: "FoxEggs Autumn Edition", pricePerNFT: 15.00 },
+        "0xaA890ebf2a6356c9Da9E5B13C01db4aC88A70c8a": { name: "Fox Eggs: Frozen Realm", pricePerNFT: 20.00 }
     },
-    
-    // ═══════════════════════════════════════════════════════════
-    // 🎯 قیمت خاص برای ID خاص (اختیاری)
-    // ═══════════════════════════════════════════════════════════
-    //
-    // 📌 اگه میخوای یه NFT خاص قیمتش با بقیه فرق کنه، اینجا بذار
-    //    بقیه NFT های همون کالکشن، از pricePerNFT استفاده میکنن
-    //
-    // 📝 مثال:
-    // overridePrices: {
-    //     '0x4B1e65f73D8433043Bbe0AB8Cb3f118FAC662F9a': {
-    //         1: 50,    // ID 1 = 50$ (بجای 30$)
-    //         2: 100,   // ID 2 = 100$
-    //         5: 75     // ID 5 = 75$
-    //     },
-    //     '0xaa890ebf2a6356c9da9e5b13c01db4ac88a70c8a': {
-    //         1: 50     // ID 1 = 50$ (بجای 25$)
-    //     }
-    // }
-    //
     overridePrices: {}
 };
+
+// ─── TOKEN PRICES ───
+window.TOKEN_PRICES = {
+    "0xafeabf57f4540e6ae19b3ea34c0d207e06bf20ca": {
+        name: "Fox Legacy",
+        symbol: "FLCY",
+        decimals: 18,
+        basePrice: 4.00,
+        dailyMin: -3,
+        dailyMax: +4,
+        image: "FLCY.png",
+        canSwap: false,
+        description: "The official equity token of the Fox Eggs Ecosystem. A private, non-transferable vault representing the founder's infinite legacy and absolute ownership. Built on Avalanche. Own Your Legacy. Infinite Future."
+    }
+};
+
+// ─── PRICE GENERATORS ───
+window.generatePriceHistory = function(basePrice, dailyMin, dailyMax, days) {
+    const candles = [];
+    const now = Math.floor(Date.now() / 1000);
+    const dayInSeconds = 86400;
+    const startTime = now - (days * dayInSeconds);
+    let currentPrice = basePrice * (1 + (Math.random() * 0.06 - 0.03));
+    for (let i = 0; i < days; i++) {
+        const time = startTime + (i * dayInSeconds);
+        const open = currentPrice;
+        const changePercent = dailyMin + Math.random() * (dailyMax - dailyMin);
+        const close = open * (1 + changePercent / 100);
+        const highExtra = open * (Math.random() * 0.015);
+        const lowExtra = open * (Math.random() * 0.015);
+        const high = Math.max(open, close) + highExtra;
+        const low = Math.min(open, close) - lowExtra;
+        candles.push({
+            time: time,
+            open: parseFloat(open.toFixed(6)),
+            high: parseFloat(high.toFixed(6)),
+            low: parseFloat(Math.max(low, 0.01).toFixed(6)),
+            close: parseFloat(close.toFixed(6))
+        });
+        currentPrice = close;
+    }
+    return candles;
+};
+
+window.getCurrentTokenPrice = function(contractAddress, basePrice, dailyMin, dailyMax) {
+    const dayNumber = Math.floor(Date.now() / (1000 * 86400));
+    const seedString = contractAddress.toLowerCase() + "_" + dayNumber;
+    let hash = 0;
+    for (let i = 0; i < seedString.length; i++) {
+        hash = ((hash << 5) - hash) + seedString.charCodeAt(i);
+        hash = hash & hash;
+    }
+    const range = dailyMax - dailyMin;
+    const normalizedHash = Math.abs(hash % 10000) / 10000;
+    const changePercent = dailyMin + (normalizedHash * range);
+    const currentPrice = basePrice * (1 + changePercent / 100);
+    return {
+        price: parseFloat(currentPrice.toFixed(6)),
+        change24h: parseFloat(changePercent.toFixed(2))
+    };
+};
+
+window.getTokenInfo = function(contractAddress) {
+    if (!contractAddress) return null;
+    const addr = contractAddress.toLowerCase();
+    for (const key in window.TOKEN_PRICES) {
+        if (key.toLowerCase() === addr) {
+            const info = window.TOKEN_PRICES[key];
+            const current = window.getCurrentTokenPrice(addr, info.basePrice, info.dailyMin, info.dailyMax);
+            return {
+                ...info,
+                contract: key,
+                basePrice: info.basePrice,
+                dailyMin: info.dailyMin,
+                dailyMax: info.dailyMax,
+                currentPrice: current.price,
+                change24h: current.change24h
+            };
+        }
+    }
+    return null;
+};
+
+console.log("✅ price.js loaded (TOKEN_PRICES + NFT_PRICES + Chart)");
