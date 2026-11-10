@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════
-// Fox Wallet - Price Configuration
+// Fox Wallet - Price Configuration (نسخه اصلاح‌شده)
 // ═══════════════════════════════════════════════════════════════
 
 window.NFT_PRICES = {
@@ -11,7 +11,6 @@ window.NFT_PRICES = {
     overridePrices: {}
 };
 
-// فقط قیمت و نوسان اینجاست
 window.TOKEN_PRICES = {
     "0xafeabf57f4540e6ae19b3ea34c0d207e06bf20ca": {
         basePrice: 4.00,
@@ -20,21 +19,45 @@ window.TOKEN_PRICES = {
     }
 };
 
-window.generatePriceHistory = function(basePrice, dailyMin, dailyMax, days) {
+// ✅ تابع seed-based random — پایدار
+function seededRandom(seed) {
+    let x = Math.sin(seed) * 10000;
+    return x - Math.floor(x);
+}
+
+// ✅ کندل‌های پایدار — هر روز فقط یه کندل جدید اضافه می‌شه
+window.generatePriceHistory = function(basePrice, dailyMin, dailyMax, days, contractAddress = 'default') {
     const candles = [];
     const now = Math.floor(Date.now() / 1000);
     const dayInSeconds = 86400;
-    const startTime = now - (days * dayInSeconds);
-    let currentPrice = basePrice * (1 + (Math.random() * 0.06 - 0.03));
+    const todayDayNumber = Math.floor(now / dayInSeconds);
+    const startDay = todayDayNumber - days + 1;
+    
+    let currentPrice = basePrice;
+    
     for (let i = 0; i < days; i++) {
-        const time = startTime + (i * dayInSeconds);
+        const dayNumber = startDay + i;
+        const time = dayNumber * dayInSeconds;
+        
+        // ← seed یکتا بر اساس آدرس + شماره روز
+        const seedBase = contractAddress.toLowerCase() + "_candle_" + dayNumber;
+        let hash = 0;
+        for (let j = 0; j < seedBase.length; j++) {
+            hash = ((hash << 5) - hash) + seedBase.charCodeAt(j);
+            hash = hash & hash;
+        }
+        
         const open = currentPrice;
-        const changePercent = dailyMin + Math.random() * (dailyMax - dailyMin);
+        // ← نوسان پایدار بر اساس روز
+        const changePercent = dailyMin + (Math.abs(hash % 10000) / 10000) * (dailyMax - dailyMin);
         const close = open * (1 + changePercent / 100);
-        const highExtra = open * (Math.random() * 0.015);
-        const lowExtra = open * (Math.random() * 0.015);
+        
+        // high/low پایدار
+        const highExtra = open * (seededRandom(hash + 1) * 0.015);
+        const lowExtra = open * (seededRandom(hash + 2) * 0.015);
         const high = Math.max(open, close) + highExtra;
         const low = Math.min(open, close) - lowExtra;
+        
         candles.push({
             time: time,
             open: parseFloat(open.toFixed(6)),
@@ -44,9 +67,20 @@ window.generatePriceHistory = function(basePrice, dailyMin, dailyMax, days) {
         });
         currentPrice = close;
     }
+    
+    // ✅ کندل آخر = قیمت لحظه‌ای امروز
+    if (candles.length > 0) {
+        const current = window.getCurrentTokenPrice(contractAddress, basePrice, dailyMin, dailyMax);
+        const lastCandle = candles[candles.length - 1];
+        lastCandle.close = current.price;
+        lastCandle.high = Math.max(lastCandle.open, lastCandle.high, current.price) * 1.002;
+        lastCandle.low = Math.min(lastCandle.open, lastCandle.low, current.price) * 0.998;
+    }
+    
     return candles;
 };
 
+// ✅ قیمت لحظه‌ای — پایدار در طول روز
 window.getCurrentTokenPrice = function(contractAddress, basePrice, dailyMin, dailyMax) {
     const dayNumber = Math.floor(Date.now() / (1000 * 86400));
     const seedString = contractAddress.toLowerCase() + "_" + dayNumber;
@@ -85,4 +119,4 @@ window.getTokenInfo = function(contractAddress) {
     return null;
 };
 
-console.log("✅ price.js loaded (Prices only)");
+console.log("✅ price.js loaded (Stable candles)");
