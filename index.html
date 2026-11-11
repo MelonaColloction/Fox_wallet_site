@@ -1059,6 +1059,49 @@ body {
 #seedRevealModal { z-index: 1450 !important; }
 #langSelectOverlay { z-index: 3000 !important; }
 #txLoadingModal { z-index: 2500 !important; }
+/* NFT DETAIL PAGE */
+.nft-detail-overlay {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: var(--bg-primary); z-index: 1100; overflow-y: auto;
+    display: none; animation: slideInRight 0.3s ease;
+}
+.nft-detail-overlay.show { display: block; }
+.nft-detail-container {
+    max-width: 500px; margin: 0 auto; padding: 16px;
+    padding-top: env(safe-area-inset-top, 16px); min-height: 100vh;
+}
+.nft-detail-header { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
+.nft-detail-back {
+    background: var(--bg-status); border: 1px solid var(--border-light);
+    color: var(--text-primary); width: 40px; height: 40px; border-radius: 12px;
+    cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center;
+}
+.nft-detail-hero { display: flex; flex-direction: column; align-items: center; text-align: center; margin-bottom: 20px; }
+.nft-detail-image {
+    width: 140px; height: 140px; border-radius: 24px; background: var(--bg-input);
+    border: 3px solid var(--accent-success); object-fit: cover;
+    margin-bottom: 12px; box-shadow: 0 10px 30px rgba(74, 222, 128, 0.2);
+}
+.nft-detail-image.placeholder { display: flex; align-items: center; justify-content: center; font-size: 4rem; }
+.nft-detail-name { font-size: 1.4rem; font-weight: 800; color: var(--text-primary); margin-bottom: 4px; }
+.nft-detail-symbol { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 8px; }
+.nft-price-row { display: flex; align-items: baseline; justify-content: center; gap: 10px; margin: 16px 0 8px 0; }
+.nft-price { font-size: 1.8rem; font-weight: 800; color: var(--text-primary); font-family: monospace; }
+.nft-change { font-size: 0.75rem; font-weight: 700; padding: 3px 10px; border-radius: 20px; }
+.nft-change.up { background: rgba(74, 222, 128, 0.15); color: var(--accent-success); }
+.nft-change.down { background: rgba(233, 69, 96, 0.15); color: var(--accent-primary); }
+.nft-supply-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px;
+}
+.nft-supply-item {
+    background: var(--bg-status); border-radius: 16px; padding: 12px;
+    border: 1px solid var(--border-light); text-align: center;
+}
+.nft-supply-label { font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px; }
+.nft-supply-value { font-size: 1.1rem; color: var(--text-primary); font-weight: 700; font-family: monospace; }
+.nft-supply-value.green { color: var(--accent-success); }
+.nft-supply-value.gold { color: var(--accent-gold); }
+
     </style>
 </head>
 <body>
@@ -1635,8 +1678,236 @@ body {
 
     <div class="toast hidden" id="toast"></div>
 </div>
-
+<!-- NFT DETAIL PAGE -->
+<div class="nft-detail-overlay" id="nftDetailOverlay">
+    <div class="nft-detail-container">
+        <div class="nft-detail-header">
+            <button class="nft-detail-back" onclick="closeNFTDetailPage()">←</button>
+            <div class="token-detail-title" id="nftDetailPageTitle">جزئیات NFT</div>
+        </div>
+        <div id="nftDetailPageContent"></div>
+    </div>
+</div>
+<!-- ALL FILTERED TX MODAL -->
+<div class="modal-overlay closed" id="allFilteredTxModal" style="z-index: 1200;">
+    <div class="modal-fullscreen">
+        <div class="modal-header">
+            <h2 id="allFilteredTxTitle">📜 تاریخچه کامل</h2>
+            <button class="modal-close-btn" onclick="closeAllFilteredTx()">✕</button>
+        </div>
+        <div class="modal-body" id="allFilteredTxBody"></div>
+    </div>
+</div>
 <script>
+  // ✅ باز کردن مودال تراکنش‌های فیلترشده
+async function showAllFilteredTx(filterType, filterValue, titleText) {
+    const modal = document.getElementById('allFilteredTxModal');
+    const titleEl = document.getElementById('allFilteredTxTitle');
+    const body = document.getElementById('allFilteredTxBody');
+    
+    titleEl.textContent = titleText || '📜 تاریخچه کامل';
+    
+    // فیلتر کردن تراکنش‌ها
+    let filtered = [];
+    if (filterType === 'nft') {
+        // فیلتر بر اساس آدرس قرارداد NFT
+        filtered = state.txHistory.filter(t => 
+            t.type === 'nft' && 
+            t.contract && 
+            t.contract.toLowerCase() === filterValue.toLowerCase()
+        );
+    } else if (filterType === 'token') {
+        // فیلتر بر اساس نماد توکن (مثل AVAX, FLCY, USDC)
+        if (filterValue === 'AVAX') {
+            filtered = state.txHistory.filter(t => t.type === 'avax' || t.type === 'swap');
+        } else {
+            filtered = state.txHistory.filter(t => 
+                (t.tokenSymbol || '').toUpperCase() === filterValue.toUpperCase()
+            );
+        }
+    }
+
+    if (filtered.length === 0) {
+        body.innerHTML = `<div class="empty-state">تراکنشی یافت نشد</div>`;
+    } else {
+        let html = '<div class="tx-list">';
+        for (let i = 0; i < filtered.length; i++) {
+            html += await renderTxItem(filtered[i], i);
+        }
+        html += '</div>';
+        body.innerHTML = html;
+    }
+    
+    modal.classList.remove('closed');
+}
+
+function closeAllFilteredTx() {
+    document.getElementById('allFilteredTxModal').classList.add('closed');
+}
+  // باز کردن صفحه NFT
+function openNFTDetailPage(contract, name, image, collection) {
+    const overlay = document.getElementById('nftDetailOverlay');
+    const titleEl = document.getElementById('nftDetailPageTitle');
+    const contentEl = document.getElementById('nftDetailPageContent');
+    
+    if (!overlay || !contentEl) return;
+    titleEl.textContent = name;
+
+    const nftInfo = window.NFT_PRICES.collections[contract.toLowerCase()] || {};
+    const basePrice = nftInfo.basePrice || 0;
+    const maxSupply = nftInfo.maxSupply || 100;
+
+    let currentPrice = 0, change24h = 0;
+    if (window.getCurrentNFTPrice) {
+        const priceData = window.getCurrentNFTPrice(contract, basePrice);
+        currentPrice = priceData.price;
+        change24h = priceData.change24h;
+    }
+
+    const userNFT = state.allNFTs.find(n => n.contract.toLowerCase() === contract.toLowerCase());
+    const userBalance = userNFT ? userNFT.balance : 0;
+
+    const changeClass = change24h >= 0 ? 'up' : 'down';
+    const changeSign = change24h >= 0 ? '+' : '';
+
+    let imageHtml = image 
+        ? `<img src="${image}" class="nft-detail-image" onerror="this.outerHTML='&lt;div class=\\'nft-detail-image placeholder\\'&gt;🎨&lt;/div&gt;'" />` 
+        : `<div class="nft-detail-image placeholder">🎨</div>`;
+
+    contentEl.innerHTML = `
+        <div class="nft-detail-hero">
+            ${imageHtml}
+            <div class="nft-detail-name">${name}</div>
+            <div class="nft-detail-symbol">${collection}</div>
+            <div class="token-detail-contract" onclick="copyToClipboard('${contract}').then(ok=>ok&&toast(t('copied')))">
+                <span>${contract.slice(0, 8)}...${contract.slice(-6)}</span><span>📋</span>
+            </div>
+        </div>
+
+        <div class="nft-price-row">
+            <div class="nft-price">$${currentPrice.toFixed(4)}</div>
+            <div class="nft-change ${changeClass}">${changeSign}${change24h.toFixed(2)}%</div>
+        </div>
+
+        <div class="chart-container-wrap">
+            <div class="chart-range-tabs">
+                <button class="chart-range-tab active" onclick="switchNFTChartRange(7, this, '${contract}', ${basePrice})">${t('days7')}</button>
+                <button class="chart-range-tab" onclick="switchNFTChartRange(30, this, '${contract}', ${basePrice})">${t('days30')}</button>
+                <button class="chart-range-tab" onclick="switchNFTChartRange(90, this, '${contract}', ${basePrice})">${t('days90')}</button>
+            </div>
+            <div class="chart-box" id="nftChartBox"></div>
+        </div>
+
+        <div class="nft-supply-grid">
+            <div class="nft-supply-item">
+                <div class="nft-supply-label">کل ساپلای (Total Supply)</div>
+                <div class="nft-supply-value">${maxSupply}</div>
+            </div>
+            <div class="nft-supply-item">
+                <div class="nft-supply-label">موجودی شما (Your Balance)</div>
+                <div class="nft-supply-value green">${userBalance} از ${maxSupply}</div>
+            </div>
+        </div>
+
+        <div class="token-actions-grid">
+            <button class="token-action-btn send" onclick="openSendNFTFromDetail('${contract}', 1, '${name.replace(/'/g, "\\'")}', '${(image || '').replace(/'/g, "\\'")}', '${collection.replace(/'/g, "\\'")}')">📤 ارسال</button>
+            <button class="token-action-btn receive" onclick="showQRCode()">📥 دریافت</button>
+        </div>
+
+        <!-- ✅ بخش تاریخچه با دکمه «مشاهده همه» -->
+        <div class="nft-history-box" style="background: var(--bg-status); border-radius: 16px; padding: 16px; margin-bottom: 16px; border: 1px solid var(--border-light);">
+            <div class="nft-history-title" style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; font-weight: 700; margin-bottom: 12px;">📜 تاریخچه این NFT</div>
+            <div id="nftTxHistoryList" class="token-tx-list"></div>
+            
+            <!-- دکمه جدید اضافه شد -->
+            <button class="btn btn-secondary btn-full" onclick="showAllFilteredTx('nft', '${contract}', '📜 تاریخچه ${name.replace(/'/g, "\\'")}')" style="margin-top: 12px; font-size: 0.75rem;">مشاهده همه تراکنش‌های این NFT</button>
+        </div>
+    `;
+
+    overlay.classList.add('show');
+    document.body.style.overflow = 'hidden';
+
+    setTimeout(() => {
+        createNFTChart(contract, basePrice, 7);
+        renderNFTTxHistory(contract);
+    }, 100);
+}
+// ✅ نمایش تاریخچه مخصوص هر NFT
+async function renderNFTTxHistory(contractAddress) {
+    const container = document.getElementById('nftTxHistoryList');
+    if (!container) return;
+    
+    // پیدا کردن تراکنش‌هایی که مربوط به این قرارداد (contract) هستن
+    const filtered = state.txHistory.filter(t => 
+        t.type === 'nft' && 
+        t.contract && 
+        t.contract.toLowerCase() === contractAddress.toLowerCase()
+    );
+    
+    if (filtered.length === 0) {
+        container.innerHTML = `<div class="empty-state" style="padding:16px 0;">هنوز تراکنشی برای این NFT ثبت نشده است</div>`;
+        return;
+    }
+    
+    let html = '';
+    const display = filtered.slice(0, 10); // نمایش ۱۰ تراکنش آخر
+    
+    for (let i = 0; i < display.length; i++) {
+        html += await renderTxItem(display[i], i);
+    }
+    
+    container.innerHTML = html;
+}
+
+function closeNFTDetailPage() {
+    document.getElementById('nftDetailOverlay').classList.remove('show');
+    document.body.style.overflow = '';
+    if (tokenChart) { try { tokenChart.remove(); } catch(e) {} tokenChart = null; }
+}
+
+function switchNFTChartRange(days, btn, contract, basePrice) {
+    document.querySelectorAll('#nftDetailOverlay .chart-range-tab').forEach(t => t.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    createNFTChart(contract, basePrice, days);
+}
+
+// ساخت چارت برای NFT
+let nftChartInstance = null; // ✅ متغیر جداگانه برای چارت NFT
+
+function createNFTChart(contract, basePrice, days) {
+    const container = document.getElementById('nftChartBox');
+    if (!container) return;
+    if (typeof LightweightCharts === 'undefined') return;
+    
+    // پاک کردن چارت قبلی (اگه باز بود)
+    if (nftChartInstance) { 
+        try { nftChartInstance.remove(); } catch (e) {} 
+        nftChartInstance = null; 
+    }
+
+    nftChartInstance = LightweightCharts.createChart(container, {
+        width: container.clientWidth, height: container.clientHeight,
+        layout: { background: { color: 'transparent' }, textColor: '#8a9bb5', fontSize: 10 },
+        grid: { vertLines: { color: 'rgba(42, 42, 80, 0.3)' }, horzLines: { color: 'rgba(42, 42, 80, 0.3)' } },
+        rightPriceScale: { borderColor: 'rgba(42, 42, 80, 0.5)', scaleMargins: { top: 0.15, bottom: 0.15 } },
+        timeScale: { borderColor: 'rgba(42, 42, 80, 0.5)', timeVisible: true, secondsVisible: false }
+    });
+
+    const series = nftChartInstance.addCandlestickSeries({
+        upColor: '#4ade80', downColor: '#e94560',
+        borderUpColor: '#4ade80', borderDownColor: '#e94560',
+        wickUpColor: '#4ade80', wickDownColor: '#e94560',
+        priceFormat: { type: 'price', precision: 4, minMove: 0.0001 }
+    });
+
+    if (window.generatePriceHistory) {
+        // ✅ پارامتر config رو هم پاس می‌دیم که نوسانات درست باشه
+        const config = { normalMin: -2, normalMax: +3, reverseMin: -3, reverseMax: +2 };
+        const candles = window.generatePriceHistory(basePrice, days, contract, config);
+        series.setData(candles);
+        nftChartInstance.timeScale().fitContent();
+    }
+}
 // ═══════════════════════════════════════════════════════════════
 // PLATFORM DETECTION
 // ═══════════════════════════════════════════════════════════════
@@ -2562,10 +2833,25 @@ async function updateAVAXPrice() {
 function startPriceUpdater() {
     loadCachedAVAXPrice().then(() => { refreshTokenBalances(); });
     updateAVAXPrice();
+    
     if (state.priceUpdateInterval) clearInterval(state.priceUpdateInterval);
-    state.priceUpdateInterval = setInterval(() => {
-        if (!document.hidden) updateAVAXPrice();
-    }, 60000);
+    
+    state.priceUpdateInterval = setInterval(async () => {
+        if (document.hidden) return;
+
+        // ✅ آپدیت توکن‌ها (همیشه اجرا میشه، چه آنلاین چه آفلاین)
+        await loadAllTokenBalances(false);
+        
+        // ✅ رسم مجدد چارت اگه صفحه توکن بازه (باعث میشه چارت همزمان با قیمت بالا/پایین بره)
+        if (currentTokenDetail && document.getElementById('tokenDetailOverlay').classList.contains('show')) {
+            createCandleChart(currentTokenDetail, currentChartRange);
+        }
+
+        // آپدیت قیمت AVAX (فقط اگه آنلاین باشیم)
+        if (state.provider) {
+            updateAVAXPrice();
+        }
+    }, 60000); // هر ۶۰ ثانیه
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -2577,6 +2863,7 @@ async function loadAllTokenBalances(forceFetch = false) {
     const now = Date.now();
     const balances = {};
 
+    // ۱. گرفتن موجودی AVAX
     if (state.provider) {
         try {
             const avaxBN = await state.provider.getBalance(state.address);
@@ -2592,29 +2879,53 @@ async function loadAllTokenBalances(forceFetch = false) {
         } catch (e) {
             balances.AVAX = { symbol: 'AVAX', name: 'Avalanche', address: 'native', balance: 0, priceUSD: state.avaxPrice || 0, valueUSD: 0, isNative: true, canSwap: true, change24h: 0 };
         }
+    } else {
+        // آفلاین: از کش بخون
+        try {
+            const cached = await settingsDB.getItem(cacheKey);
+            if (cached && cached.balances && cached.balances.AVAX) {
+                balances.AVAX = cached.balances.AVAX;
+            }
+        } catch (e) {}
     }
 
-    // ✅ موازی‌سازی توکن‌های اضافی
+    // ۲. گرفتن موجودی توکن‌های اضافی (مثل FLCY) + قیمت
     const tokenResults = await Promise.all(EXTRA_TOKENS.map(async (token) => {
         let bal = 0;
+        
+        // موجودی رو از شبکه بگیر (اگه آنلاین بودیم)
         if (state.provider) {
             try {
                 const contract = new ethers.Contract(token.address, ['function balanceOf(address) view returns (uint)'], state.provider);
                 const balBN = await Promise.race([contract.balanceOf(state.address), new Promise((_, rej) => setTimeout(() => rej(new Error('Timeout')), 6000))]);
                 bal = parseFloat(ethers.utils.formatUnits(balBN, token.decimals));
             } catch (e) {
+                // اگه شبکه خطا داد (مثلاً تایم‌اوت)، از کش بخون
                 try {
                     const cached = await settingsDB.getItem(cacheKey);
                     if (cached?.balances?.[token.symbol]) bal = cached.balances[token.symbol].balance || 0;
                 } catch (err) {}
             }
+        } else {
+            // آفلاین: از کش بخون
+            try {
+                const cached = await settingsDB.getItem(cacheKey);
+                if (cached?.balances?.[token.symbol]) bal = cached.balances[token.symbol].balance || 0;
+            } catch (err) {}
         }
+
+        // ✅ مهم‌ترین بخش: قیمت همیشه از price.js گرفته میشه (چه آنلاین، چه آفلاین)
         let priceUSD = 0, change24h = 0;
         if (window.getTokenInfo) {
             const priceInfo = window.getTokenInfo(token.address);
-            if (priceInfo) { priceUSD = priceInfo.currentPrice || 0; change24h = priceInfo.change24h || 0; }
+            if (priceInfo) { 
+                priceUSD = priceInfo.currentPrice || 0; 
+                change24h = priceInfo.change24h || 0; 
+            }
         }
+
         if (bal <= 0) return null;
+        
         return {
             symbol: token.symbol, name: token.name, address: token.address, decimals: token.decimals,
             balance: bal, priceUSD, change24h, valueUSD: bal * priceUSD,
@@ -2624,17 +2935,25 @@ async function loadAllTokenBalances(forceFetch = false) {
 
     for (const tk of tokenResults) { if (tk) balances[tk.symbol] = tk; }
 
-    if (!state.provider) {
+    // اگه هیچی تو حافظه نبود، از کش میخونیم
+    if (Object.keys(balances).length === 0) {
         try {
             const cached = await settingsDB.getItem(cacheKey);
-            if (cached?.balances) { for (const sym in cached.balances) { if (!balances[sym]) balances[sym] = cached.balances[sym]; } }
+            if (cached?.balances) { 
+                for (const sym in cached.balances) { 
+                    if (!balances[sym]) balances[sym] = cached.balances[sym]; 
+                } 
+            }
         } catch (e) {}
     }
 
     tokenBalances = balances;
     renderTokenList();
     renderHeroBalance();
-    try { await settingsDB.setItem(cacheKey, { balances, timestamp: now }); } catch (e) {}
+    
+    try { 
+        await settingsDB.setItem(cacheKey, { balances, timestamp: now }); 
+    } catch (e) {}
 }
 
 function renderTokenList() {
@@ -2737,7 +3056,10 @@ function openTokenDetail(symbol) {
     const changeSign = (token.change24h || 0) >= 0 ? '+' : '';
     const contractHtml = token.isNative ? `<div class="token-detail-contract">🌐 ${t('native')}</div>` : `<div class="token-detail-contract" onclick="copyToClipboard('${token.address}').then(ok=>ok&&toast(t('copied')))"><span>${token.address.slice(0, 8)}...${token.address.slice(-6)}</span><span>📋</span></div>`;
     const swapBtn = token.canSwap ? `<button class="token-action-btn" onclick="openSwapFromToken('${safeSymbol}')">🔄 ${t('heroSwap')}</button>` : '';
+    
+    // ✅ اینجا backtick ( ) که جا افتاده بود رو درست کردم
     const descHtml = token.description ? `<div class="token-description"><div class="token-description-title">📝 ${t('aboutToken')}</div><div class="token-description-text">${token.description}</div></div>` : '';
+    
     const statsHtml = token.priceUSD > 0 ? `<div class="token-stats-grid"><div class="token-stat-item"><div class="token-stat-label">${t('currentPrice')}</div><div class="token-stat-value gold">$${token.priceUSD.toFixed(4)}</div></div><div class="token-stat-item"><div class="token-stat-label">${t('change24h')}</div><div class="token-stat-value ${changeClass === 'up' ? 'green' : 'red'}">${changeSign}${(token.change24h || 0).toFixed(2)}%</div></div><div class="token-stat-item"><div class="token-stat-label">${t('yourBalance')}</div><div class="token-stat-value">${formatTokenBalance(token.balance)}</div></div><div class="token-stat-item"><div class="token-stat-label">${t('tokenValue')}</div><div class="token-stat-value green">$${formatUSD(token.valueUSD || 0)}</div></div></div>` : '';
     const chartHtml = token.priceUSD > 0 ? `<div class="chart-container-wrap"><div class="chart-range-tabs"><button class="chart-range-tab active" onclick="switchChartRange(7, this)">${t('days7')}</button><button class="chart-range-tab" onclick="switchChartRange(30, this)">${t('days30')}</button><button class="chart-range-tab" onclick="switchChartRange(90, this)">${t('days90')}</button></div><div class="chart-box" id="tokenChartBox"></div></div>` : '';
 
@@ -2748,7 +3070,14 @@ function openTokenDetail(symbol) {
         ${chartHtml}
         <div class="token-actions-grid"><button class="token-action-btn send" onclick="openSendFromToken('${safeSymbol}')">📤 ${t('heroSend')}</button><button class="token-action-btn receive" onclick="showQRCode()">📥 ${t('heroReceive')}</button>${swapBtn}</div>
         ${descHtml}${statsHtml}
-        <div class="token-description"><div class="token-description-title">📜 ${t('tabHistory')}</div><div id="tokenTxHistoryList" class="token-tx-list"></div></div>`;
+        
+        <!-- ✅ این بخش تغییر کرد (دکمه مشاهده همه اضافه شد) -->
+        <div class="token-description">
+            <div class="token-description-title">📜 ${t('tabHistory')}</div>
+            <div id="tokenTxHistoryList" class="token-tx-list"></div>
+            <button class="btn btn-secondary btn-full" onclick="showAllFilteredTx('token', '${safeSymbol}', '📜 تاریخچه ${token.name}')" style="margin-top: 12px; font-size: 0.75rem;">مشاهده همه تراکنش‌های این توکن</button>
+        </div>
+    `;
 
     overlay.classList.add('show');
     document.body.style.overflow = 'hidden';
@@ -2796,6 +3125,7 @@ function createCandleChart(token, days) {
     if (!container) return;
     if (typeof LightweightCharts === 'undefined') { container.innerHTML = `<div class="empty-state">${t('noData')}</div>`; return; }
     if (tokenChart) { try { tokenChart.remove(); } catch (e) {} tokenChart = null; tokenCandleSeries = null; }
+    
     try {
         tokenChart = LightweightCharts.createChart(container, {
             width: container.clientWidth, height: container.clientHeight,
@@ -2805,6 +3135,7 @@ function createCandleChart(token, days) {
             rightPriceScale: { borderColor: 'rgba(42, 42, 80, 0.5)', scaleMargins: { top: 0.15, bottom: 0.15 } },
             timeScale: { borderColor: 'rgba(42, 42, 80, 0.5)', timeVisible: true, secondsVisible: false }
         });
+        
         tokenCandleSeries = tokenChart.addCandlestickSeries({
             upColor: '#4ade80', downColor: '#e94560',
             borderUpColor: '#4ade80', borderDownColor: '#e94560',
@@ -2813,30 +3144,40 @@ function createCandleChart(token, days) {
         });
         
         let candles;
-        if (token.isNative) {
-            // ← AVAX: از کندل تصادفی استفاده کن (چون قیمتش از CoinPaprika میاد)
-            candles = generateFallbackCandles(token.priceUSD, days, -3, 4);
-        } else {
-            // ← توکن‌های سفارشی (FLCY): از price.js پایدار
-            const info = window.getTokenInfo ? window.getTokenInfo(token.address) : null;
-            if (info && window.generatePriceHistory) {
-                candles = window.generatePriceHistory(
-                    info.basePrice, info.dailyMin, info.dailyMax, days, token.address
-                );
+        
+        // ✅ برای توکن‌های سفارشی (FLCY): از price.js جدید استفاده کن
+        if (!token.isNative && window.getTokenInfo && window.TOKEN_PRICES) {
+            const info = window.getTokenInfo(token.address);
+            const config = window.TOKEN_PRICES[token.address.toLowerCase()];
+            
+            if (info && config) {
+                // ← امضای جدید: (basePrice, days, contractAddress, config)
+                candles = window.generatePriceHistory(config.basePrice, days, token.address, config);
             } else {
-                // fallback
-                const minPct = info?.dailyMin ?? -3;
-                const maxPct = info?.dailyMax ?? 4;
-                candles = generateFallbackCandles(token.priceUSD, days, minPct, maxPct);
+                candles = generateFallbackCandles(token.priceUSD, days, -3, 4);
             }
+        } else {
+            // برای AVAX (بومی) از fallback استفاده کن
+            candles = generateFallbackCandles(token.priceUSD, days, -3, 4);
+        }
+        
+        // ⚠️ چک کن اگه کندل‌ها خالی بود
+        if (!candles || candles.length === 0) {
+            container.innerHTML = `<div class="empty-state" style="color:var(--text-muted);">داده‌ای برای نمایش نیست</div>`;
+            return;
         }
         
         tokenCandleSeries.setData(candles);
         tokenChart.timeScale().fitContent();
+        
         if (window._tokenChartResize) window.removeEventListener('resize', window._tokenChartResize);
         window._tokenChartResize = () => { if (tokenChart && container) tokenChart.applyOptions({ width: container.clientWidth, height: container.clientHeight }); };
         window.addEventListener('resize', window._tokenChartResize);
-    } catch (e) { container.innerHTML = `<div class="empty-state">${t('error')}</div>`; }
+        
+    } catch (e) { 
+        console.error('Chart error:', e);
+        container.innerHTML = `<div class="empty-state">${t('error')}</div>`; 
+    }
 }
 
 function switchChartRange(days, btn) {
@@ -3037,8 +3378,40 @@ document.addEventListener('visibilitychange', function () {
 async function loadAllNFTs(forceFetch = false) {
     if (!state.address) return;
     const cacheKey = 'foxCachedNFTs_' + state.address.toLowerCase();
-    if (!forceFetch) { try { const cached = await nftImageDB.getItem(cacheKey); if (cached) { state.allNFTs = cached; renderNFTs(cached); renderHeroBalance(); return; } } catch (e) {} }
-    if (!state.provider) { try { const cached = await nftImageDB.getItem(cacheKey); if (cached) { state.allNFTs = cached; renderNFTs(cached); } } catch (e) {} return; }
+    
+    // ✅ اگه از کش می‌خونه، باید قیمت‌ها رو دوباره محاسبه کنیم تا لحظه‌ای باشن
+    if (!forceFetch) { 
+        try { 
+            const cached = await nftImageDB.getItem(cacheKey); 
+            if (cached) { 
+                // آپدیت قیمت‌های کش شده قبل از نمایش
+                for (let item of cached) {
+                    if (window.getCurrentNFTPrice && window.NFT_PRICES && window.NFT_PRICES.collections[item.contract.toLowerCase()]) {
+                        const nftConfig = window.NFT_PRICES.collections[item.contract.toLowerCase()];
+                        const livePrice = window.getCurrentNFTPrice(item.contract, nftConfig.basePrice);
+                        item.pricePerNFT = livePrice.price;
+                        item.totalPrice = item.pricePerNFT * item.balance;
+                    }
+                }
+                state.allNFTs = cached; 
+                renderNFTs(cached); 
+                renderHeroBalance(); 
+                return; 
+            } 
+        } catch (e) {} 
+    }
+    
+    if (!state.provider) { 
+        try { 
+            const cached = await nftImageDB.getItem(cacheKey); 
+            if (cached) { 
+                state.allNFTs = cached; 
+                renderNFTs(cached); 
+            } 
+        } catch (e) {} 
+        return; 
+    }
+    
     try {
         let allNFTs = [];
         for (const contractInfo of CONFIG.nftContracts) {
@@ -3047,29 +3420,81 @@ async function loadAllNFTs(forceFetch = false) {
                 try {
                     const balance = await Promise.race([contract.balanceOf(state.address, id), new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 3000))]);
                     if (balance.gt(0)) {
-                        const totalBalance = balance.toNumber(); const pricePerNFT = CONFIG.getNFTPrice(contractInfo.address, id);
-                        let finalName = contractInfo.name + " #" + id; if (contractInfo.itemNames && contractInfo.itemNames[id]) finalName = contractInfo.itemNames[id];
-                        allNFTs.push({ id, balance: totalBalance, image: contractInfo.image, name: finalName, contract: contractInfo.address, contractName: contractInfo.name, pricePerNFT, totalPrice: pricePerNFT * totalBalance });
+                        const totalBalance = balance.toNumber(); 
+                        let pricePerNFT = CONFIG.getNFTPrice(contractInfo.address, id);
+                        
+                        // ✅ این بخش جدید اضافه شد (گرفتن قیمت لحظه‌ای)
+                        if (window.getCurrentNFTPrice && window.NFT_PRICES && window.NFT_PRICES.collections[contractInfo.address.toLowerCase()]) {
+                            const nftConfig = window.NFT_PRICES.collections[contractInfo.address.toLowerCase()];
+                            const livePrice = window.getCurrentNFTPrice(contractInfo.address, nftConfig.basePrice);
+                            pricePerNFT = livePrice.price;
+                        }
+                        
+                        let finalName = contractInfo.name + " #" + id; 
+                        if (contractInfo.itemNames && contractInfo.itemNames[id]) finalName = contractInfo.itemNames[id];
+                        
+                        allNFTs.push({ 
+                            id, 
+                            balance: totalBalance, 
+                            image: contractInfo.image, 
+                            name: finalName, 
+                            contract: contractInfo.address, 
+                            contractName: contractInfo.name, 
+                            pricePerNFT, 
+                            totalPrice: pricePerNFT * totalBalance 
+                        });
                     }
                 } catch (e) {}
             }
         }
-        state.allNFTs = allNFTs; renderNFTs(allNFTs); renderHeroBalance(); await nftImageDB.setItem(cacheKey, allNFTs);
-    } catch (e) { console.error('Load NFTs error:', e); }
+        state.allNFTs = allNFTs; 
+        renderNFTs(allNFTs); 
+        renderHeroBalance(); 
+        await nftImageDB.setItem(cacheKey, allNFTs);
+    } catch (e) { 
+        console.error('Load NFTs error:', e); 
+    }
 }
 
 function renderNFTs(items) {
-    const container = document.getElementById('nftList'); const badge = document.getElementById('nftCountBadge');
-    if (badge) { if (items.length > 0) { badge.textContent = items.length; badge.style.display = 'inline-block'; } else badge.style.display = 'none'; }
+    const container = document.getElementById('nftList'); 
+    const badge = document.getElementById('nftCountBadge');
+    
+    if (badge) { 
+        if (items.length > 0) { 
+            badge.textContent = items.length; 
+            badge.style.display = 'inline-block'; 
+        } else {
+            badge.style.display = 'none'; 
+        }
+    }
+    
     if (!container) return;
-    if (items.length === 0) { container.innerHTML = `<div class="empty-state" style="grid-column:1/-1;"><div class="empty-state-icon">🎨</div><div>${t('emptyNFTs')}</div></div>`; return; }
+    
+    if (items.length === 0) { 
+        container.innerHTML = `<div class="empty-state" style="grid-column:1/-1;"><div class="empty-state-icon">🎨</div><div>${t('emptyNFTs')}</div></div>`; 
+        return; 
+    }
+    
     let html = '';
     for (const item of items) {
-        const safeName = item.name.replace(/'/g, "\\'").replace(/"/g, '&quot;'); const safeImage = (item.image || '').replace(/'/g, "\\'"); const safeCollection = item.contractName.replace(/'/g, "\\'");
-        let imageHtml = item.image ? `<img src="${item.image}" alt="${item.name}" class="nft-image" onerror="this.outerHTML='&lt;div class=\\'nft-image placeholder\\'&gt;🎨&lt;/div&gt;'" />` : `<div class="nft-image placeholder">🎨</div>`;
-        let priceHtml = ''; if (item.pricePerNFT && item.pricePerNFT > 0) priceHtml = `<span class="nft-price-unit">💎 ${item.pricePerNFT.toFixed(2)}$</span><span class="nft-price-total">💰 ${item.totalPrice.toFixed(2)}$</span>`;
-        html += `<div class="nft-card" onclick="openNFTDetail('${item.contract}', ${item.id}, '${safeName}', '${safeImage}', '${safeCollection}')">${imageHtml}<div class="nft-name">${item.name}</div><span class="nft-id">ID: ${item.id}</span><span class="nft-balance">× ${item.balance}</span>${priceHtml}</div>`;
+        const safeName = item.name.replace(/'/g, "\\'").replace(/"/g, '&quot;'); 
+        const safeImage = (item.image || '').replace(/'/g, "\\'"); 
+        const safeCollection = item.contractName.replace(/'/g, "\\'");
+        
+        let imageHtml = item.image 
+            ? `<img src="${item.image}" alt="${item.name}" class="nft-image" onerror="this.outerHTML='&lt;div class=\\'nft-image placeholder\\'&gt;🎨&lt;/div&gt;'" />` 
+            : `<div class="nft-image placeholder">🎨</div>`;
+            
+        let priceHtml = ''; 
+        if (item.pricePerNFT && item.pricePerNFT > 0) {
+            priceHtml = `<span class="nft-price-unit">💎 ${item.pricePerNFT.toFixed(2)}$</span><span class="nft-price-total">💰 ${item.totalPrice.toFixed(2)}$</span>`;
+        }
+        
+        // ✅ این خط تغییر کرد (حالا به صفحه جدید میره)
+        html += `<div class="nft-card" onclick="openNFTDetailPage('${item.contract}', '${safeName}', '${safeImage}', '${safeCollection}')">${imageHtml}<div class="nft-name">${item.name}</div><span class="nft-id">ID: ${item.id}</span><span class="nft-balance">× ${item.balance}</span>${priceHtml}</div>`;
     }
+    
     container.innerHTML = html;
 }
 
@@ -3533,18 +3958,67 @@ function pickSwapToken(key) {
 }
 
 function showSuccessModal(tx) {
-    const content = document.getElementById('successContent'); const titleEl = document.getElementById('successTitleText'); const subEl = document.getElementById('successSubText'); let html = '';
+    const content = document.getElementById('successContent');
+    const titleEl = document.getElementById('successTitleText');
+    const subEl = document.getElementById('successSubText');
+    let html = '';
+
     if (tx.type === 'avax' || tx.type === 'token') {
-        titleEl.textContent = t('successTitle'); subEl.textContent = t('successSub'); const symbol = tx.tokenSymbol || 'AVAX';
-        html = `<div class="detail-row"><span class="detail-label">${t('detailAmount')}</span><span class="detail-value red">-${formatTokenBalance(tx.value)} ${symbol}</span></div><div class="detail-row"><span class="detail-label">${t('detailTo')}</span><span class="detail-value" title="${tx.to}">${fullAddr(tx.to)}</span></div><div class="detail-row"><span class="detail-label">${t('detailGas')}</span><span class="detail-value gold">${tx.gasFee} AVAX</span></div><div class="hash-row"><span class="hash-label">${t('detailHash')}</span><span class="hash-value" onclick="copyTxHash('${tx.hash}')">${tx.hash.slice(0, 12)}...${tx.hash.slice(-8)}</span><button class="hash-copy-btn" onclick="copyTxHash('${tx.hash}')">📋</button></div>`;
+        titleEl.textContent = t('successTitle');
+        subEl.textContent = t('successSub');
+        const symbol = tx.tokenSymbol || 'AVAX';
+        html = `
+            <div class="detail-row"><span class="detail-label">${t('detailAmount')}</span><span class="detail-value red">-${formatTokenBalance(tx.value)} ${symbol}</span></div>
+            <div class="detail-row"><span class="detail-label">${t('detailFrom')}</span><span class="detail-value" title="${tx.from}">${fullAddr(tx.from)}</span></div>
+            <div class="detail-row"><span class="detail-label">${t('detailTo')}</span><span class="detail-value" title="${tx.to}">${fullAddr(tx.to)}</span></div>
+            <div class="detail-row"><span class="detail-label">${t('detailGas')}</span><span class="detail-value gold">${tx.gasFee} AVAX</span></div>
+            <div class="detail-row"><span class="detail-label">${t('detailTime')}</span><span class="detail-value white">${formatTime(tx.timestamp)}</span></div>
+            ${tx.blockNumber ? `<div class="detail-row"><span class="detail-label">📦 Block:</span><span class="detail-value white">${tx.blockNumber}</span></div>` : ''}
+            <div class="hash-row">
+                <span class="hash-label">${t('detailHash')}</span>
+                <span class="hash-value" onclick="copyTxHash('${tx.hash}')">${tx.hash.slice(0, 12)}...${tx.hash.slice(-8)}</span>
+                <button class="hash-copy-btn" onclick="copyTxHash('${tx.hash}')">📋</button>
+            </div>
+        `;
     } else if (tx.type === 'nft') {
-        titleEl.textContent = t('successTitle'); subEl.textContent = t('successSub'); let imageHtml = tx.image ? `<img src="${tx.image}" class="detail-nft-image" onerror="this.outerHTML='&lt;div class=\\'detail-nft-image placeholder\\'&gt;🎨&lt;/div&gt;'" />` : `<div class="detail-nft-image placeholder">🎨</div>`;
-        html = `${imageHtml}<div class="detail-nft-name">${tx.nftName}</div><div class="detail-nft-collection">📚 ${tx.collection}</div><div class="detail-row"><span class="detail-label">${t('detailTo')}</span><span class="detail-value" title="${tx.to}">${fullAddr(tx.to)}</span></div><div class="detail-row"><span class="detail-label">${t('detailGas')}</span><span class="detail-value gold">${tx.gasFee} AVAX</span></div><div class="hash-row"><span class="hash-label">${t('detailHash')}</span><span class="hash-value" onclick="copyTxHash('${tx.hash}')">${tx.hash.slice(0, 12)}...${tx.hash.slice(-8)}</span><button class="hash-copy-btn" onclick="copyTxHash('${tx.hash}')">📋</button></div>`;
+        titleEl.textContent = t('successTitle');
+        subEl.textContent = t('successSub');
+        let imageHtml = tx.image
+            ? `<img src="${tx.image}" class="detail-nft-image" onerror="this.outerHTML='&lt;div class=\\'detail-nft-image placeholder\\'&gt;🎨&lt;/div&gt;'" />`
+            : `<div class="detail-nft-image placeholder">🎨</div>`;
+        html = `
+            ${imageHtml}
+            <div class="detail-nft-name">${tx.nftName}</div>
+            <div class="detail-nft-collection">📚 ${tx.collection}</div>
+            <div class="detail-row"><span class="detail-label">${t('detailFrom')}</span><span class="detail-value" title="${tx.from}">${fullAddr(tx.from)}</span></div>
+            <div class="detail-row"><span class="detail-label">${t('detailTo')}</span><span class="detail-value" title="${tx.to}">${fullAddr(tx.to)}</span></div>
+            <div class="detail-row"><span class="detail-label">${t('detailGas')}</span><span class="detail-value gold">${tx.gasFee} AVAX</span></div>
+            <div class="detail-row"><span class="detail-label">${t('detailTime')}</span><span class="detail-value white">${formatTime(tx.timestamp)}</span></div>
+            ${tx.blockNumber ? `<div class="detail-row"><span class="detail-label">📦 Block:</span><span class="detail-value white">${tx.blockNumber}</span></div>` : ''}
+            <div class="hash-row">
+                <span class="hash-label">${t('detailHash')}</span>
+                <span class="hash-value" onclick="copyTxHash('${tx.hash}')">${tx.hash.slice(0, 12)}...${tx.hash.slice(-8)}</span>
+                <button class="hash-copy-btn" onclick="copyTxHash('${tx.hash}')">📋</button>
+            </div>
+        `;
     } else if (tx.type === 'swap') {
-        titleEl.textContent = t('successSwapTitle'); subEl.textContent = t('successSwapSub');
-        html = `<div class="detail-row"><span class="detail-label">💰 ${t('from')}</span><span class="detail-value red">-${formatAmount(tx.fromAmount)} ${tx.fromSymbol}</span></div><div class="detail-row"><span class="detail-label">📥 ${t('to')}</span><span class="detail-value green">+${formatAmount(tx.toAmount)} ${tx.toSymbol}</span></div><div class="detail-row"><span class="detail-label">${t('detailGas')}</span><span class="detail-value gold">${tx.gasFee} AVAX</span></div><div class="hash-row"><span class="hash-label">${t('detailHash')}</span><span class="hash-value" onclick="copyTxHash('${tx.hash}')">${tx.hash.slice(0, 12)}...${tx.hash.slice(-8)}</span><button class="hash-copy-btn" onclick="copyTxHash('${tx.hash}')">📋</button></div>`;
+        titleEl.textContent = t('successSwapTitle');
+        subEl.textContent = t('successSwapSub');
+        html = `
+            <div class="detail-row"><span class="detail-label">💰 ${t('from')}</span><span class="detail-value red">-${formatAmount(tx.fromAmount)} ${tx.fromSymbol}</span></div>
+            <div class="detail-row"><span class="detail-label">📥 ${t('to')}</span><span class="detail-value green">+${formatAmount(tx.toAmount)} ${tx.toSymbol}</span></div>
+            <div class="detail-row"><span class="detail-label">${t('detailGas')}</span><span class="detail-value gold">${tx.gasFee} AVAX</span></div>
+            <div class="detail-row"><span class="detail-label">${t('detailTime')}</span><span class="detail-value white">${formatTime(tx.timestamp)}</span></div>
+            ${tx.blockNumber ? `<div class="detail-row"><span class="detail-label">📦 Block:</span><span class="detail-value white">${tx.blockNumber}</span></div>` : ''}
+            <div class="hash-row">
+                <span class="hash-label">${t('detailHash')}</span>
+                <span class="hash-value" onclick="copyTxHash('${tx.hash}')">${tx.hash.slice(0, 12)}...${tx.hash.slice(-8)}</span>
+                <button class="hash-copy-btn" onclick="copyTxHash('${tx.hash}')">📋</button>
+            </div>
+        `;
     }
-    content.innerHTML = html; document.getElementById('successModal').classList.remove('closed');
+    content.innerHTML = html;
+    document.getElementById('successModal').classList.remove('closed');
 }
 function closeSuccessModal() { document.getElementById('successModal').classList.add('closed'); }
 
@@ -4227,6 +4701,3 @@ window.addEventListener('beforeunload', function () {
 </script>
 </body>
 </html>
-
-</body>
-    </html>
