@@ -652,11 +652,7 @@ body {
     position: absolute; top: 0; left: 0; right: 0; bottom: 0;
     display: flex; align-items: center; justify-content: center; pointer-events: none;
 }
-.scanner-frame {
-    width: 70%; height: 70%; border: 3px solid var(--accent-success);
-    border-radius: 20px; box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
-    animation: scanPulse 2s infinite;
-}
+
 @keyframes scanPulse {
     0%, 100% { border-color: var(--accent-success); }
     50% { border-color: var(--accent-primary); }
@@ -1101,7 +1097,63 @@ body {
 .nft-supply-value { font-size: 1.1rem; color: var(--text-primary); font-weight: 700; font-family: monospace; }
 .nft-supply-value.green { color: var(--accent-success); }
 .nft-supply-value.gold { color: var(--accent-gold); }
+/* کادری که خوده کتابخانه html5-qrcode می‌کشه */
+#qrReader__scan_region {
+    border-radius: 20px !important;
+}
 
+/* خط قرمز/سفید داخل کادر رو سبز و ضخیم کن */
+#qrReader__scan_region img {
+    display: none !important;
+}
+#qrReader__dashboard_section_csr {
+    display: none !important;
+}
+#qrReader__scan_region {
+    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5) !important; /* سایه دور کادر */
+    border: 3px solid var(--accent-success) !important; /* حاشیه سبز */
+    border-radius: 20px !important;
+}
+/* ✅ تنظیمات ظاهری کادر اسکنر */
+#qrReader {
+    width: 100% !important;
+    height: 100% !important;
+    overflow: hidden !important;
+}
+
+#qrReader video {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+}
+
+/* این بخش کادر سفید رو به وسط هل میده */
+#qrReader__scan_region {
+    position: absolute !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    width: 70% !important;
+    height: 70% !important;
+    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6) !important;
+    border: none !important;
+    border-radius: 20px !important;
+}
+
+/* حذف کادرهای مزاحم پیش‌فرض کتابخانه */
+#qrReader__scan_region img {
+    display: none !important;
+}
+
+/* کادرهای گوشه (سفیدها) */
+#qrReader__dashboard {
+    display: none !important;
+}
+/* ✅ آوردن مودال‌های ارسال، دریافت و اسکنر به بالاترین لایه */
+#qrModal, #sendModal, #scanModal, #confirmTxModal {
+    z-index: 4000 !important; 
+}
+#swapModal { z-index: 4000 !important; }
     </style>
 </head>
 <body>
@@ -1810,6 +1862,7 @@ function openNFTDetailPage(contract, name, image, collection) {
         </div>
 
         <div class="token-actions-grid">
+            <!-- ✅ مودال‌ها روی همین صفحه باز میشن و صفحه NFT بسته نمیشه -->
             <button class="token-action-btn send" onclick="openSendNFTFromDetail('${contract}', 1, '${name.replace(/'/g, "\\'")}', '${(image || '').replace(/'/g, "\\'")}', '${collection.replace(/'/g, "\\'")}')">📤 ارسال</button>
             <button class="token-action-btn receive" onclick="showQRCode()">📥 دریافت</button>
         </div>
@@ -1825,7 +1878,9 @@ function openNFTDetailPage(contract, name, image, collection) {
     `;
 
     overlay.classList.add('show');
+    // اسکرول صفحه اصلی رو قفل میکنیم
     document.body.style.overflow = 'hidden';
+    overlay.style.overflowY = 'auto'; // اسکرول داخل صفحه NFT فعال باشه
 
     setTimeout(() => {
         createNFTChart(contract, basePrice, 7);
@@ -1850,7 +1905,7 @@ async function renderNFTTxHistory(contractAddress) {
     }
     
     let html = '';
-    const display = filtered.slice(0, 10); // نمایش ۱۰ تراکنش آخر
+    const display = filtered.slice(0, 5); // نمایش ۱۰ تراکنش آخر
     
     for (let i = 0; i < display.length; i++) {
         html += await renderTxItem(display[i], i);
@@ -3192,18 +3247,30 @@ async function renderTokenTxHistory(symbol) {
     if (!container) return;
     let filtered = symbol === 'AVAX' ? state.txHistory.filter(t => t.type === 'avax' || t.type === 'swap') : state.txHistory.filter(t => (t.tokenSymbol || '').toUpperCase() === symbol.toUpperCase());
     if (filtered.length === 0) { container.innerHTML = `<div class="empty-state" style="padding:16px 0;">${t('noTxForToken')}</div>`; return; }
-    let html = ''; const display = filtered.slice(0, 10);
+    let html = ''; const display = filtered.slice(0, 5);
     for (let i = 0; i < display.length; i++) html += await renderTxItem(display[i], i);
     container.innerHTML = html;
 }
 
-function openSendFromToken(symbol) { closeTokenDetail(); showSendModal(); currentSendToken = symbol; renderSendTokenSelector(); }
+function openSendFromToken(symbol) {
+    // ✅ صفحه توکن رو نمی‌بندیم تا کاربر بعد از ارسال همون‌جا بمونه
+    showSendModal(); 
+    currentSendToken = symbol; 
+    renderSendTokenSelector(); 
+}
 function openSwapFromToken(symbol) {
-    closeTokenDetail(); showSwapModal();
+    // ✅ صفحه توکن باز می‌مونه
+    showSwapModal(); 
     const token = tokenBalances[symbol];
     if (token && token.canSwap) {
         const pangolinKey = Object.keys(CONFIG.pangolin.tokens).find(k => k === symbol);
-        if (pangolinKey) { state.swapFromToken = pangolinKey; document.getElementById('swapFromSymbol').textContent = pangolinKey + ' ▼'; document.getElementById('swapFromAmount').value = ''; document.getElementById('swapToAmount').value = ''; updateSwapBalanceInfo(); }
+        if (pangolinKey) { 
+            state.swapFromToken = pangolinKey; 
+            document.getElementById('swapFromSymbol').textContent = pangolinKey + ' ▼'; 
+            document.getElementById('swapFromAmount').value = ''; 
+            document.getElementById('swapToAmount').value = ''; 
+            updateSwapBalanceInfo(); 
+        }
     }
 }
 
@@ -3603,7 +3670,17 @@ async function startQRScanner(target) {
         try {
             if (state.qrScanner) { try { await state.qrScanner.stop(); state.qrScanner.clear(); } catch (e) {} state.qrScanner = null; }
             state.qrScanner = new Html5Qrcode('qrReader');
-            await state.qrScanner.start({ facingMode: 'environment' }, { fps: 10, qrbox: { width: 250, height: 250 } }, (decodedText) => handleScanSuccess(decodedText), (err) => {});
+            await state.qrScanner.start(
+    { facingMode: 'environment' }, 
+    { 
+        fps: 10, 
+        // ✅ به کتابخانه میگیم یه کادر ۷۰ درصدی دقیقاً وسط بذاره
+        qrbox: { width: 250, height: 250 },
+        aspectRatio: 1.0 
+    }, 
+    (decodedText) => handleScanSuccess(decodedText), 
+    (err) => {}
+);
         } catch (e) {
             let errMsg = t('cameraUnavailable');
             if (e.message?.includes('Permission') || e.message?.includes('NotAllowed')) errMsg = t('cameraDenied');
