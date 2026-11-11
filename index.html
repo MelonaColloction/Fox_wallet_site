@@ -1054,7 +1054,9 @@ body {
 #seedVerifyModal { z-index: 1400 !important; }
 #seedRevealModal { z-index: 1450 !important; }
 #langSelectOverlay { z-index: 3000 !important; }
-#txLoadingModal { z-index: 2500 !important; }
+#txLoadingModal { z-index: 5000 !important; }   /* ← بالاتر از همه */
+#qrModal, #sendModal, #scanModal, #confirmTxModal { z-index: 4000 !important; }
+#swapModal { z-index: 4000 !important; }
 /* NFT DETAIL PAGE */
 .nft-detail-overlay {
     position: fixed; top: 0; left: 0; right: 0; bottom: 0;
@@ -1149,11 +1151,54 @@ body {
 #qrReader__dashboard {
     display: none !important;
 }
-/* ✅ آوردن مودال‌های ارسال، دریافت و اسکنر به بالاترین لایه */
-#qrModal, #sendModal, #scanModal, #confirmTxModal {
-    z-index: 4000 !important; 
-}
-#swapModal { z-index: 4000 !important; }
+/* ═══════════════════════════════════════════════════════════
+   ✅ لایه‌بندی مودال‌ها (از پایین به بالا)
+   ═══════════════════════════════════════════════════════════ */
+
+/* لایه ۱: مودال‌های ساده/پایه (از صفحه اصلی) */
+#settingsModal { z-index: 1100 !important; }
+#walletListModal { z-index: 1150 !important; }
+#addWalletModal { z-index: 1200 !important; }
+#renameWalletModal { z-index: 1250 !important; }
+#deleteWalletConfirmModal { z-index: 1300 !important; }
+#loginModal { z-index: 1400 !important; }
+
+/* لایه ۲: صفحه‌های تمام‌صفحه (توکن / NFT) */
+#tokenDetailOverlay { z-index: 1500 !important; }
+#nftDetailOverlay { z-index: 1500 !important; }
+
+/* لایه ۳: مودال‌های روی صفحه‌های تمام‌صفحه
+   (دریافت، تاریخچه، همه NFTها) */
+#qrModal { z-index: 1600 !important; }
+#allTxModal { z-index: 1600 !important; }
+#allFilteredTxModal { z-index: 1600 !important; }
+#allNFTsModal { z-index: 1600 !important; }
+#nftDetailModal { z-index: 1600 !important; }
+#txDetailModal { z-index: 1700 !important; }
+
+/* لایه ۴: مودال‌های عملیاتی (Send / Swap / Confirm) */
+#sendModal { z-index: 2000 !important; }
+#swapModal { z-index: 2000 !important; }
+#swapTokenPickerModal { z-index: 2100 !important; }
+#confirmTxModal { z-index: 2200 !important; }
+
+/* لایه ۵: مودال‌هایی که از داخل Send باز می‌شن
+   (اسکنر، آدرس‌های ذخیره‌شده، افزودن آدرس) */
+#scanModal { z-index: 2100 !important; }
+#favoritesModal { z-index: 2100 !important; }
+#addFavoriteModal { z-index: 2200 !important; }
+
+/* لایه ۶: تأیید هویت / رمز */
+#passwordPromptModal { z-index: 2300 !important; }
+#seedVerifyModal { z-index: 2300 !important; }
+#seedRevealModal { z-index: 2300 !important; }
+
+/* لایه ۷: نتیجه و لودینگ (باید همیشه بالاترین باشن) */
+#successModal { z-index: 2400 !important; }
+#txLoadingModal { z-index: 2500 !important; }
+
+/* لایه ۸: انتخاب زبان (فقط اولین بار) */
+#langSelectOverlay { z-index: 3000 !important; }
     </style>
 </head>
 <body>
@@ -1759,17 +1804,14 @@ async function showAllFilteredTx(filterType, filterValue, titleText) {
     
     titleEl.textContent = titleText || '📜 تاریخچه کامل';
     
-    // فیلتر کردن تراکنش‌ها
     let filtered = [];
     if (filterType === 'nft') {
-        // فیلتر بر اساس آدرس قرارداد NFT
         filtered = state.txHistory.filter(t => 
             t.type === 'nft' && 
             t.contract && 
             t.contract.toLowerCase() === filterValue.toLowerCase()
         );
     } else if (filterType === 'token') {
-        // فیلتر بر اساس نماد توکن (مثل AVAX, FLCY, USDC)
         if (filterValue === 'AVAX') {
             filtered = state.txHistory.filter(t => t.type === 'avax' || t.type === 'swap');
         } else {
@@ -1784,7 +1826,9 @@ async function showAllFilteredTx(filterType, filterValue, titleText) {
     } else {
         let html = '<div class="tx-list">';
         for (let i = 0; i < filtered.length; i++) {
-            html += await renderTxItem(filtered[i], i);
+            // ✅ ایندکس واقعی تو state.txHistory رو پیدا کن
+            const realIndex = state.txHistory.indexOf(filtered[i]);
+            html += await renderTxItem(filtered[i], realIndex);
         }
         html += '</div>';
         body.innerHTML = html;
@@ -1891,26 +1935,22 @@ function openNFTDetailPage(contract, name, image, collection) {
 async function renderNFTTxHistory(contractAddress) {
     const container = document.getElementById('nftTxHistoryList');
     if (!container) return;
-    
-    // پیدا کردن تراکنش‌هایی که مربوط به این قرارداد (contract) هستن
     const filtered = state.txHistory.filter(t => 
         t.type === 'nft' && 
         t.contract && 
         t.contract.toLowerCase() === contractAddress.toLowerCase()
     );
-    
     if (filtered.length === 0) {
         container.innerHTML = `<div class="empty-state" style="padding:16px 0;">هنوز تراکنشی برای این NFT ثبت نشده است</div>`;
         return;
     }
-    
     let html = '';
-    const display = filtered.slice(0, 5); // نمایش ۱۰ تراکنش آخر
-    
+    const display = filtered.slice(0, 5);
     for (let i = 0; i < display.length; i++) {
-        html += await renderTxItem(display[i], i);
+        // ✅ ایندکس واقعی تو state.txHistory رو پیدا کن
+        const realIndex = state.txHistory.indexOf(display[i]);
+        html += await renderTxItem(display[i], realIndex);
     }
-    
     container.innerHTML = html;
 }
 
@@ -2896,6 +2936,9 @@ function startPriceUpdater() {
 
         // ✅ آپدیت توکن‌ها (همیشه اجرا میشه، چه آنلاین چه آفلاین)
         await loadAllTokenBalances(false);
+
+        // ✅ آپدیت سریع قیمت‌ها از price.js (بدون صدا زدن شبکه)
+        await refreshTokenBalances();
         
         // ✅ رسم مجدد چارت اگه صفحه توکن بازه (باعث میشه چارت همزمان با قیمت بالا/پایین بره)
         if (currentTokenDetail && document.getElementById('tokenDetailOverlay').classList.contains('show')) {
@@ -3248,7 +3291,11 @@ async function renderTokenTxHistory(symbol) {
     let filtered = symbol === 'AVAX' ? state.txHistory.filter(t => t.type === 'avax' || t.type === 'swap') : state.txHistory.filter(t => (t.tokenSymbol || '').toUpperCase() === symbol.toUpperCase());
     if (filtered.length === 0) { container.innerHTML = `<div class="empty-state" style="padding:16px 0;">${t('noTxForToken')}</div>`; return; }
     let html = ''; const display = filtered.slice(0, 5);
-    for (let i = 0; i < display.length; i++) html += await renderTxItem(display[i], i);
+    for (let i = 0; i < display.length; i++) {
+        // ✅ ایندکس واقعی تو state.txHistory رو پیدا کن
+        const realIndex = state.txHistory.indexOf(display[i]);
+        html += await renderTxItem(display[i], realIndex);
+    }
     container.innerHTML = html;
 }
 
@@ -3446,22 +3493,27 @@ async function loadAllNFTs(forceFetch = false) {
     if (!state.address) return;
     const cacheKey = 'foxCachedNFTs_' + state.address.toLowerCase();
     
-    // ✅ اگه از کش می‌خونه، باید قیمت‌ها رو دوباره محاسبه کنیم تا لحظه‌ای باشن
+    // ✅ تابع کمکی برای آپدیت قیمت‌های کش شده
+    const applyLivePrices = (nfts) => {
+        for (let item of nfts) {
+            if (window.getCurrentNFTPrice && window.NFT_PRICES && window.NFT_PRICES.collections[item.contract.toLowerCase()]) {
+                const nftConfig = window.NFT_PRICES.collections[item.contract.toLowerCase()];
+                const livePrice = window.getCurrentNFTPrice(item.contract, nftConfig.basePrice);
+                item.pricePerNFT = livePrice.price;
+                item.totalPrice = item.pricePerNFT * item.balance;
+            }
+        }
+        return nfts;
+    };
+
     if (!forceFetch) { 
         try { 
             const cached = await nftImageDB.getItem(cacheKey); 
             if (cached) { 
-                // آپدیت قیمت‌های کش شده قبل از نمایش
-                for (let item of cached) {
-                    if (window.getCurrentNFTPrice && window.NFT_PRICES && window.NFT_PRICES.collections[item.contract.toLowerCase()]) {
-                        const nftConfig = window.NFT_PRICES.collections[item.contract.toLowerCase()];
-                        const livePrice = window.getCurrentNFTPrice(item.contract, nftConfig.basePrice);
-                        item.pricePerNFT = livePrice.price;
-                        item.totalPrice = item.pricePerNFT * item.balance;
-                    }
-                }
-                state.allNFTs = cached; 
-                renderNFTs(cached); 
+                // ✅ قبل از نمایش، قیمت‌ها رو با زمان الان آپدیت میکنیم
+                const updatedNFTs = applyLivePrices(cached);
+                state.allNFTs = updatedNFTs; 
+                renderNFTs(updatedNFTs); 
                 renderHeroBalance(); 
                 return; 
             } 
@@ -3472,8 +3524,9 @@ async function loadAllNFTs(forceFetch = false) {
         try { 
             const cached = await nftImageDB.getItem(cacheKey); 
             if (cached) { 
-                state.allNFTs = cached; 
-                renderNFTs(cached); 
+                const updatedNFTs = applyLivePrices(cached);
+                state.allNFTs = updatedNFTs; 
+                renderNFTs(updatedNFTs); 
             } 
         } catch (e) {} 
         return; 
@@ -3490,7 +3543,6 @@ async function loadAllNFTs(forceFetch = false) {
                         const totalBalance = balance.toNumber(); 
                         let pricePerNFT = CONFIG.getNFTPrice(contractInfo.address, id);
                         
-                        // ✅ این بخش جدید اضافه شد (گرفتن قیمت لحظه‌ای)
                         if (window.getCurrentNFTPrice && window.NFT_PRICES && window.NFT_PRICES.collections[contractInfo.address.toLowerCase()]) {
                             const nftConfig = window.NFT_PRICES.collections[contractInfo.address.toLowerCase()];
                             const livePrice = window.getCurrentNFTPrice(contractInfo.address, nftConfig.basePrice);
