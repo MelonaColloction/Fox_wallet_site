@@ -1199,6 +1199,64 @@ body {
 
 /* لایه ۸: انتخاب زبان (فقط اولین بار) */
 #langSelectOverlay { z-index: 3000 !important; }
+/* ✅ استایل منوی کشویی تایم‌فریم */
+.timeframe-selector-wrap {
+    position: relative;
+    margin-bottom: 12px;
+}
+.timeframe-btn {
+    background: var(--accent-bg-light);
+    color: var(--accent-success);
+    border: 1px solid var(--accent-success);
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 130px;
+}
+.timeframe-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    margin-top: 8px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    width: 130px;
+    z-index: 100;
+    overflow: hidden;
+    display: none;
+    flex-direction: column;
+}
+.timeframe-dropdown.show {
+    display: flex;
+}
+.timeframe-dropdown button {
+    background: transparent;
+    border: none;
+    color: var(--text-primary);
+    padding: 10px 16px;
+    font-size: 0.75rem;
+    text-align: right;
+    font-family: inherit;
+    cursor: pointer;
+    transition: 0.2s;
+}
+.timeframe-dropdown button:hover {
+    background: var(--bg-item-hover);
+}
+.timeframe-dropdown button.active {
+    color: var(--accent-success);
+    background: var(--accent-bg-success);
+    font-weight: 700;
+}
+
     </style>
 </head>
 <body>
@@ -1796,6 +1854,35 @@ body {
     </div>
 </div>
 <script>
+ function toggleTimeframeDropdown(btn) {
+    const dropdown = btn.nextElementSibling;
+    document.querySelectorAll('.timeframe-dropdown').forEach(d => {
+        if (d !== dropdown) d.classList.remove('show');
+    });
+    dropdown.classList.toggle('show');
+}
+
+function selectTimeframe(val, label, btn, type, contract, basePrice) {
+    // بستن منو
+    const wrap = btn.closest('.timeframe-selector-wrap');
+    wrap.querySelector('.timeframe-dropdown').classList.remove('show');
+    wrap.querySelector('.timeframe-btn').innerHTML = label + ' <span>▼</span>';
+    
+    // علامت‌گذاری دکمه فعال
+    wrap.querySelectorAll('.timeframe-dropdown button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    
+    // ✅ ذخیره تایم‌فریم در حافظه مرورگر
+    if (type === 'token') {
+        localStorage.setItem('fox_timeframe_' + contract.toLowerCase(), val);
+        currentChartRange = val;
+        if (currentTokenDetail) createCandleChart(currentTokenDetail, val);
+    } else if (type === 'nft') {
+        localStorage.setItem('fox_timeframe_' + contract.toLowerCase(), val);
+        createNFTChart(contract, basePrice, val);
+    }
+}
+  
   // ✅ باز کردن مودال تراکنش‌های فیلترشده
 async function showAllFilteredTx(filterType, filterValue, titleText) {
     const modal = document.getElementById('allFilteredTxModal');
@@ -1853,6 +1940,9 @@ function openNFTDetailPage(contract, name, image, collection) {
     const basePrice = nftInfo.basePrice || 0;
     const maxSupply = nftInfo.maxSupply || 100;
 
+    const savedNftTf = localStorage.getItem('fox_timeframe_' + contract.toLowerCase()) || '1d';
+    const currentNftLabel = t(savedNftTf);
+
     let currentPrice = 0, change24h = 0;
     if (window.getCurrentNFTPrice) {
         const priceData = window.getCurrentNFTPrice(contract, basePrice);
@@ -1870,6 +1960,25 @@ function openNFTDetailPage(contract, name, image, collection) {
         ? `<img src="${image}" class="nft-detail-image" onerror="this.outerHTML='&lt;div class=\\'nft-detail-image placeholder\\'&gt;🎨&lt;/div&gt;'" />` 
         : `<div class="nft-detail-image placeholder">🎨</div>`;
 
+    const chartTabsHtml = `
+        <div class="timeframe-selector-wrap">
+            <button class="timeframe-btn" onclick="toggleTimeframeDropdown(this)">
+                <span>${currentNftLabel}</span> <span>▼</span>
+            </button>
+            <div class="timeframe-dropdown">
+                <button class="${savedNftTf === '1m' ? 'active' : ''}" onclick="selectTimeframe('1m', this, 'nft', '${contract}', ${basePrice})">${t('1m')}</button>
+                <button class="${savedNftTf === '1h' ? 'active' : ''}" onclick="selectTimeframe('1h', this, 'nft', '${contract}', ${basePrice})">${t('1h')}</button>
+                <button class="${savedNftTf === '6h' ? 'active' : ''}" onclick="selectTimeframe('6h', this, 'nft', '${contract}', ${basePrice})">${t('6h')}</button>
+                <button class="${savedNftTf === '1d' ? 'active' : ''}" onclick="selectTimeframe('1d', this, 'nft', '${contract}', ${basePrice})">${t('1d')}</button>
+                <button class="${savedNftTf === '7d' ? 'active' : ''}" onclick="selectTimeframe('7d', this, 'nft', '${contract}', ${basePrice})">${t('7d')}</button>
+                <button class="${savedNftTf === '30d' ? 'active' : ''}" onclick="selectTimeframe('30d', this, 'nft', '${contract}', ${basePrice})">${t('30d')}</button>
+                <button class="${savedNftTf === '6m' ? 'active' : ''}" onclick="selectTimeframe('6m', this, 'nft', '${contract}', ${basePrice})">${t('6m')}</button>
+                <button class="${savedNftTf === '1y' ? 'active' : ''}" onclick="selectTimeframe('1y', this, 'nft', '${contract}', ${basePrice})">${t('1y')}</button>
+                <button class="${savedNftTf === 'all' ? 'active' : ''}" onclick="selectTimeframe('all', this, 'nft', '${contract}', ${basePrice})">${t('all')}</button>
+            </div>
+        </div>
+    `;
+
     contentEl.innerHTML = `
         <div class="nft-detail-hero">
             ${imageHtml}
@@ -1886,51 +1995,44 @@ function openNFTDetailPage(contract, name, image, collection) {
         </div>
 
         <div class="chart-container-wrap">
-            <div class="chart-range-tabs">
-                <button class="chart-range-tab active" onclick="switchNFTChartRange(7, this, '${contract}', ${basePrice})">${t('days7')}</button>
-                <button class="chart-range-tab" onclick="switchNFTChartRange(30, this, '${contract}', ${basePrice})">${t('days30')}</button>
-                <button class="chart-range-tab" onclick="switchNFTChartRange(90, this, '${contract}', ${basePrice})">${t('days90')}</button>
-            </div>
+            ${chartTabsHtml}
             <div class="chart-box" id="nftChartBox"></div>
         </div>
 
         <div class="nft-supply-grid">
             <div class="nft-supply-item">
-                <div class="nft-supply-label">کل ساپلای (Total Supply)</div>
+                <div class="nft-supply-label">${currentLang === 'fa' ? 'کل ساپلای' : 'Total Supply'}</div>
                 <div class="nft-supply-value">${maxSupply}</div>
             </div>
             <div class="nft-supply-item">
-                <div class="nft-supply-label">موجودی شما (Your Balance)</div>
-                <div class="nft-supply-value green">${userBalance} از ${maxSupply}</div>
+                <div class="nft-supply-label">${currentLang === 'fa' ? 'موجودی شما' : 'Your Balance'}</div>
+                <div class="nft-supply-value green">${userBalance} ${currentLang === 'fa' ? 'از' : 'of'} ${maxSupply}</div>
             </div>
         </div>
 
         <div class="token-actions-grid">
-            <!-- ✅ مودال‌ها روی همین صفحه باز میشن و صفحه NFT بسته نمیشه -->
-            <button class="token-action-btn send" onclick="openSendNFTFromDetail('${contract}', 1, '${name.replace(/'/g, "\\'")}', '${(image || '').replace(/'/g, "\\'")}', '${collection.replace(/'/g, "\\'")}')">📤 ارسال</button>
-            <button class="token-action-btn receive" onclick="showQRCode()">📥 دریافت</button>
+            <button class="token-action-btn send" onclick="openSendNFTFromDetail('${contract}', 1, '${name.replace(/'/g, "\\'")}', '${(image || '').replace(/'/g, "\\'")}', '${collection.replace(/'/g, "\\'")}')">📤 ${t('heroSend')}</button>
+            <button class="token-action-btn receive" onclick="showQRCode()">📥 ${t('heroReceive')}</button>
         </div>
 
-        <!-- ✅ بخش تاریخچه با دکمه «مشاهده همه» -->
         <div class="nft-history-box" style="background: var(--bg-status); border-radius: 16px; padding: 16px; margin-bottom: 16px; border: 1px solid var(--border-light);">
-            <div class="nft-history-title" style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; font-weight: 700; margin-bottom: 12px;">📜 تاریخچه این NFT</div>
+            <div class="nft-history-title" style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; font-weight: 700; margin-bottom: 12px;">📜 ${t('tabHistory')}</div>
             <div id="nftTxHistoryList" class="token-tx-list"></div>
             
-            <!-- دکمه جدید اضافه شد -->
-            <button class="btn btn-secondary btn-full" onclick="showAllFilteredTx('nft', '${contract}', '📜 تاریخچه ${name.replace(/'/g, "\\'")}')" style="margin-top: 12px; font-size: 0.75rem;">مشاهده همه تراکنش‌های این NFT</button>
+            <button class="btn btn-secondary btn-full" onclick="showAllFilteredTx('nft', '${contract}', '📜 ${name.replace(/'/g, "\\'")}')" style="margin-top: 12px; font-size: 0.75rem;">${t('viewAllNftTx')}</button>
         </div>
     `;
 
     overlay.classList.add('show');
-    // اسکرول صفحه اصلی رو قفل میکنیم
     document.body.style.overflow = 'hidden';
-    overlay.style.overflowY = 'auto'; // اسکرول داخل صفحه NFT فعال باشه
+    overlay.style.overflowY = 'auto';
 
     setTimeout(() => {
-        createNFTChart(contract, basePrice, 7);
+        createNFTChart(contract, basePrice, savedNftTf);
         renderNFTTxHistory(contract);
     }, 100);
 }
+
 // ✅ نمایش تاریخچه مخصوص هر NFT
 async function renderNFTTxHistory(contractAddress) {
     const container = document.getElementById('nftTxHistoryList');
@@ -1974,12 +2076,13 @@ function createNFTChart(contract, basePrice, days) {
     if (!container) return;
     if (typeof LightweightCharts === 'undefined') return;
     
-    // پاک کردن چارت قبلی (اگه باز بود)
     if (nftChartInstance) { 
         try { nftChartInstance.remove(); } catch (e) {} 
         nftChartInstance = null; 
     }
-
+    
+    container.innerHTML = ''; // جلوگیری از روی هم افتادن نمودار
+    
     nftChartInstance = LightweightCharts.createChart(container, {
         width: container.clientWidth, height: container.clientHeight,
         layout: { background: { color: 'transparent' }, textColor: '#8a9bb5', fontSize: 10 },
@@ -1996,8 +2099,15 @@ function createNFTChart(contract, basePrice, days) {
     });
 
     if (window.generatePriceHistory) {
-        // ✅ پارامتر config رو هم پاس می‌دیم که نوسانات درست باشه
-        const config = { normalMin: -2, normalMax: +3, reverseMin: -3, reverseMax: +2 };
+        // 👇 این دو خط اضافه شدن که تاریخ رو از price.js می‌خونن 👇
+        const nftInfo = window.NFT_PRICES.collections[contract.toLowerCase()] || {};
+        const config = { 
+            startDate: nftInfo.startDate || null, 
+            normalMin: -2, normalMax: +3, 
+            reverseMin: -3, reverseMax: +2 
+        };
+        // 👆 ------------------------------------------------- 👆
+        
         const candles = window.generatePriceHistory(basePrice, days, contract, config);
         series.setData(candles);
         nftChartInstance.timeScale().fitContent();
@@ -2149,6 +2259,10 @@ let swapRateTimeout = null;
 const translations = {
     fa: {
         appName: 'Fox Wallet', walletsBtn: '👛 کیف پول‌ها', connecting: '🔌 در حال اتصال...',
+        '1m': '۱ دقیقه', '1h': '۱ ساعت', '6h': '۶ ساعت', '1d': '۲۴ ساعت',
+'7d': '۷ روز', '30d': '۳۰ روز', '6m': '۶ ماه', '1y': '۱ سال', 'all': 'کل (All)',
+viewAllTx: 'مشاهده همه تراکنش‌های این توکن',
+viewAllNftTx: 'مشاهده همه تراکنش‌های این NFT',
         connected: '✅ متصل به Avalanche', locked: '🔒 کیف پول قفل است', welcome: '👋 خوش آمدید',
         offline: '⚠️ آفلاین - نمایش داده‌های ذخیره‌شده', offlineMsg: 'شبکه در دسترس نیست. داده‌های ذخیره‌شده نمایش داده می‌شوند.',
         error: '⚠️ خطا', notConnected: '❌ کیف پول متصل نیست', openWalletFirst: '❌ اول کیف پول را باز کنید',
@@ -2269,6 +2383,10 @@ const translations = {
     },
     en: {
         appName: 'Fox Wallet', walletsBtn: '👛 Wallets', connecting: '🔌 Connecting...',
+        '1m': '1m', '1h': '1h', '6h': '6h', '1d': '24h',
+'7d': '7d', '30d': '30d', '6m': '6m', '1y': '1y', 'all': 'All',
+viewAllTx: 'View All Token Transactions',
+viewAllNftTx: 'View All NFT Transactions',
         connected: '✅ Connected to Avalanche', locked: '🔒 Wallet is locked', welcome: '👋 Welcome',
         offline: '⚠️ Offline - showing cached data', offlineMsg: 'Network unavailable. Showing cached data.',
         error: '⚠️ Error', notConnected: '❌ Wallet not connected', openWalletFirst: '❌ Open wallet first',
@@ -2921,6 +3039,7 @@ async function updateAVAXPrice() {
     } else {
         state.avaxPrice = priceData.price;
         state.avaxChange24h = priceData.change24h;
+        window.currentAvaxPrice = priceData.price; // 👈 این خط رو اضافه کن
     }
     await refreshTokenBalances();
 }
@@ -3141,25 +3260,48 @@ function openTokenDetail(symbol) {
     const token = tokenBalances[symbol];
     if (!token) return;
     currentTokenDetail = token;
-    currentChartRange = 7;
+    
     const overlay = document.getElementById('tokenDetailOverlay');
     const titleEl = document.getElementById('tokenDetailPageTitle');
     const contentEl = document.getElementById('tokenDetailContent');
     if (!overlay || !contentEl) return;
     titleEl.textContent = token.name;
     const safeSymbol = symbol.replace(/'/g, "\\'");
+    const tokenAddress = token.isNative ? 'avax' : token.address;
+
+    const savedTf = localStorage.getItem('fox_timeframe_' + tokenAddress.toLowerCase()) || '1d';
+    currentChartRange = savedTf;
+    const currentLabel = t(savedTf);
 
     let logoHtml = token.isNative ? `<div class="token-detail-logo" style="background:linear-gradient(135deg,#e94560,#d63652);color:#fff;">🔺</div>` : (token.image ? `<div class="token-detail-logo"><img src="${token.image}" onerror="this.parentElement.innerHTML='🪙'" /></div>` : `<div class="token-detail-logo">🪙</div>`);
     const changeClass = (token.change24h || 0) >= 0 ? 'up' : 'down';
     const changeSign = (token.change24h || 0) >= 0 ? '+' : '';
     const contractHtml = token.isNative ? `<div class="token-detail-contract">🌐 ${t('native')}</div>` : `<div class="token-detail-contract" onclick="copyToClipboard('${token.address}').then(ok=>ok&&toast(t('copied')))"><span>${token.address.slice(0, 8)}...${token.address.slice(-6)}</span><span>📋</span></div>`;
     const swapBtn = token.canSwap ? `<button class="token-action-btn" onclick="openSwapFromToken('${safeSymbol}')">🔄 ${t('heroSwap')}</button>` : '';
-    
-    // ✅ اینجا backtick ( ) که جا افتاده بود رو درست کردم
     const descHtml = token.description ? `<div class="token-description"><div class="token-description-title">📝 ${t('aboutToken')}</div><div class="token-description-text">${token.description}</div></div>` : '';
     
     const statsHtml = token.priceUSD > 0 ? `<div class="token-stats-grid"><div class="token-stat-item"><div class="token-stat-label">${t('currentPrice')}</div><div class="token-stat-value gold">$${token.priceUSD.toFixed(4)}</div></div><div class="token-stat-item"><div class="token-stat-label">${t('change24h')}</div><div class="token-stat-value ${changeClass === 'up' ? 'green' : 'red'}">${changeSign}${(token.change24h || 0).toFixed(2)}%</div></div><div class="token-stat-item"><div class="token-stat-label">${t('yourBalance')}</div><div class="token-stat-value">${formatTokenBalance(token.balance)}</div></div><div class="token-stat-item"><div class="token-stat-label">${t('tokenValue')}</div><div class="token-stat-value green">$${formatUSD(token.valueUSD || 0)}</div></div></div>` : '';
-    const chartHtml = token.priceUSD > 0 ? `<div class="chart-container-wrap"><div class="chart-range-tabs"><button class="chart-range-tab active" onclick="switchChartRange(7, this)">${t('days7')}</button><button class="chart-range-tab" onclick="switchChartRange(30, this)">${t('days30')}</button><button class="chart-range-tab" onclick="switchChartRange(90, this)">${t('days90')}</button></div><div class="chart-box" id="tokenChartBox"></div></div>` : '';
+    
+    const chartHtml = token.priceUSD > 0 ? `
+        <div class="chart-container-wrap">
+            <div class="timeframe-selector-wrap">
+                <button class="timeframe-btn" onclick="toggleTimeframeDropdown(this)">
+                    <span>${currentLabel}</span> <span>▼</span>
+                </button>
+                <div class="timeframe-dropdown">
+                    <button class="${savedTf === '1m' ? 'active' : ''}" onclick="selectTimeframe('1m', this, 'token', '${tokenAddress}')">${t('1m')}</button>
+                    <button class="${savedTf === '1h' ? 'active' : ''}" onclick="selectTimeframe('1h', this, 'token', '${tokenAddress}')">${t('1h')}</button>
+                    <button class="${savedTf === '6h' ? 'active' : ''}" onclick="selectTimeframe('6h', this, 'token', '${tokenAddress}')">${t('6h')}</button>
+                    <button class="${savedTf === '1d' ? 'active' : ''}" onclick="selectTimeframe('1d', this, 'token', '${tokenAddress}')">${t('1d')}</button>
+                    <button class="${savedTf === '7d' ? 'active' : ''}" onclick="selectTimeframe('7d', this, 'token', '${tokenAddress}')">${t('7d')}</button>
+                    <button class="${savedTf === '30d' ? 'active' : ''}" onclick="selectTimeframe('30d', this, 'token', '${tokenAddress}')">${t('30d')}</button>
+                    <button class="${savedTf === '6m' ? 'active' : ''}" onclick="selectTimeframe('6m', this, 'token', '${tokenAddress}')">${t('6m')}</button>
+                    <button class="${savedTf === '1y' ? 'active' : ''}" onclick="selectTimeframe('1y', this, 'token', '${tokenAddress}')">${t('1y')}</button>
+                    <button class="${savedTf === 'all' ? 'active' : ''}" onclick="selectTimeframe('all', this, 'token', '${tokenAddress}')">${t('all')}</button>
+                </div>
+            </div>
+            <div class="chart-box" id="tokenChartBox"></div>
+        </div>` : '';
 
     contentEl.innerHTML = `
         <div class="token-detail-hero">${logoHtml}<div class="token-detail-name">${token.name}</div><div class="token-detail-symbol">${token.symbol}</div>${contractHtml}</div>
@@ -3169,17 +3311,17 @@ function openTokenDetail(symbol) {
         <div class="token-actions-grid"><button class="token-action-btn send" onclick="openSendFromToken('${safeSymbol}')">📤 ${t('heroSend')}</button><button class="token-action-btn receive" onclick="showQRCode()">📥 ${t('heroReceive')}</button>${swapBtn}</div>
         ${descHtml}${statsHtml}
         
-        <!-- ✅ این بخش تغییر کرد (دکمه مشاهده همه اضافه شد) -->
         <div class="token-description">
             <div class="token-description-title">📜 ${t('tabHistory')}</div>
             <div id="tokenTxHistoryList" class="token-tx-list"></div>
-            <button class="btn btn-secondary btn-full" onclick="showAllFilteredTx('token', '${safeSymbol}', '📜 تاریخچه ${token.name}')" style="margin-top: 12px; font-size: 0.75rem;">مشاهده همه تراکنش‌های این توکن</button>
+            <button class="btn btn-secondary btn-full" onclick="showAllFilteredTx('token', '${safeSymbol}', '📜 ${token.name}')" style="margin-top: 12px; font-size: 0.75rem;">${t('viewAllTx')}</button>
         </div>
     `;
 
     overlay.classList.add('show');
     document.body.style.overflow = 'hidden';
-    if (token.priceUSD > 0) setTimeout(() => createCandleChart(token, 7), 100);
+    
+    if (token.priceUSD > 0) setTimeout(() => createCandleChart(token, savedTf), 100);
     renderTokenTxHistory(symbol);
 }
 
@@ -3218,11 +3360,13 @@ function generateFallbackCandles(basePrice, days, dailyMin = -3, dailyMax = 4) {
 }
 
 // ✅ اصلاح #6: برگشت به کد اول — همیشه از generateFallbackCandles استفاده کن
-function createCandleChart(token, days) {
+function createCandleChart(token, timeframe) {
     const container = document.getElementById('tokenChartBox');
     if (!container) return;
     if (typeof LightweightCharts === 'undefined') { container.innerHTML = `<div class="empty-state">${t('noData')}</div>`; return; }
+    
     if (tokenChart) { try { tokenChart.remove(); } catch (e) {} tokenChart = null; tokenCandleSeries = null; }
+    container.innerHTML = '';
     
     try {
         tokenChart = LightweightCharts.createChart(container, {
@@ -3241,32 +3385,50 @@ function createCandleChart(token, days) {
             priceFormat: { type: 'price', precision: 4, minMove: 0.0001 }
         });
         
-        let candles;
+        let candles = [];
         
-        // ✅ برای توکن‌های سفارشی (FLCY): از price.js جدید استفاده کن
-        if (!token.isNative && window.getTokenInfo && window.TOKEN_PRICES) {
+        // ✅ ۱. برای AVAX (از تابع اختصاصی خودش استفاده می‌کنیم، نه price.js)
+        if (token.isNative) {
+            candles = generateAvaxCandles(token.priceUSD, timeframe);
+        } 
+        // ✅ ۲. برای توکن‌های داخلی (FLCY)
+        else if (window.getTokenInfo && window.TOKEN_PRICES) {
             const info = window.getTokenInfo(token.address);
             const config = window.TOKEN_PRICES[token.address.toLowerCase()];
-            
-            if (info && config) {
-                // ← امضای جدید: (basePrice, days, contractAddress, config)
-                candles = window.generatePriceHistory(config.basePrice, days, token.address, config);
-            } else {
-                candles = generateFallbackCandles(token.priceUSD, days, -3, 4);
+            if (info && config && window.generatePriceHistory) {
+                candles = window.generatePriceHistory(config.basePrice, timeframe, token.address, config);
             }
-        } else {
-            // برای AVAX (بومی) از fallback استفاده کن
-            candles = generateFallbackCandles(token.priceUSD, days, -3, 4);
         }
         
-        // ⚠️ چک کن اگه کندل‌ها خالی بود
         if (!candles || candles.length === 0) {
             container.innerHTML = `<div class="empty-state" style="color:var(--text-muted);">داده‌ای برای نمایش نیست</div>`;
             return;
         }
         
         tokenCandleSeries.setData(candles);
-        tokenChart.timeScale().fitContent();
+
+        // ✅ تنظیمات نمایش اولیه (فقط آخرین بخش نشون داده بشه)
+        const totalCandles = candles.length;
+        let visibleCount = 50; 
+        
+        if (timeframe === '1m') visibleCount = 30;
+        else if (timeframe === '1h') visibleCount = 24;
+        else if (timeframe === '6h') visibleCount = 28;
+        else if (timeframe === '1d') visibleCount = 30;
+        else if (timeframe === '7d') visibleCount = 20;
+        else if (timeframe === '30d') visibleCount = 20;
+        else if (timeframe === '6m') visibleCount = 20;
+        else if (timeframe === '1y') visibleCount = 20;
+        else if (timeframe === 'all') visibleCount = 30;
+        
+        if (totalCandles > visibleCount) {
+            tokenChart.timeScale().setVisibleLogicalRange({
+                from: totalCandles - visibleCount,
+                to: totalCandles
+            });
+        } else {
+            tokenChart.timeScale().fitContent();
+        }
         
         if (window._tokenChartResize) window.removeEventListener('resize', window._tokenChartResize);
         window._tokenChartResize = () => { if (tokenChart && container) tokenChart.applyOptions({ width: container.clientWidth, height: container.clientHeight }); };
@@ -3277,12 +3439,93 @@ function createCandleChart(token, days) {
         container.innerHTML = `<div class="empty-state">${t('error')}</div>`; 
     }
 }
+// ✅ شبیه‌ساز کندل برای AVAX (بر اساس قیمت واقعی API)
+function generateAvaxCandles(currentPrice, timeframe) {
+    const candles = [];
+    const now = Math.floor(Date.now() / 1000);
+    
+    // تعریف تعداد کندل و بازه زمانی برای هر تایم‌فریم
+    const configs = {
+        '1m':  { count: 60, sec: 60 },
+        '1h':  { count: 24, sec: 3600 },
+        '6h':  { count: 28, sec: 21600 },
+        '1d':  { count: 30, sec: 86400 },
+        '7d':  { count: 30, sec: 604800 },
+        '30d': { count: 30, sec: 2592000 },
+        '6m':  { count: 30, sec: 15552000 },
+        '1y':  { count: 30, sec: 31536000 },
+        'all': { count: 30, sec: 31536000 }
+    };
+    
+    const cfg = configs[timeframe] || configs['1d'];
+    const sec = cfg.sec;
+    const totalCandles = cfg.count;
+    
+    const currentBucket = Math.floor(now / sec);
+    const hashFunc = window.stableHash || function(str) { 
+        let hash = 0; 
+        for (let i = 0; i < str.length; i++) { 
+            hash = ((hash << 5) - hash) + str.charCodeAt(i); 
+            hash = hash & hash; 
+        } 
+        return Math.abs(hash); 
+    };
 
-function switchChartRange(days, btn) {
-    currentChartRange = days;
+    // ✅ ۱. اول یه مسیر تصادفی از قدیم به جدید می‌سازیم
+    let tempCandles = [];
+    let tempPrice = currentPrice * 0.90; // فرض می‌کنیم قیمت تو گذشته ۱۰٪ پایین‌تر بوده (قابل تغییر)
+    
+    for (let i = 0; i < totalCandles; i++) {
+        const bucket = currentBucket - (totalCandles - 1 - i);
+        const time = bucket * sec;
+        
+        let open = tempPrice;
+        let close = open, high = open, low = open;
+        
+        for (let j = 0; j < 4; j++) {
+            const subSeed = hashFunc("avax_history_" + time + "_" + j);
+            const change = ((subSeed % 10000) / 10000 - 0.5) * 1.5; // نوسان ۱.۵ درصدی
+            close = close * (1 + change / 100);
+            if (close > high) high = close;
+            if (close < low) low = close;
+        }
+        
+        tempCandles.push({
+            time: time,
+            open: open,
+            high: high,
+            low: low,
+            close: close
+        });
+        tempPrice = close;
+    }
+    
+    // ✅ ۲. حالا میانگین اختلاف آخرین کندل با قیمت واقعی رو حساب می‌کنیم
+    // و همه کندل‌ها رو با یه ضریب تصحیح می‌کنیم تا آخرین کندل دقیقاً بشه currentPrice
+    if (tempCandles.length > 0) {
+        const lastClose = tempCandles[tempCandles.length - 1].close;
+        const ratio = currentPrice / lastClose; // ضریب تصحیح
+        
+        for (let c of tempCandles) {
+            c.open = parseFloat((c.open * ratio).toFixed(4));
+            c.high = parseFloat((c.high * ratio).toFixed(4));
+            c.low = parseFloat((c.low * ratio).toFixed(4));
+            c.close = parseFloat((c.close * ratio).toFixed(4));
+            candles.push(c);
+        }
+    }
+    
+    return candles;
+}
+
+function switchChartRange(timeframe, btn) {
+    currentChartRange = timeframe;
     document.querySelectorAll('.chart-range-tab').forEach(t => t.classList.remove('active'));
     if (btn) btn.classList.add('active');
-    if (currentTokenDetail) createCandleChart(currentTokenDetail, days);
+    if (currentTokenDetail) {
+        // آپدیت چارت با تایم‌فریم جدید
+        createCandleChart(currentTokenDetail, timeframe);
+    }
 }
 
 async function renderTokenTxHistory(symbol) {
@@ -4702,6 +4945,16 @@ function updateUI() {
     const emptyNFTMsg = document.getElementById('emptyNFTMsg'); if (emptyNFTMsg) emptyNFTMsg.textContent = t('emptyNFTs');
     const emptyTxMsg = document.getElementById('emptyTxMsg'); if (emptyTxMsg) emptyTxMsg.textContent = t('emptyTx');
     const showAllTxBtn = document.getElementById('showAllTxBtn'); if (showAllTxBtn) showAllTxBtn.textContent = currentLang === 'fa' ? '📜 مشاهده همه تراکنش‌ها' : '📜 View All Transactions';
+    // ✅ آپدیت دکمه‌ها وقتی زبان وسط صفحه عوض می‌شه
+const tfBtn = document.querySelector('.timeframe-btn span:first-child');
+if (tfBtn && currentTokenDetail) {
+    const savedTf = currentChartRange || '1d';
+    const tfLabels = {
+        '1m': t('tf1m'), '1h': t('tf1h'), '6h': t('tf6h'), '1d': t('tf1d'),
+        '7d': t('tf7d'), '30d': t('tf30d'), '6m': t('tf6m'), '1y': t('tf1y'), 'all': t('tfAll')
+    };
+    tfBtn.textContent = tfLabels[savedTf];
+}
     renderTokenList(); renderHeroBalance(); renderTxHistory(); updateFavoritesList(); applyBalanceVisibility();
 }
 
