@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════
-// Fox Wallet - Price Engine (Synced & Accurate)
+// Fox Wallet - Advanced Price Engine (For Tokens & NFTs)
 // ═══════════════════════════════════════════════════════════════
 
 window.NFT_PRICES = {
@@ -54,42 +54,45 @@ function getDayChangePercent(contractAddress, dayNumber, config) {
     return min + normalized * (max - min);
 }
 
-function getDayBasePrice(contractAddress, basePrice, daysAgo, config) {
-    const todayLocal = new Date(); todayLocal.setHours(0, 0, 0, 0);
-    const targetDay = Math.floor(todayLocal.getTime() / 86400000) - daysAgo;
+// ✅ محاسبه قیمت دقیق در یک زمان مشخص (Timestamp)
+function getPriceAtTime(contractAddress, basePrice, targetTimestamp, config) {
     const startDay = getStartDayNumber(config);
+    const targetDay = Math.floor(targetTimestamp / 86400);
+    
     if (targetDay < startDay) return basePrice;
+    
     let price = basePrice;
     for (let d = startDay; d <= targetDay; d++) {
         price = price * (1 + getDayChangePercent(contractAddress, d, config) / 100);
     }
-    return price;
-}
-
-window.getCurrentTokenPrice = function(contractAddress, basePrice, volatility, config) {
-    const todayPrice = getDayBasePrice(contractAddress, basePrice, 0, config);
-    const yesterdayPrice = getDayBasePrice(contractAddress, basePrice, 1, config);
-    const minuteNumber = Math.floor(Date.now() / 60000);
-    const vol = volatility !== undefined ? volatility : 0.20;
     
+    // نوسان دقیقه‌ای برای زمان‌های داخل روز
+    const minuteNumber = Math.floor(targetTimestamp / 60);
+    const vol = config.volatility || 0.20;
     const mHash = stableHash(contractAddress.toLowerCase() + "_min_" + minuteNumber);
     const mChange = ((mHash % 10000) / 10000 - 0.5) * 2 * vol;
-    const currentPrice = todayPrice * (1 + mChange / 100);
     
-    const yHash = stableHash(contractAddress.toLowerCase() + "_min_" + (minuteNumber - 1440));
-    const yChange = ((yHash % 10000) / 10000 - 0.5) * 2 * vol;
-    const yPrice = yesterdayPrice * (1 + yChange / 100);
+    return price * (1 + mChange / 100);
+}
+
+// ✅ قیمت لحظه‌ای الان
+window.getCurrentTokenPrice = function(contractAddress, basePrice, volatility, config) {
+    if(!config) config = { startDate: "2026-11-11", normalMin: -3, normalMax: 4, reverseMin: -4, reverseMax: 3, volatility: volatility };
+    const now = Math.floor(Date.now() / 1000);
+    
+    const currentPrice = getPriceAtTime(contractAddress, basePrice, now, config);
+    const yesterdayPrice = getPriceAtTime(contractAddress, basePrice, now - 86400, config); // ۲۴ ساعت قبل
     
     return {
         price: parseFloat(currentPrice.toFixed(6)),
-        change24h: yPrice > 0 ? parseFloat((((currentPrice / yPrice) - 1) * 100).toFixed(2)) : 0
+        change24h: yesterdayPrice > 0 ? parseFloat((((currentPrice / yesterdayPrice) - 1) * 100).toFixed(2)) : 0
     };
 };
 
 window.getCurrentNFTPrice = function(contractAddress, basePrice) {
     const nft = window.NFT_PRICES.collections[contractAddress.toLowerCase()];
-    const config = nft ? { startDate: nft.startDate || null, normalMin: nft.normalMin, normalMax: nft.normalMax, reverseMin: nft.reverseMin, reverseMax: nft.reverseMax } : { startDate: null, normalMin: -1, normalMax: 2, reverseMin: -2, reverseMax: 1 };
-    return window.getCurrentTokenPrice(contractAddress, basePrice, 0.05, config);
+    const config = nft ? { startDate: nft.startDate || null, normalMin: nft.normalMin, normalMax: nft.normalMax, reverseMin: nft.reverseMin, reverseMax: nft.reverseMax, volatility: 0.05 } : { startDate: "2026-11-11", normalMin: -1, normalMax: 2, reverseMin: -2, reverseMax: 1, volatility: 0.05 };
+    return window.getCurrentTokenPrice(contractAddress, basePrice, config.volatility, config);
 };
 
 window.getTokenInfo = function(contractAddress) {
@@ -105,21 +108,18 @@ window.getTokenInfo = function(contractAddress) {
     return null;
 };
 
-// ✅ موتور اصلی تولید کندل (با ضریب تصحیح و شروع از دیروز)
+// ✅ ساخت کندل‌ها (بر اساس قیمت دقیق شروع و محاسبه تک‌تک کندل‌ها)
 window.generatePriceHistory = function(basePrice, timeframe, contractAddress, config) {
-    if (!config) config = { startDate: "2026-11-11", normalMin: -2, normalMax: 2, reverseMin: -2, reverseMax: 2 };
+    if (!config) config = { startDate: "2026-11-11", normalMin: -2, normalMax: 2, reverseMin: -2, reverseMax: 2, volatility: 0.20 };
     if (!config.volatility) config.volatility = 0.20;
     
     const isToken = !!window.TOKEN_PRICES[contractAddress.toLowerCase()];
     const isNFT = !!window.NFT_PRICES.collections[contractAddress.toLowerCase()];
     
-    // گرفتن قیمت لحظه‌ای
-    let currentPrice = basePrice;
-    if (isToken) {
-        currentPrice = window.getCurrentTokenPrice(contractAddress, basePrice, config.volatility, config).price;
-    } else if (isNFT) {
-        currentPrice = window.getCurrentNFTPrice(contractAddress, basePrice).price;
-    }
+    // قیمت لحظه‌ای الان
+    let currentPrice = isToken 
+        ? window.getCurrentTokenPrice(contractAddress, basePrice, config.volatility, config).price
+        : window.getCurrentNFTPrice(contractAddress, basePrice).price;
     
     const now = Math.floor(Date.now() / 1000);
     const startDayTs = getStartDayNumber(config) * 86400;
@@ -134,55 +134,60 @@ window.generatePriceHistory = function(basePrice, timeframe, contractAddress, co
     let totalCandles = Math.floor((now - startDayTs) / sec);
     if (totalCandles < 2) totalCandles = 2;
     
+    // اگر تعداد کندل‌ها خیلی زیاد شد (مثلاً برای ALL)، فاصله زمانی را بزرگ‌تر می‌کنیم
     if (totalCandles > 400) {
         sec = Math.ceil((now - startDayTs) / 400);
         totalCandles = 400;
     }
     
+    const candles = [];
     const currentBucket = Math.floor(now / sec);
     const startBucket = currentBucket - (totalCandles - 1);
     
-    let tempCandles = [];
-    let tempPrice = currentPrice * 0.85; 
-
-    // ساخت کندل‌ها از قدیم به جدید
     for (let i = 0; i < totalCandles; i++) {
         const bucket = startBucket + i;
         const time = bucket * sec;
         
-        let open = tempPrice;
-        let close = open, high = open, low = open;
+        // قیمت در ابتدای بازه (Open)
+        const openTime = time;
+        // قیمت در انتهای بازه (Close)
+        const closeTime = time + sec - 1;
         
-        for (let j = 0; j < 4; j++) {
-            const subSeed = stableHash(contractAddress.toLowerCase() + "_s_" + time + "_" + j);
-            const change = ((subSeed % 10000) / 10000 - 0.5) * 2 * config.volatility;
-            close = close * (1 + change / 100);
-            if (close > high) high = close;
-            if (close < low) low = close;
-        }
+        let open = getPriceAtTime(contractAddress, basePrice, openTime, config);
+        let close = getPriceAtTime(contractAddress, basePrice, closeTime, config);
         
-        tempCandles.push({ time, open, high, low, close });
-        tempPrice = close;
+        // محاسبه سقف و کف با کمی نوسان درونی
+        const hash = stableHash(contractAddress.toLowerCase() + "_candle_" + time);
+        const highNoise = (seededRandom(hash + 1) * 0.015); // ۱.۵٪ نوسان
+        const lowNoise = (seededRandom(hash + 2) * 0.015);
+        
+        let high = Math.max(open, close) + (open * highNoise);
+        let low = Math.min(open, close) - (open * lowNoise);
+        
+        candles.push({
+            time: time,
+            open: parseFloat(open.toFixed(6)),
+            high: parseFloat(high.toFixed(6)),
+            low: parseFloat(Math.max(low, 0.0001).toFixed(6)),
+            close: parseFloat(close.toFixed(6))
+        });
     }
     
-    // ✅ ضریب تصحیح برای هماهنگی کندل آخر با قیمت فعلی
-    const candles = [];
-    if (tempCandles.length > 0) {
-        const lastClose = tempCandles[tempCandles.length - 1].close;
-        const ratio = currentPrice / lastClose;
-        
-        for (let c of tempCandles) {
-            candles.push({
-                time: c.time,
-                open: parseFloat((c.open * ratio).toFixed(6)),
-                high: parseFloat((c.high * ratio).toFixed(6)),
-                low: parseFloat((c.low * ratio).toFixed(6)),
-                close: parseFloat((c.close * ratio).toFixed(6))
-            });
-        }
+    // ✅ هماهنگ‌سازی کندل آخر با قیمت لحظه‌ای (تا کاملاً دقیق باشه)
+    if (candles.length > 0) {
+        const last = candles[candles.length - 1];
+        last.close = currentPrice;
+        last.high = Math.max(last.open, last.high, currentPrice) * 1.001;
+        last.low = Math.min(last.open, last.low, currentPrice) * 0.999;
     }
     
     return candles;
 };
 
-console.log("✅ price.js loaded (Synced & Accurate)");
+// ✅ تابع کمکی برای نویز تصادفی
+function seededRandom(seed) {
+    let x = Math.sin(seed) * 10000;
+    return x - Math.floor(x);
+}
+
+console.log("✅ price.js loaded (Pro Engine)");
