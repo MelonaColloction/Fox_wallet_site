@@ -3654,7 +3654,10 @@ async function switchWalletFromList(index) {
             Settings.setActiveWalletIndex(index);
             state.signer = walletInstance.connect(state.provider); state.selectedNFT = null;
             status(t('connected'), 'success'); showNotification('success', '🔄', wallet.name || shortAddr(wallet.address));
-            await loadTxHistoryFromCache(); await renderTxHistory(); await loadFavorites(); await refreshAll(false);
+            await loadTxHistoryFromCache(); await renderTxHistory(); await loadFavorites();
+            
+            // ✅ با true صدا می‌زنیم که فوراً بره از شبکه چک کنه
+            await refreshAll(true); 
             return;
         }
     } catch (e) {}
@@ -4227,21 +4230,50 @@ async function executeSendNFT(tx) {
         const gasUsed = receipt.gasUsed; const effectiveGasPrice = receipt.effectiveGasPrice || transaction.gasPrice || ethers.BigNumber.from(0);
         const gasFeeWei = gasUsed.mul(effectiveGasPrice); const gasFeeAvax = parseFloat(ethers.utils.formatEther(gasFeeWei)).toFixed(6);
         const txRecord = { hash: receipt.transactionHash, type: 'nft', direction: 'out', from: state.address, to: tx.to, contract: tx.contract, tokenId: tx.tokenId, amount: tx.amount, nftName: tx.nftName, image: tx.image, collection: tx.collection, gasFee: gasFeeAvax, timestamp: Date.now(), blockNumber: receipt.blockNumber };
-        await addTxToHistory(txRecord); await renderTxHistory(); showSuccessModal(txRecord);
+        
+        await addTxToHistory(txRecord); 
+        await renderTxHistory(); 
+        showSuccessModal(txRecord);
         await NativeNotifications.send(t('notificationNFTTitle'), `${tx.nftName} → ${shortAddr(tx.to)}`, 'success');
+        
         const nftIndex = state.allNFTs.findIndex(n => n.contract.toLowerCase() === tx.contract.toLowerCase() && n.id === tx.tokenId);
         if (nftIndex !== -1) {
             state.allNFTs[nftIndex].balance -= tx.amount;
             state.allNFTs[nftIndex].totalPrice = state.allNFTs[nftIndex].balance * (state.allNFTs[nftIndex].pricePerNFT || 0);
             if (state.allNFTs[nftIndex].balance <= 0) state.allNFTs.splice(nftIndex, 1);
             renderNFTs(state.allNFTs); renderHeroBalance();
+            
+            // ✅ آپدیت کش کیف پول فرستنده
+            if (state.address) {
+                const cacheKey = 'foxCachedNFTs_' + state.address.toLowerCase();
+                await nftImageDB.setItem(cacheKey, state.allNFTs);
+            }
+            
+            // ✅ پاک کردن کش کیف پول گیرنده (تا مجبور بشه از شبکه استعلام بگیره)
+            if (tx.to) {
+                try {
+                    const recipientCacheKey = 'foxCachedNFTs_' + tx.to.toLowerCase();
+                    await nftImageDB.removeItem(recipientCacheKey);
+                } catch (e) { console.log('Cache clear error:', e); }
+            }
         }
-        document.getElementById('nftSendTo').value = ''; document.getElementById('nftAmount').value = '1'; state.selectedNFT = null; state.pendingTx = null; closeSendModal();
-        status(t('successTitle'), 'success'); await loadFullTxHistory(); setTimeout(restoreConnectedStatus, 3000);
+        
+        document.getElementById('nftSendTo').value = ''; 
+        document.getElementById('nftAmount').value = '1'; 
+        state.selectedNFT = null; 
+        state.pendingTx = null; 
+        closeSendModal();
+        status(t('successTitle'), 'success'); 
+        await loadFullTxHistory(); 
+        setTimeout(restoreConnectedStatus, 3000);
     } catch (e) {
         hideTxLoading();
-        let errMsg = e.message || t('error'); if (e.code === 'ACTION_REJECTED' || errMsg.includes('user rejects')) errMsg = t('txCancelled');
-        showNotification('error', '❌ ' + t('sendingError'), errMsg); status(t('sendingError'), 'error'); state.pendingTx = null; setTimeout(restoreConnectedStatus, 3000);
+        let errMsg = e.message || t('error'); 
+        if (e.code === 'ACTION_REJECTED' || errMsg.includes('user rejects')) errMsg = t('txCancelled');
+        showNotification('error', '❌ ' + t('sendingError'), errMsg); 
+        status(t('sendingError'), 'error'); 
+        state.pendingTx = null; 
+        setTimeout(restoreConnectedStatus, 3000);
     }
 }
 
@@ -4800,7 +4832,24 @@ async function loadFullTxHistory() {
 }
 async function refreshAll(forceFetch = false) {
     if (!state.address) return;
-    try { await loadAllTokenBalances(forceFetch); await loadAllNFTs(forceFetch); renderHeroBalance(); } catch (e) { console.error('Refresh error:', e); }
+    try {
+        // ۱. اول از کش می‌خونیم که کاربر فوراً چیزی ببینه
+        await loadAllTokenBalances(false); 
+        await loadAllNFTs(false); 
+        renderHeroBalance(); 
+        
+        // ۲. بعد از ۱ ثانیه، در پس‌زمینه از شبکه چک می‌کنیم
+        if (state.provider) {
+            setTimeout(async () => {
+                console.log("Checking network for updates...");
+                await loadAllTokenBalances(true); // از شبکه می‌خونه
+                await loadAllNFTs(true);          // از شبکه می‌خونه
+                renderHeroBalance();
+            }, 1000); 
+        }
+    } catch (e) { 
+        console.error('Refresh error:', e); 
+    }
 }
 function applyBalanceVisibility() {
     const balanceEl = document.getElementById('totalBalanceValue'); const eyeBtn = document.getElementById('balanceEyeBtn');
@@ -5108,9 +5157,26 @@ async function init() {
         setupAutoLock();  // ✅ قفل خودکار
 
         if (state.unlocked && state.address) {
-            await refreshAll(true); await loadFullTxHistory(); restoreConnectedStatus();
-            setInterval(() => { if (!document.hidden && state.unlocked && state.address && state.provider) checkAvaCloudUpdates(); }, 16000);
+    await refreshAll(true); 
+    await loadFullTxHistory(); 
+    restoreConnectedStatus();
+    
+    // ✅ چک کردن تراکنش‌های جدید (AvaCloud) هر ۱۶ ثانیه
+    setInterval(() => { 
+        if (!document.hidden && state.unlocked && state.address && state.provider) {
+            checkAvaCloudUpdates(); 
         }
+    }, 16000);
+
+    // ✅ چک کردن توکن‌ها و NFTهای جدید از شبکه هر ۳۰ ثانیه (بدون رفرش صفحه)
+    setInterval(() => {
+        if (!document.hidden && state.unlocked && state.address && state.provider) {
+            console.log("Auto-refreshing balances from network...");
+            loadAllTokenBalances(true); 
+            loadAllNFTs(true);          
+        }
+    }, 30000);
+}
     } catch (e) { console.error('Init error:', e); status(t('error'), 'error'); }
 }
 
