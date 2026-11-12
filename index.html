@@ -1862,17 +1862,27 @@ body {
     dropdown.classList.toggle('show');
 }
 
-function selectTimeframe(val, label, btn, type, contract, basePrice) {
-    // بستن منو
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('.timeframe-selector-wrap')) {
+        document.querySelectorAll('.timeframe-dropdown').forEach(d => d.classList.remove('show'));
+    }
+});
+
+function selectTimeframe(val, btn, type, contract, basePrice) {
     const wrap = btn.closest('.timeframe-selector-wrap');
-    wrap.querySelector('.timeframe-dropdown').classList.remove('show');
-    wrap.querySelector('.timeframe-btn').innerHTML = label + ' <span>▼</span>';
+    if (!wrap) return;
     
-    // علامت‌گذاری دکمه فعال
+    // بستن منو
+    wrap.querySelector('.timeframe-dropdown').classList.remove('show');
+    
+    // تغییر متن دکمه اصلی
+    wrap.querySelector('.timeframe-btn span:first-child').textContent = t(val);
+    
+    // فعال کردن دکمه کلیک‌شده
     wrap.querySelectorAll('.timeframe-dropdown button').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     
-    // ✅ ذخیره تایم‌فریم در حافظه مرورگر
+    // آپدیت چارت
     if (type === 'token') {
         localStorage.setItem('fox_timeframe_' + contract.toLowerCase(), val);
         currentChartRange = val;
@@ -3387,7 +3397,7 @@ function createCandleChart(token, timeframe) {
         
         let candles = [];
         
-        // ✅ ۱. برای AVAX (از تابع اختصاصی خودش استفاده می‌کنیم، نه price.js)
+        // ✅ ۱. برای AVAX (از شبیه‌ساز اختصاصی خودش استفاده می‌کنیم)
         if (token.isNative) {
             candles = generateAvaxCandles(token.priceUSD, timeframe);
         } 
@@ -3409,7 +3419,7 @@ function createCandleChart(token, timeframe) {
 
         // ✅ تنظیمات نمایش اولیه (فقط آخرین بخش نشون داده بشه)
         const totalCandles = candles.length;
-        let visibleCount = 50; 
+        let visibleCount = 30; 
         
         if (timeframe === '1m') visibleCount = 30;
         else if (timeframe === '1h') visibleCount = 24;
@@ -3430,6 +3440,43 @@ function createCandleChart(token, timeframe) {
             tokenChart.timeScale().fitContent();
         }
         
+        // ✅ تغییر داینامیک درصد سود/ضرر با حرکت روی چارت
+        tokenChart.subscribeCrosshairMove(param => {
+            const priceEl = document.querySelector('.token-detail-price');
+            const changeEl = document.querySelector('.token-detail-change');
+            
+            // اگر از چارت خارج شدیم، برگرد به قیمت لحظه‌ای
+            if (!param.time || !param.seriesData || !tokenCandleSeries) {
+                if (priceEl) priceEl.textContent = '$' + token.priceUSD.toFixed(4);
+                if (changeEl) {
+                    changeEl.textContent = (token.change24h >= 0 ? '+' : '') + (token.change24h || 0).toFixed(2) + '%';
+                    changeEl.className = 'token-detail-change ' + ((token.change24h || 0) >= 0 ? 'up' : 'down');
+                }
+                return;
+            }
+            
+            const data = param.seriesData.get(tokenCandleSeries);
+            if (data && data.close) {
+                const candlePrice = data.close;
+                if (priceEl) priceEl.textContent = '$' + candlePrice.toFixed(4);
+                
+                // پیدا کردن ایندکس کندل فعلی برای محاسبه درصد نسبت به کندل قبلی
+                const currentIndex = candles.findIndex(c => c.time === param.time);
+                let prevPrice = candlePrice;
+                
+                if (currentIndex > 0) {
+                    prevPrice = candles[currentIndex - 1].close;
+                }
+                
+                const changePct = prevPrice > 0 ? ((candlePrice / prevPrice) - 1) * 100 : 0;
+                if (changeEl) {
+                    changeEl.textContent = (changePct >= 0 ? '+' : '') + changePct.toFixed(2) + '%';
+                    changeEl.className = 'token-detail-change ' + (changePct >= 0 ? 'up' : 'down');
+                }
+            }
+        });
+        
+        // مدیریت ریسایز صفحه
         if (window._tokenChartResize) window.removeEventListener('resize', window._tokenChartResize);
         window._tokenChartResize = () => { if (tokenChart && container) tokenChart.applyOptions({ width: container.clientWidth, height: container.clientHeight }); };
         window.addEventListener('resize', window._tokenChartResize);
@@ -4955,6 +5002,7 @@ if (tfBtn && currentTokenDetail) {
     };
     tfBtn.textContent = tfLabels[savedTf];
 }
+
     renderTokenList(); renderHeroBalance(); renderTxHistory(); updateFavoritesList(); applyBalanceVisibility();
 }
 
