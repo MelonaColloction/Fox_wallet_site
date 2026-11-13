@@ -3102,25 +3102,27 @@ function startPriceUpdater() {
     
     if (state.priceUpdateInterval) clearInterval(state.priceUpdateInterval);
     
+    // ✅ تایمر آپدیت زنده صفحه اصلی (هر ۵ ثانیه)
     state.priceUpdateInterval = setInterval(async () => {
         if (document.hidden) return;
 
-        // ✅ آپدیت توکن‌ها (همیشه اجرا میشه، چه آنلاین چه آفلاین)
-        await loadAllTokenBalances(false);
-
-        // ✅ آپدیت سریع قیمت‌ها از price.js (بدون صدا زدن شبکه)
-        await refreshTokenBalances();
+        // ۱. آپدیت قیمت‌ها با استفاده از موتور زنده price.js
+        // (این تابع قیمت‌ها رو از getLivePrice می‌خونه و روی توکن‌ها اعمال می‌کنه)
+        await refreshTokenBalances(); 
         
-        // ✅ رسم مجدد چارت اگه صفحه توکن بازه (باعث میشه چارت همزمان با قیمت بالا/پایین بره)
+        // ۲. آپدیت کارت بالای صفحه (ارزش کل و درصد 24h)
+        renderHeroBalance();
+
+        // ۳. اگر روی صفحه توکن بودیم، چارت رو هم آپدیت کن
         if (currentTokenDetail && document.getElementById('tokenDetailOverlay').classList.contains('show')) {
-            createCandleChart(currentTokenDetail, currentChartRange);
+            // چارت خودش تایمر ۱ ثانیه‌ای جداگانه داره، پس نیازی به رفرش کل چارت نیست
         }
 
-        // آپدیت قیمت AVAX (فقط اگه آنلاین باشیم)
+        // ۴. آپدیت قیمت AVAX (از API)
         if (state.provider) {
             updateAVAXPrice();
         }
-    }, 60000); // هر ۶۰ ثانیه
+    }, 5000); // هر ۵ ثانیه
 }
 
 // ═══════════════════════════════════════════════════════════════
