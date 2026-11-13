@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════
-// Fox Wallet - Final Live Market Engine (Zero Discrepancy)
+// Fox Wallet - Final Live Market Engine
 // ═══════════════════════════════════════════════════════════════
 
 window.NFT_PRICES = {
@@ -23,7 +23,6 @@ function stableHash(str) {
     return Math.abs(hash); 
 }
 
-// ✅ ۸ روز نزولی در ماه
 function isBearishDay(contractAddress, targetTime) {
     const date = new Date(targetTime * 1000);
     const year = date.getUTCFullYear();
@@ -41,7 +40,6 @@ function isBearishDay(contractAddress, targetTime) {
     return bearishDays.includes(day);
 }
 
-// ✅ موتور قیمت (دقیقاً یک عدد برای هر لحظه)
 window.getTickPrice = function(basePrice, targetTime, startDayTs, contractAddress, isToken) {
     if (targetTime <= startDayTs) return basePrice;
     
@@ -65,7 +63,6 @@ window.getTickPrice = function(basePrice, targetTime, startDayTs, contractAddres
     return finalPrice < 0.0001 ? 0.0001 : finalPrice;
 };
 
-// ✅ قیمت لحظه‌ای
 window.getLivePrice = function(contractAddress, basePrice, isToken) {
     const now = Math.floor(Date.now() / 1000);
     const startDayTs = Math.floor(new Date("2026-11-11T00:00:00Z").getTime() / 1000);
@@ -81,8 +78,6 @@ window.getCurrentTokenPrice = function(contractAddress, basePrice, volatility, c
     if (now < startDayTs) return { price: basePrice, change24h: 0 };
     
     const currentPrice = window.getLivePrice(contractAddress, basePrice, isToken);
-    
-    // ✅ قیمت دیروز برای محاسبه درصد زنده (با نویز تا درصد هم بالا/پایین بپره)
     const yesterdayPrice = window.getTickPrice(basePrice, now - 86400, startDayTs, contractAddress, isToken);
     
     return {
@@ -110,7 +105,6 @@ window.getTokenInfo = function(contractAddress) {
     return null;
 };
 
-// ✅ ساخت کندل‌ها (کندل آخر دقیقاً با قیمت زنده یکی می‌شه)
 window.generatePriceHistory = function(basePrice, timeframe, contractAddress, config) {
     if (!config) config = { startDate: "2026-11-11" };
     
@@ -127,7 +121,6 @@ window.generatePriceHistory = function(basePrice, timeframe, contractAddress, co
     let totalCandles = Math.floor((now - startDayTs) / sec) + 1;
     const candles = [];
     
-    // قیمت زنده برای هماهنگی ۱۰۰٪ کندل آخر
     const livePrice = window.getLivePrice(contractAddress, basePrice, isToken);
     
     for (let i = 0; i < totalCandles; i++) {
@@ -157,4 +150,4 @@ window.generatePriceHistory = function(basePrice, timeframe, contractAddress, co
     return candles;
 };
 
-console.log("✅ price.js loaded (Zero Discrepancy)");
+console.log("✅ price.js loaded (Final)");
