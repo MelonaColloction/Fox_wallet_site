@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════
-// Fox Wallet - Realistic Price Engine (Target-Based)
+// Fox Wallet - Realistic Price Engine (Target-Based) - FIXED
 // ═══════════════════════════════════════════════════════════════
 
 window.NFT_PRICES = {
@@ -25,41 +25,32 @@ function stableHash(str) {
     return Math.abs(hash); 
 }
 
-// ✅ تابع محاسبه نویز کاملاً تصادفی (مثل بازار واقعی)
+// ✅ نویز طبیعی بازار (بین -1 و 1)
 function marketNoise(seed) {
     const h = stableHash(seed);
     const x = (h % 10000) / 10000; 
-    // فرمول ساخت نویز طبیعی (موج)
+    // ترکیب سینوس و کسینوس برای ایجاد موج طبیعی
     return Math.sin(x * Math.PI * 2) * 0.5 + Math.cos(x * Math.PI * 5) * 0.5;
 }
 
-// ✅ تابع اصلی: ترکیب رشد پایه (برای رسیدن به هدف) + نویز بازار
+// ✅ محاسبه قیمت در هر لحظه از زمان
 function calculateFinalPrice(basePrice, targetTime, startDayTs, contractAddress, isToken) {
     if (targetTime <= startDayTs) return basePrice;
     
-    // ۱. محاسبه تعداد روزهای گذشته
     const daysPassed = (targetTime - startDayTs) / 86400;
     
-    // ۲. محاسبه قیمت پایه بر اساس رشد (رشد ۱۰ ساله)
+    // نرخ رشد روزانه
     const dailyGrowthRate = isToken ? 0.0034 : 0.00185;
     const trendPrice = basePrice * Math.pow((1 + dailyGrowthRate), daysPassed);
     
-    // ۳. محاسبه نویز (بالا و پایین شدن‌های بازار)
-    // برای اینکه کندل‌ها خرد نشم، نویز رو در بازه‌های ۱ ساعته حساب می‌کنیم
+    // نویزها
     const hourBlock = Math.floor(targetTime / 3600);
-    
-    // نویز اصلی روزانه
     const dailyNoise = marketNoise(contractAddress + "_d_" + Math.floor(daysPassed)) * 0.03; 
-    
-    // نویز ساعتی
     const hourlyNoise = marketNoise(contractAddress + "_h_" + hourBlock) * 0.01; 
     
-    // ۴. قیمت نهایی = روند * (۱ + نویز)
     let finalPrice = trendPrice * (1 + dailyNoise + hourlyNoise);
     
-    // ✅ جلوگیری از منفی شدن (قیمت هیچ‌وقت زیر صفر نمی‌ره)
     if (finalPrice < 0.0001) finalPrice = 0.0001;
-    
     return finalPrice;
 }
 
@@ -101,13 +92,22 @@ window.getTokenInfo = function(contractAddress) {
     return null;
 };
 
+// ✅ تولید تاریخچه کندل‌ها (اصلاح‌شده برای حل مشکلات)
 window.generatePriceHistory = function(basePrice, timeframe, contractAddress, config) {
     if (!config) config = { startDate: "2026-11-11", volatility: 0.10 };
     
     const isToken = !!window.TOKEN_PRICES[contractAddress.toLowerCase()];
-    const now = Math.floor(Date.now() / 1000);
+    const now = Math.floor(Date.now() / 1000); // زمان فعلی سیستم (میلادی)
     const startDayTs = new Date(config.startDate + "T00:00:00Z").getTime() / 1000;
     
+    // اگر زمان فعلی قبل از تاریخ شروع است
+    if (now < startDayTs) {
+        return [{
+            time: now,
+            open: basePrice, high: basePrice, low: basePrice, close: basePrice
+        }];
+    }
+
     const secMap = {
         '1m': 60, '1h': 3600, '6h': 21600, '1d': 86400,
         '7d': 604800, '30d': 2592000, '6m': 15552000,
@@ -115,27 +115,42 @@ window.generatePriceHistory = function(basePrice, timeframe, contractAddress, co
     };
     
     let sec = secMap[timeframe] || 86400;
-    let totalCandles = Math.floor((now - startDayTs) / sec);
-    if (totalCandles < 2) totalCandles = 2;
     
+    // محاسبه تعداد کندل‌ها بر اساس زمان سپری شده
+    let totalCandles = Math.floor((now - startDayTs) / sec);
+    
+    // ✅ حل مشکل روز سوم: همیشه حداقل ۲ کندل داشته باشیم و کندل آخر حتماً باز باشه
+    if (totalCandles < 2) {
+        totalCandles = 2;
+    }
+    
+    // ✅ محدودیت ۴۰۰ کندل برای جلوگیری از سنگین شدن نمودار
     if (totalCandles > 400) {
         sec = Math.ceil((now - startDayTs) / 400);
         totalCandles = 400;
     }
     
     const candles = [];
+    // شروع از کندلی که دقیقاً از startDayTs شروع میشه
     const currentBucket = Math.floor(now / sec);
+    // شروع محاسبه از کندل فعلی به عقب
     const startBucket = currentBucket - (totalCandles - 1);
     
     for (let i = 0; i < totalCandles; i++) {
         const bucket = startBucket + i;
         const time = bucket * sec;
         
-        // قیمت شروع و پایان کندل
+        // ✅ قیمت Open: در ابتدای بازه زمانی
         const open = calculateFinalPrice(basePrice, time, startDayTs, contractAddress, isToken);
-        const close = calculateFinalPrice(basePrice, time + sec - 1, startDayTs, contractAddress, isToken);
         
-        // ✅ سایه‌های طبیعی (فقط ۰.۰۵٪) تا کندل‌ها توپر دیده بشن (مثل AVAX)
+        // ✅ قیمت Close: در انتهای بازه زمانی (یا زمان فعلی اگر کندل آخر باشد)
+        let closeTime = time + sec - 1;
+        if (closeTime > now) closeTime = now; // کندل جاری (زنده) تا لحظه حالا
+        
+        const close = calculateFinalPrice(basePrice, closeTime, startDayTs, contractAddress, isToken);
+        
+        // ✅ سایه‌ها (High و Low)
+        // برای جلوگیری از سایه‌های مصنوعی، High و Low رو از بین open، close و نویزهای داخلی بازه محاسبه می‌کنیم
         const high = Math.max(open, close) * 1.0005;
         const low = Math.min(open, close) * 0.9995;
         
@@ -148,15 +163,17 @@ window.generatePriceHistory = function(basePrice, timeframe, contractAddress, co
         });
     }
     
+    // ✅ کندل آخر رو حتماً با قیمت لحظه‌ای آپدیت کن
     if (candles.length > 0) {
         const last = candles[candles.length - 1];
         const currentPrice = calculateFinalPrice(basePrice, now, startDayTs, contractAddress, isToken);
         last.close = parseFloat(currentPrice.toFixed(6));
-        last.high = Math.max(last.open, last.high, currentPrice) * 1.0005;
-        last.low = Math.min(last.open, last.low, currentPrice) * 0.9995;
+        // چون close تغییر کرد، High و Low رو مجدد تنظیم کن
+        last.high = Math.max(last.open, last.close) * 1.0005;
+        last.low = Math.min(last.open, last.close) * 0.9995;
     }
     
     return candles;
 };
 
-console.log("✅ price.js loaded (Target-Based)");
+console.log("✅ price.js loaded (Target-Based) - FIXED");
