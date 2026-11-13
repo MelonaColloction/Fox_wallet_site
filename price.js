@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════
-// Fox Wallet - Final Market Price Engine (Fixed Dates & Wicks)
+// Fox Wallet - Realistic Market Price Engine (Fixed)
 // ═══════════════════════════════════════════════════════════════
 
 window.NFT_PRICES = {
@@ -41,7 +41,7 @@ function isBearishDay(contractAddress, targetTime) {
     return bearishDays.includes(day);
 }
 
-// ✅ نویز ساعتی (برای نوسانات کنترل‌شده)
+// ✅ نویز ساعتی (برای نوسانات کاملاً کنترل‌شده)
 function getNoise(contractAddress, time, seedPrefix) {
     const block = Math.floor(time / 3600); 
     const hash = stableHash(contractAddress + seedPrefix + block);
@@ -54,16 +54,17 @@ function calculatePrice(basePrice, targetTime, startDayTs, contractAddress, isTo
     const daysPassed = (targetTime - startDayTs) / 86400;
     const dailyGrowthRate = isToken ? 0.0034 : 0.00185;
     
-    // رشد بلندمدت
+    // ۱. روند اصلی رشد (نرم و پیوسته)
     const trendPrice = basePrice * Math.pow((1 + dailyGrowthRate), daysPassed);
     
-    // نویزها
+    // ۲. نویزهای کنترل‌شده
     const isBearish = isBearishDay(contractAddress, targetTime);
     const dailyNoise = getNoise(contractAddress, targetTime, "_d_");
     const hourlyNoise = getNoise(contractAddress, targetTime, "_h_");
     
-    let baseNoise = isBearish ? -0.012 : 0.012; 
-    let totalNoise = baseNoise + (dailyNoise * 0.005) + (hourlyNoise * 0.002);
+    // در روزهای نزولی نویز منفی، در روزهای صعودی نویز مثبت
+    let baseNoise = isBearish ? -0.01 : 0.01; 
+    let totalNoise = baseNoise + (dailyNoise * 0.003) + (hourlyNoise * 0.001);
     
     let finalPrice = trendPrice * (1 + totalNoise);
     return finalPrice < 0.0001 ? 0.0001 : finalPrice;
@@ -107,10 +108,9 @@ window.getTokenInfo = function(contractAddress) {
 
 window.generatePriceHistory = function(basePrice, timeframe, contractAddress, config) {
     if (!config) config = { startDate: "2026-11-11" };
+    
     const isToken = !!window.TOKEN_PRICES[contractAddress.toLowerCase()];
     const now = Math.floor(Date.now() / 1000);
-    
-    // ✅ زمان شروع دقیقاً نیمه‌شب UTC (برای تاریخ میلادی درست)
     const startDayTs = Math.floor(new Date(config.startDate + "T00:00:00Z").getTime() / 1000);
     
     const secMap = {
@@ -119,26 +119,28 @@ window.generatePriceHistory = function(basePrice, timeframe, contractAddress, co
     };
     
     let sec = secMap[timeframe] || 86400;
-    let totalCandles = Math.floor((now - startDayTs) / sec) + 1;
     
+    // ✅ محاسبه تعداد کندل‌ها + ۱ برای اینکه کندل امروز هم باشد
+    let totalCandles = Math.floor((now - startDayTs) / sec) + 1;
     if (totalCandles < 2) totalCandles = 2;
     
     if (totalCandles > 400) {
         sec = Math.ceil((now - startDayTs) / 400);
-        totalCandles = 400;
+        totalCandles = Math.floor((now - startDayTs) / sec) + 1;
     }
     
     const candles = [];
-    const startBucket = Math.floor(startDayTs / sec); 
+    const startBucket = Math.floor(startDayTs / sec);
     
     for (let i = 0; i < totalCandles; i++) {
         const time = (startBucket + i) * sec;
         if (time > now + sec) break;
         
+        // ✅ قیمت شروع و پایان دقیقاً از تابع محاسبه قیمت (بدون دستکاری)
         const open = calculatePrice(basePrice, time, startDayTs, contractAddress, isToken);
         const close = calculatePrice(basePrice, Math.min(time + sec - 1, now), startDayTs, contractAddress, isToken);
         
-        // ✅ سایه‌ها فقط ۰.۰۱٪ (بسیار کوتاه، دقیقاً مثل AVAX)
+        // ✅ سایه‌ها (Wick) فقط ۰.۰۱٪ اختلاف دارن که کندل‌ها توپر و تمیز باشن
         const high = Math.max(open, close) * 1.0001;
         const low = Math.min(open, close) * 0.9999;
         
@@ -154,4 +156,4 @@ window.generatePriceHistory = function(basePrice, timeframe, contractAddress, co
     return candles;
 };
 
-console.log("✅ price.js loaded (Fixed Dates & Wicks)");
+console.log("✅ price.js loaded (Fixed & Realistic)");
