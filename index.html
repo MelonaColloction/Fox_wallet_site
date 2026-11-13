@@ -2069,8 +2069,7 @@ function switchNFTChartRange(days, btn, contract, basePrice) {
     createNFTChart(contract, basePrice, days);
 }
 
-// ساخت چارت برای NFT
-let nftChartInstance = null; // ✅ متغیر جداگانه برای چارت NFT
+let liveNftChartInterval = null;
 
 function createNFTChart(contract, basePrice, timeframe) {
     const container = document.getElementById('nftChartBox');
@@ -2078,6 +2077,7 @@ function createNFTChart(contract, basePrice, timeframe) {
     if (typeof LightweightCharts === 'undefined') return;
     
     if (nftChartInstance) { try { nftChartInstance.remove(); } catch (e) {} nftChartInstance = null; }
+    if (liveNftChartInterval) { clearInterval(liveNftChartInterval); liveNftChartInterval = null; }
     container.innerHTML = '';
     
     try {
@@ -2101,11 +2101,67 @@ function createNFTChart(contract, basePrice, timeframe) {
         const nftConfig = window.NFT_PRICES.collections[contract.toLowerCase()];
         const config = nftConfig ? { startDate: nftConfig.startDate } : { startDate: "2026-11-11" };
         
+        let candles = [];
         if (window.generatePriceHistory) {
-            const candles = window.generatePriceHistory(basePrice, timeframe, contract, config);
-            series.setData(candles);
-            nftChartInstance.timeScale().fitContent();
+            candles = window.generatePriceHistory(basePrice, timeframe, contract, config);
         }
+        
+        if (!candles || candles.length === 0) {
+            container.innerHTML = `<div class="empty-state">داده‌ای برای نمایش نیست</div>`;
+            return;
+        }
+        
+        series.setData(candles);
+        nftChartInstance.timeScale().fitContent();
+        
+        // ✅ تایمر زنده برای NFT (دقیقاً مثل توکن)
+        liveNftChartInterval = setInterval(() => {
+            if (!nftChartInstance) return;
+            
+            let currentNewPrice = 0;
+            let yesterdayPrice = 0;
+            
+            if (window.getLivePrice) {
+                currentNewPrice = window.getLivePrice(contract, basePrice, false); 
+                
+                if (window.getTickPrice) {
+                    const now = Math.floor(Date.now() / 1000);
+                    const startDayTs = Math.floor(new Date("2026-11-11T00:00:00Z").getTime() / 1000);
+                    yesterdayPrice = window.getTickPrice(basePrice, now - 86400, startDayTs, contract, false);
+                }
+            }
+            
+            if (currentNewPrice > 0) {
+                // ۱. آپدیت کندل آخر
+                const lastCandle = candles[candles.length - 1];
+                series.update({
+                    time: lastCandle.time,
+                    open: lastCandle.open,
+                    high: Math.max(lastCandle.high, currentNewPrice),
+                    low: Math.min(lastCandle.low, currentNewPrice),
+                    close: currentNewPrice
+                });
+                
+                // ۲. آپدیت قیمت بالای صفحه (NFT)
+                const priceEl = document.querySelector('.nft-price');
+                if (priceEl) priceEl.textContent = '$' + currentNewPrice.toFixed(4);
+                
+                // ۳. آپدیت درصد سود/ضرر (24h) زنده برای NFT
+                if (yesterdayPrice > 0) {
+                    const newChange = ((currentNewPrice / yesterdayPrice) - 1) * 100;
+                    const changeEl = document.querySelector('.nft-change');
+                    if (changeEl) {
+                        changeEl.textContent = (newChange >= 0 ? '+' : '') + newChange.toFixed(2) + '%';
+                        changeEl.className = 'nft-change ' + (newChange >= 0 ? 'up' : 'down');
+                    }
+                }
+            }
+        }, 1000); // هر ۱ ثانیه
+        
+        if (window._nftChartResize) window.removeEventListener('resize', window._nftChartResize);
+        window._nftChartResize = () => { if (nftChartInstance && container) nftChartInstance.applyOptions({ width: container.clientWidth, height: container.clientHeight }); };
+        window.addEventListener('resize', window._nftChartResize);
+        
     } catch (e) { 
         console.error('NFT Chart error:', e);
     }
