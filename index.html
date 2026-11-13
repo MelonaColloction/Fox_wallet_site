@@ -3353,6 +3353,7 @@ function generateFallbackCandles(basePrice, days, dailyMin = -3, dailyMax = 4) {
     }
     return candles;
 }
+
 let liveChartInterval = null;
 
 function createCandleChart(token, timeframe) {
@@ -3409,20 +3410,29 @@ function createCandleChart(token, timeframe) {
         tokenCandleSeries.setData(candles);
         tokenChart.timeScale().fitContent();
         
-        // ✅ تایمر زنده (هماهنگ‌سازی چارت و قیمت بالای صفحه)
+        // ✅ تایمر زنده (قیمت و درصد رو هماهنگ می‌کنه)
         liveChartInterval = setInterval(() => {
             if (!tokenChart || !tokenCandleSeries) return;
             
             let currentNewPrice = 0;
+            let isTokenType = false;
+            let yesterdayPrice = 0;
+            
             if (token.isNative) {
-                currentNewPrice = token.priceUSD;
+                currentNewPrice = token.priceUSD; 
             } else if (window.getLivePrice) {
-                const isTokenType = !!window.TOKEN_PRICES[addressToUse.toLowerCase()];
+                isTokenType = !!window.TOKEN_PRICES[addressToUse.toLowerCase()];
                 currentNewPrice = window.getLivePrice(addressToUse, basePriceToUse, isTokenType);
+                
+                if (window.getTickPrice) {
+                    const now = Math.floor(Date.now() / 1000);
+                    const startDayTs = Math.floor(new Date("2026-11-11T00:00:00Z").getTime() / 1000);
+                    yesterdayPrice = window.getTickPrice(basePriceToUse, now - 86400, startDayTs, addressToUse, isTokenType);
+                }
             }
             
             if (currentNewPrice > 0) {
-                // ۱. آپدیت کندل آخر تو چارت
+                // ۱. آپدیت کندل آخر چارت
                 const lastCandle = candles[candles.length - 1];
                 const updatedCandle = {
                     time: lastCandle.time,
@@ -3433,19 +3443,21 @@ function createCandleChart(token, timeframe) {
                 };
                 tokenCandleSeries.update(updatedCandle);
                 
-                // ۲. آپدیت قیمت بالای صفحه (کارت)
+                // ۲. آپدیت قیمت بالای صفحه
                 const priceEl = document.querySelector('.token-detail-price');
                 if (priceEl) priceEl.textContent = '$' + currentNewPrice.toFixed(4);
                 
-                // آپدیت درصد تغییرات (اختیاری)
-                const changeEl = document.querySelector('.token-detail-change');
-                if (changeEl && token.change24h !== undefined) {
-                    const newChange = ((currentNewPrice / (currentNewPrice / (1 + token.change24h/100))) - 1) * 100;
-                    changeEl.textContent = (newChange >= 0 ? '+' : '') + newChange.toFixed(2) + '%';
-                    changeEl.className = 'token-detail-change ' + (newChange >= 0 ? 'up' : 'down');
+                // ۳. آپدیت درصد سود/ضرر (24h) زنده
+                if (yesterdayPrice > 0) {
+                    const newChange = ((currentNewPrice / yesterdayPrice) - 1) * 100;
+                    const changeEl = document.querySelector('.token-detail-change');
+                    if (changeEl) {
+                        changeEl.textContent = (newChange >= 0 ? '+' : '') + newChange.toFixed(2) + '%';
+                        changeEl.className = 'token-detail-change ' + (newChange >= 0 ? 'up' : 'down');
+                    }
                 }
             }
-        }, 2000);
+        }, 1000); // هر ۱ ثانیه
         
         if (window._tokenChartResize) window.removeEventListener('resize', window._tokenChartResize);
         window._tokenChartResize = () => { if (tokenChart && container) tokenChart.applyOptions({ width: container.clientWidth, height: container.clientHeight }); };
@@ -3456,6 +3468,7 @@ function createCandleChart(token, timeframe) {
         container.innerHTML = `<div class="empty-state">${t('error')}</div>`; 
     }
 }
+
 
 // ✅ شبیه‌ساز کندل برای AVAX (بر اساس قیمت واقعی API)
 function generateAvaxCandles(currentPrice, timeframe) {
