@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════
-// Fox Wallet - Final Price Engine (Target + Beautiful Candles)
+// Fox Wallet - Final Market Price Engine (Dynamic Bearish Days)
 // ═══════════════════════════════════════════════════════════════
 
 window.NFT_PRICES = {
@@ -23,28 +23,60 @@ function stableHash(str) {
     return Math.abs(hash); 
 }
 
-// ✅ محاسبه قیمت پایه (با فرمول رشد ۱۰ ساله)
-function getTrendPrice(basePrice, targetTime, startDayTs, isToken) {
+// ✅ تشخیص روزهای نزولی به صورت پویا و کاملاً تصادفی برای هر ماه
+function isBearishDay(contractAddress, targetTime) {
+    const date = new Date(targetTime * 1000);
+    const year = date.getUTCFullYear();
+    const month = date.getUTCMonth() + 1;
+    const day = date.getUTCDate();
+    
+    const monthKey = contractAddress + "_bearish_" + year + "_" + month;
+    let bearishDays = [];
+    let attempts = 0;
+    
+    while (bearishDays.length < 8 && attempts < 200) {
+        const hash = stableHash(monthKey + "_attempt_" + attempts);
+        const randomDay = (hash % 28) + 1; 
+        if (!bearishDays.includes(randomDay)) bearishDays.push(randomDay);
+        attempts++;
+    }
+    
+    return bearishDays.includes(day);
+}
+
+function getNoise(contractAddress, time, seedPrefix) {
+    const block = Math.floor(time / 60); 
+    const hash = stableHash(contractAddress + seedPrefix + block);
+    return ((hash % 1000) / 1000 - 0.5) * 2; 
+}
+
+function calculatePrice(basePrice, targetTime, startDayTs, contractAddress, isToken) {
     if (targetTime <= startDayTs) return basePrice;
+    
     const daysPassed = (targetTime - startDayTs) / 86400;
     const dailyGrowthRate = isToken ? 0.0034 : 0.00185;
-    return basePrice * Math.pow((1 + dailyGrowthRate), daysPassed);
-}
-
-// ✅ نویز نرم (برای اینکه قیمت تکون بخوره ولی پله‌ای نشه)
-function getNoise(contractAddress, time, seedPrefix, maxPercent) {
-    const block = Math.floor(time / 3600); // نویز بر اساس ساعت
-    const hash = stableHash(contractAddress + seedPrefix + block);
-    const noise = ((hash % 1000) / 1000 - 0.5) * 2; // بین -1 تا +1
-    return noise * maxPercent;
-}
-
-// ✅ قیمت نهایی برای نمایش (Trend + Noise)
-function getFinalPrice(basePrice, targetTime, startDayTs, contractAddress, isToken) {
-    const trend = getTrendPrice(basePrice, targetTime, startDayTs, isToken);
-    const dailyNoise = getNoise(contractAddress, targetTime, "_d_", 0.02); // نویز ۲٪
-    const hourlyNoise = getNoise(contractAddress, targetTime, "_h_", 0.01); // نویز ۱٪
-    let finalPrice = trend * (1 + dailyNoise + hourlyNoise);
+    const trendPrice = basePrice * Math.pow((1 + dailyGrowthRate), daysPassed);
+    
+    // چک کردن روز نزولی (با زمان دقیق)
+    const isBearish = isBearishDay(contractAddress, targetTime);
+    
+    const dailyNoise = getNoise(contractAddress, targetTime, "_d_");
+    const minutelyNoise = getNoise(contractAddress, targetTime, "_m_");
+    
+    let baseNoise = isBearish ? -0.015 : 0.015; 
+    let totalNoise = baseNoise + (dailyNoise * 0.01) + (minutelyNoise * 0.005);
+    
+    let finalPrice = trendPrice * (1 + totalNoise);
+    
+    const targetDays = 3650; 
+    const targetPrice = isToken ? 1000000 : 20000; 
+    
+    if (daysPassed > 0 && daysPassed <= targetDays) {
+        const theoreticalPrice = basePrice * Math.pow((1 + dailyGrowthRate), daysPassed);
+        const progress = theoreticalPrice / targetPrice;
+        finalPrice = finalPrice * (1 + (progress * 0.1)); 
+    }
+    
     return finalPrice < 0.0001 ? 0.0001 : finalPrice;
 }
 
@@ -56,8 +88,8 @@ window.getCurrentTokenPrice = function(contractAddress, basePrice, volatility, c
     if (now < startDayTs) return { price: basePrice, change24h: 0 };
     
     const isToken = !!window.TOKEN_PRICES[contractAddress.toLowerCase()];
-    const currentPrice = getFinalPrice(basePrice, now, startDayTs, contractAddress, isToken);
-    const yesterdayPrice = getFinalPrice(basePrice, now - 86400, startDayTs, contractAddress, isToken);
+    const currentPrice = calculatePrice(basePrice, now, startDayTs, contractAddress, isToken);
+    const yesterdayPrice = calculatePrice(basePrice, now - 86400, startDayTs, contractAddress, isToken);
     
     return {
         price: parseFloat(currentPrice.toFixed(6)),
@@ -84,7 +116,6 @@ window.getTokenInfo = function(contractAddress) {
     return null;
 };
 
-// ✅ ساخت کندل‌ها (توپر و تمیز مثل AVAX)
 window.generatePriceHistory = function(basePrice, timeframe, contractAddress, config) {
     if (!config) config = { startDate: "2026-11-11" };
     
@@ -93,13 +124,18 @@ window.generatePriceHistory = function(basePrice, timeframe, contractAddress, co
     const startDayTs = new Date(config.startDate + "T00:00:00Z").getTime() / 1000;
     
     const secMap = {
-        '1m': 60, '1h': 3600, '6h': 21600, '1d': 86400,
-        '7d': 604800, '30d': 2592000, '6m': 15552000,
-        '1y': 31536000, 'all': 31536000
+        '6h': 6 * 3600,
+        '1d': 24 * 3600,
+        '7d': 7 * 24 * 3600,
+        '30d': 30 * 24 * 3600,
+        '6m': 180 * 24 * 3600,
+        '1y': 365 * 24 * 3600,
+        'all': 365 * 24 * 3600
     };
     
-    let sec = secMap[timeframe] || 86400;
+    let sec = secMap[timeframe] || secMap['1d'];
     let totalCandles = Math.floor((now - startDayTs) / sec);
+    
     if (totalCandles < 2) totalCandles = 2;
     
     if (totalCandles > 400) {
@@ -115,11 +151,9 @@ window.generatePriceHistory = function(basePrice, timeframe, contractAddress, co
         const bucket = startBucket + i;
         const time = bucket * sec;
         
-        // قیمت شروع و پایان
-        const open = getFinalPrice(basePrice, time, startDayTs, contractAddress, isToken);
-        const close = getFinalPrice(basePrice, time + sec - 1, startDayTs, contractAddress, isToken);
+        const open = calculatePrice(basePrice, time, startDayTs, contractAddress, isToken);
+        const close = calculatePrice(basePrice, time + sec - 1, startDayTs, contractAddress, isToken);
         
-        // ✅ سایه‌های خیلی کوتاه (فقط ۰.۰۲٪) - دقیقاً مثل AVAX
         const high = Math.max(open, close) * 1.0002;
         const low = Math.min(open, close) * 0.9998;
         
@@ -134,7 +168,7 @@ window.generatePriceHistory = function(basePrice, timeframe, contractAddress, co
     
     if (candles.length > 0) {
         const last = candles[candles.length - 1];
-        const currentPrice = getFinalPrice(basePrice, now, startDayTs, contractAddress, isToken);
+        const currentPrice = calculatePrice(basePrice, now, startDayTs, contractAddress, isToken);
         last.close = parseFloat(currentPrice.toFixed(6));
         last.high = Math.max(last.open, last.high, currentPrice) * 1.0002;
         last.low = Math.min(last.open, last.low, currentPrice) * 0.9998;
@@ -143,4 +177,4 @@ window.generatePriceHistory = function(basePrice, timeframe, contractAddress, co
     return candles;
 };
 
-console.log("✅ price.js loaded (Target + Beautiful Candles)");
+console.log("✅ price.js loaded (Dynamic Bearish Days)");
