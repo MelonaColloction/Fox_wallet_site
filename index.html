@@ -2114,7 +2114,7 @@ function createNFTChart(contract, basePrice, timeframe) {
         series.setData(candles);
         nftChartInstance.timeScale().fitContent();
         
-        // ✅ تایمر زنده برای NFT (دقیقاً مثل توکن)
+        // ✅ تایمر زنده برای NFT
         liveNftChartInterval = setInterval(() => {
             if (!nftChartInstance) return;
             
@@ -2132,7 +2132,6 @@ function createNFTChart(contract, basePrice, timeframe) {
             }
             
             if (currentNewPrice > 0) {
-                // ۱. آپدیت کندل آخر
                 const lastCandle = candles[candles.length - 1];
                 series.update({
                     time: lastCandle.time,
@@ -2142,11 +2141,9 @@ function createNFTChart(contract, basePrice, timeframe) {
                     close: currentNewPrice
                 });
                 
-                // ۲. آپدیت قیمت بالای صفحه (NFT)
                 const priceEl = document.querySelector('.nft-price');
                 if (priceEl) priceEl.textContent = '$' + currentNewPrice.toFixed(4);
                 
-                // ۳. آپدیت درصد سود/ضرر (24h) زنده برای NFT
                 if (yesterdayPrice > 0) {
                     const newChange = ((currentNewPrice / yesterdayPrice) - 1) * 100;
                     const changeEl = document.querySelector('.nft-change');
@@ -2156,7 +2153,7 @@ function createNFTChart(contract, basePrice, timeframe) {
                     }
                 }
             }
-        }, 1000); // هر ۱ ثانیه
+        }, 1000);
         
         if (window._nftChartResize) window.removeEventListener('resize', window._nftChartResize);
         window._nftChartResize = () => { if (nftChartInstance && container) nftChartInstance.applyOptions({ width: container.clientWidth, height: container.clientHeight }); };
