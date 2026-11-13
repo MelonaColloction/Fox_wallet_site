@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════
-// Fox Wallet - Final Live Market Engine (Complete)
+// Fox Wallet - Final Live Market Engine
 // ═══════════════════════════════════════════════════════════════
 
 window.NFT_PRICES = {
@@ -150,4 +150,4 @@ window.generatePriceHistory = function(basePrice, timeframe, contractAddress, co
     return candles;
 };
 
-console.log("✅ price.js loaded (Complete & Final)");
+console.log("✅ price.js loaded (Final)");
