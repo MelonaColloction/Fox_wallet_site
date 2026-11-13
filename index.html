@@ -3353,14 +3353,15 @@ function generateFallbackCandles(basePrice, days, dailyMin = -3, dailyMax = 4) {
     }
     return candles;
 }
+let liveChartInterval = null;
 
-// ✅ اصلاح #6: برگشت به کد اول — همیشه از generateFallbackCandles استفاده کن
 function createCandleChart(token, timeframe) {
     const container = document.getElementById('tokenChartBox');
     if (!container) return;
     if (typeof LightweightCharts === 'undefined') { container.innerHTML = `<div class="empty-state">${t('noData')}</div>`; return; }
     
     if (tokenChart) { try { tokenChart.remove(); } catch (e) {} tokenChart = null; tokenCandleSeries = null; }
+    if (liveChartInterval) { clearInterval(liveChartInterval); liveChartInterval = null; }
     container.innerHTML = '';
     
     try {
@@ -3382,20 +3383,11 @@ function createCandleChart(token, timeframe) {
         });
         
         let candles = [];
+        let basePriceToUse = token.priceUSD;
+        let addressToUse = token.isNative ? 'avax' : token.address;
+        let configToUse = { startDate: "2026-11-11" };
         
-        // ✅ ۱. اگر AVAX بود، از دیتای اختصاصی خودش استفاده کن
-        if (token.isNative) {
-            if (typeof generateAvaxCandles === 'function') {
-                candles = generateAvaxCandles(token.priceUSD, timeframe);
-            } else if (typeof generateAvaxLineData === 'function') {
-                candles = generateAvaxLineData(token.priceUSD, timeframe);
-            }
-        } 
-        // ✅ ۲. برای توکن‌ها و NFTها از price.js استفاده کن
-        else {
-            let basePriceToUse = token.priceUSD;
-            let configToUse = { startDate: "2026-11-11" };
-            
+        if (!token.isNative) {
             if (window.TOKEN_PRICES && window.TOKEN_PRICES[token.address.toLowerCase()]) {
                 configToUse = window.TOKEN_PRICES[token.address.toLowerCase()];
                 basePriceToUse = configToUse.basePrice;
@@ -3403,10 +3395,10 @@ function createCandleChart(token, timeframe) {
                 configToUse = window.NFT_PRICES.collections[token.address.toLowerCase()];
                 basePriceToUse = configToUse.basePrice;
             }
-            
-            if (window.generatePriceHistory) {
-                candles = window.generatePriceHistory(basePriceToUse, timeframe, token.address, configToUse);
-            }
+        }
+
+        if (window.generatePriceHistory) {
+            candles = window.generatePriceHistory(basePriceToUse, timeframe, addressToUse, configToUse);
         }
         
         if (!candles || candles.length === 0) {
@@ -3416,6 +3408,44 @@ function createCandleChart(token, timeframe) {
         
         tokenCandleSeries.setData(candles);
         tokenChart.timeScale().fitContent();
+        
+        // ✅ تایمر زنده (هماهنگ‌سازی چارت و قیمت بالای صفحه)
+        liveChartInterval = setInterval(() => {
+            if (!tokenChart || !tokenCandleSeries) return;
+            
+            let currentNewPrice = 0;
+            if (token.isNative) {
+                currentNewPrice = token.priceUSD;
+            } else if (window.getLivePrice) {
+                const isTokenType = !!window.TOKEN_PRICES[addressToUse.toLowerCase()];
+                currentNewPrice = window.getLivePrice(addressToUse, basePriceToUse, isTokenType);
+            }
+            
+            if (currentNewPrice > 0) {
+                // ۱. آپدیت کندل آخر تو چارت
+                const lastCandle = candles[candles.length - 1];
+                const updatedCandle = {
+                    time: lastCandle.time,
+                    open: lastCandle.open,
+                    high: Math.max(lastCandle.high, currentNewPrice),
+                    low: Math.min(lastCandle.low, currentNewPrice),
+                    close: currentNewPrice
+                };
+                tokenCandleSeries.update(updatedCandle);
+                
+                // ۲. آپدیت قیمت بالای صفحه (کارت)
+                const priceEl = document.querySelector('.token-detail-price');
+                if (priceEl) priceEl.textContent = '$' + currentNewPrice.toFixed(4);
+                
+                // آپدیت درصد تغییرات (اختیاری)
+                const changeEl = document.querySelector('.token-detail-change');
+                if (changeEl && token.change24h !== undefined) {
+                    const newChange = ((currentNewPrice / (currentNewPrice / (1 + token.change24h/100))) - 1) * 100;
+                    changeEl.textContent = (newChange >= 0 ? '+' : '') + newChange.toFixed(2) + '%';
+                    changeEl.className = 'token-detail-change ' + (newChange >= 0 ? 'up' : 'down');
+                }
+            }
+        }, 2000);
         
         if (window._tokenChartResize) window.removeEventListener('resize', window._tokenChartResize);
         window._tokenChartResize = () => { if (tokenChart && container) tokenChart.applyOptions({ width: container.clientWidth, height: container.clientHeight }); };
