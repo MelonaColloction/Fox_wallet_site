@@ -3102,7 +3102,6 @@ function startPriceUpdater() {
     
     if (state.priceUpdateInterval) clearInterval(state.priceUpdateInterval);
     
-    // ✅ تایمر آپدیت زنده صفحه اصلی (هر ۱ ثانیه)
     state.priceUpdateInterval = setInterval(async () => {
         if (document.hidden) return;
 
@@ -3112,23 +3111,21 @@ function startPriceUpdater() {
         // ۲. آپدیت کارت بالای صفحه (ارزش کل و درصد 24h)
         renderHeroBalance();
 
-        // ۳. ✅ آپدیت قیمت NFTها در صفحه اصلی
+        // ۳. ✅ آپدیت قیمت NFTها
         if (window.NFT_PRICES && state.allNFTs && state.allNFTs.length > 0) {
             for (let nft of state.allNFTs) {
                 if (window.getCurrentNFTPrice) {
-                    // ✅ اصلاح: قیمت پایه رو از کانفیگ NFT_PRICES می‌خونیم
+                    // گرفتن قیمت پایه از کانفیگ
                     const nftConfig = window.NFT_PRICES.collections[nft.contract.toLowerCase()];
                     const basePrice = nftConfig ? nftConfig.basePrice : 0;
                     
                     const priceData = window.getCurrentNFTPrice(nft.contract, basePrice);
                     if (priceData) {
                         nft.pricePerNFT = priceData.price;
-                        nft.change24h = priceData.change24h;
-                        nft.totalPrice = priceData.price * nft.balance;
+                        nft.totalPrice = priceData.price * nft.balance; 
                     }
                 }
             }
-            // رندر مجدد لیست NFTها (که فقط قیمت‌های جدید رو نشون بده)
             renderNFTs(state.allNFTs);
         }
 
@@ -3924,7 +3921,6 @@ function renderNFTs(items) {
     const container = document.getElementById('nftList'); 
     const badge = document.getElementById('nftCountBadge');
     
-    // آپدیت تعداد NFTها روی تب
     if (badge) { 
         if (items.length > 0) { 
             badge.textContent = items.length; 
@@ -3936,7 +3932,6 @@ function renderNFTs(items) {
     
     if (!container) return;
     
-    // حالت خالی
     if (items.length === 0) { 
         container.innerHTML = `<div class="empty-state" style="grid-column:1/-1;"><div class="empty-state-icon">🎨</div><div>${t('emptyNFTs')}</div></div>`; 
         return; 
@@ -3952,10 +3947,14 @@ function renderNFTs(items) {
             ? `<img src="${item.image}" alt="${item.name}" class="nft-image" onerror="this.outerHTML='&lt;div class=\\'nft-image placeholder\\'&gt;🎨&lt;/div&gt;'" />` 
             : `<div class="nft-image placeholder">🎨</div>`;
             
-        // ✅ فقط نمایش قیمت لحظه‌ای (بدون درصد)
+        // ✅ نمایش قیمت واحد و ارزش کل (زیر هم)
         let priceHtml = ''; 
         if (item.pricePerNFT && item.pricePerNFT > 0) {
-            priceHtml = `<div style="font-size: 0.8rem; font-weight: 700; color: var(--accent-gold); margin-top: 4px;">$${item.pricePerNFT.toFixed(2)}</div>`;
+            const totalValue = item.pricePerNFT * item.balance;
+            priceHtml = `
+                <div style="font-size: 0.75rem; font-weight: 700; color: var(--accent-gold); margin-top: 4px;">$${item.pricePerNFT.toFixed(2)}</div>
+                <div style="font-size: 0.65rem; font-weight: 700; color: var(--accent-success); margin-top: 2px;">$${totalValue.toFixed(2)}</div>
+            `;
         }
         
         html += `
