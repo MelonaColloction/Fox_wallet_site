@@ -2069,8 +2069,8 @@ function switchNFTChartRange(days, btn, contract, basePrice) {
     createNFTChart(contract, basePrice, days);
 }
 
-let nftChartInstance = null;
 let liveNftChartInterval = null;
+let nftChartInstance = null;
 
 function createNFTChart(contract, basePrice, timeframe) {
     const container = document.getElementById('nftChartBox');
@@ -2114,22 +2114,29 @@ function createNFTChart(contract, basePrice, timeframe) {
         
         series.setData(candles);
         nftChartInstance.timeScale().fitContent();
-        
-        // ✅ تایمر زنده برای NFT
+
+        // ✅ تابع کمکی برای محاسبه درصد رشد در هر تایم‌فریم
+        const updateNftPercentage = (currentPriceVal) => {
+            if (candles.length === 0) return;
+            const firstCandle = candles[0];
+            const referencePrice = timeframe === '1d' ? (candles.length > 1 ? candles[candles.length - 2].close : firstCandle.open) : firstCandle.open;
+            
+            const changePercent = ((currentPriceVal / referencePrice) - 1) * 100;
+            const changeEl = document.querySelector('.nft-change');
+            if (changeEl) {
+                changeEl.textContent = (changePercent >= 0 ? '+' : '') + changePercent.toFixed(2) + '%';
+                changeEl.className = 'nft-change ' + (changePercent >= 0 ? 'up' : 'down');
+            }
+        };
+
+        updateNftPercentage(candles[candles.length - 1].close);
+
         liveNftChartInterval = setInterval(() => {
             if (!nftChartInstance) return;
             
             let currentNewPrice = 0;
-            let yesterdayPrice = 0;
-            
             if (window.getLivePrice) {
                 currentNewPrice = window.getLivePrice(contract, basePrice, false); 
-                
-                if (window.getTickPrice) {
-                    const now = Math.floor(Date.now() / 1000);
-                    const startDayTs = Math.floor(new Date("2026-11-11T00:00:00Z").getTime() / 1000);
-                    yesterdayPrice = window.getTickPrice(basePrice, now - 86400, startDayTs, contract, false);
-                }
             }
             
             if (currentNewPrice > 0) {
@@ -2145,14 +2152,8 @@ function createNFTChart(contract, basePrice, timeframe) {
                 const priceEl = document.querySelector('.nft-price');
                 if (priceEl) priceEl.textContent = '$' + currentNewPrice.toFixed(4);
                 
-                if (yesterdayPrice > 0) {
-                    const newChange = ((currentNewPrice / yesterdayPrice) - 1) * 100;
-                    const changeEl = document.querySelector('.nft-change');
-                    if (changeEl) {
-                        changeEl.textContent = (newChange >= 0 ? '+' : '') + newChange.toFixed(2) + '%';
-                        changeEl.className = 'nft-change ' + (newChange >= 0 ? 'up' : 'down');
-                    }
-                }
+                // ✅ آپدیت درصد بر اساس تایم‌فریم
+                updateNftPercentage(currentNewPrice);
             }
         }, 1000);
         
@@ -3452,12 +3453,9 @@ function createCandleChart(token, timeframe) {
             }
         }
 
-        // ✅ ۱. اگر AVAX بود، از تابع اختصاصی خودش در index.html استفاده کن
         if (token.isNative) {
             candles = generateAvaxCandles(basePriceToUse, timeframe);
-        } 
-        // ✅ ۲. برای توکن‌ها و NFTها از price.js استفاده کن
-        else if (window.generatePriceHistory) {
+        } else if (window.generatePriceHistory) {
             candles = window.generatePriceHistory(basePriceToUse, timeframe, addressToUse, configToUse);
         }
         
@@ -3468,24 +3466,34 @@ function createCandleChart(token, timeframe) {
         
         tokenCandleSeries.setData(candles);
         tokenChart.timeScale().fitContent();
-        
+
+        // ✅ تابع کمکی برای محاسبه درصد رشد در هر تایم‌فریم
+        const updatePercentage = (currentPriceVal) => {
+            if (candles.length === 0) return;
+            const firstCandle = candles[0];
+            // اگر تایم‌فریم ۲۴ ساعته بود، از کندل قبلی استفاده کن، وگرنه از اولین کندل
+            const referencePrice = timeframe === '1d' ? (candles.length > 1 ? candles[candles.length - 2].close : firstCandle.open) : firstCandle.open;
+            
+            const changePercent = ((currentPriceVal / referencePrice) - 1) * 100;
+            const changeEl = document.querySelector('.token-detail-change');
+            if (changeEl) {
+                changeEl.textContent = (changePercent >= 0 ? '+' : '') + changePercent.toFixed(2) + '%';
+                changeEl.className = 'token-detail-change ' + (changePercent >= 0 ? 'up' : 'down');
+            }
+        };
+
+        // مقدار اولیه درصد رو بر اساس کندل آخر تنظیم کن
+        updatePercentage(candles[candles.length - 1].close);
+
         liveChartInterval = setInterval(() => {
             if (!tokenChart || !tokenCandleSeries) return;
             
             let currentNewPrice = 0;
-            let yesterdayPrice = 0;
-            
             if (token.isNative) {
                 currentNewPrice = token.priceUSD; 
             } else if (window.getLivePrice) {
                 const isTokenType = !!window.TOKEN_PRICES[addressToUse.toLowerCase()];
                 currentNewPrice = window.getLivePrice(addressToUse, basePriceToUse, isTokenType);
-                
-                if (window.getTickPrice) {
-                    const now = Math.floor(Date.now() / 1000);
-                    const startDayTs = Math.floor(new Date("2026-11-11T00:00:00Z").getTime() / 1000);
-                    yesterdayPrice = window.getTickPrice(basePriceToUse, now - 86400, startDayTs, addressToUse, isTokenType);
-                }
             }
             
             if (currentNewPrice > 0) {
@@ -3501,14 +3509,8 @@ function createCandleChart(token, timeframe) {
                 const priceEl = document.querySelector('.token-detail-price');
                 if (priceEl) priceEl.textContent = '$' + currentNewPrice.toFixed(4);
                 
-                if (yesterdayPrice > 0) {
-                    const newChange = ((currentNewPrice / yesterdayPrice) - 1) * 100;
-                    const changeEl = document.querySelector('.token-detail-change');
-                    if (changeEl) {
-                        changeEl.textContent = (newChange >= 0 ? '+' : '') + newChange.toFixed(2) + '%';
-                        changeEl.className = 'token-detail-change ' + (newChange >= 0 ? 'up' : 'down');
-                    }
-                }
+                // ✅ آپدیت درصد بر اساس تایم‌فریم انتخاب شده
+                updatePercentage(currentNewPrice);
             }
         }, 1000);
         
@@ -3528,25 +3530,18 @@ function generateAvaxCandles(currentPrice, timeframe) {
     const candles = [];
     const now = Math.floor(Date.now() / 1000);
     
-    // ✅ مبدأ دقیق: ۲۱ سپتامبر ۲۰۲۰
-    const avaxStartTs = Math.floor(new Date("2020-09-21T00:00:00Z").getTime() / 1000);
-    
     const secMap = {
         '6h': 21600, '1d': 86400, '7d': 604800, 
         '30d': 2592000, '6m': 15552000, '1y': 31536000, 'all': 31536000
     };
     
     let sec = secMap[timeframe] || 86400;
+    const currentBucket = Math.floor(now / sec);
     
-    // ✅ محاسبه تعداد بازه‌ها از ۲۰۲۰ تا الان
-    const totalElapsed = now - avaxStartTs;
-    let totalCandles = Math.floor(totalElapsed / sec) + 1;
-    
-    // محدودیت برای جلوگیری از شلوغی (حداکثر ۳۰۰ کندل)
-    if (totalCandles > 300) {
-        sec = Math.ceil(totalElapsed / 300);
-        totalCandles = Math.floor(totalElapsed / sec) + 1;
-    }
+    // ✅ تعداد کندل‌ها برای هر تایم‌فریم (برای ۲۴ ساعته ۳۰ کندل، برای ۶ ساعته ۶۰ کندل و...)
+    let totalCandles = 30;
+    if (timeframe === '6h') totalCandles = 60;
+    if (timeframe === 'all' || timeframe === '1y') totalCandles = 50;
     
     const hashFunc = window.stableHash || function(str) { 
         let hash = 0; 
@@ -3558,30 +3553,37 @@ function generateAvaxCandles(currentPrice, timeframe) {
     };
 
     let tempCandles = [];
-    // ✅ قیمت شروع در سال ۲۰۲۰: ۵٪ قیمت فعلی (مثلاً حدود ۰.۴ دلار)
-    let tempPrice = currentPrice * 0.05; 
+    // ✅ برای جلوگیری از صفر شدن، قیمت شروع رو ۱۰ درصد قیمت فعلی در نظر می‌گیریم
+    let tempPrice = currentPrice * 0.9; 
 
     for (let i = 0; i < totalCandles; i++) {
-        const time = avaxStartTs + (i * sec);
-        if (time > now) break;
+        // محاسبه زمان دقیق از آخرین کندل (الان) به عقب
+        const bucket = currentBucket - (totalCandles - 1 - i);
+        const time = bucket * sec;
         
         let open = tempPrice;
         let close = open, high = open, low = open;
         
         for (let j = 0; j < 4; j++) {
             const subSeed = hashFunc("history_avax_" + time + "_" + j);
-            // نوسان ۱.۵ درصدی برای هر بازه
-            const change = ((subSeed % 10000) / 10000 - 0.5) * 1.5; 
+            const change = ((subSeed % 10000) / 10000 - 0.5) * 1.5; // نوسان ۱.۵٪
             close = close * (1 + change / 100);
             if (close > high) high = close;
             if (close < low) low = close;
+        }
+        
+        // ✅ کندل آخر دقیقاً با قیمت فعلی هماهنگ می‌شه
+        if (i === totalCandles - 1) {
+            close = currentPrice;
+            high = Math.max(high, currentPrice) * 1.001;
+            low = Math.min(low, currentPrice) * 0.999;
         }
         
         tempCandles.push({ time, open, high, low, close });
         tempPrice = close;
     }
     
-    // ✅ اصلاح نهایی: با ضریب تصحیح، آخرین کندل رو دقیقاً روی قیمت الان تنظیم می‌کنیم
+    // ✅ ضریب تصحیح برای اینکه آخرین کندل دقیقاً روی currentPrice بشینه
     if (tempCandles.length > 0) {
         const lastClose = tempCandles[tempCandles.length - 1].close;
         const ratio = currentPrice / lastClose; 
@@ -3589,10 +3591,10 @@ function generateAvaxCandles(currentPrice, timeframe) {
         for (let c of tempCandles) {
             candles.push({
                 time: c.time,
-                open: parseFloat((c.open * ratio).toFixed(4)),
-                high: parseFloat((c.high * ratio).toFixed(4)),
-                low: parseFloat((c.low * ratio).toFixed(4)),
-                close: parseFloat((c.close * ratio).toFixed(4))
+                open: parseFloat((c.open * ratio).toFixed(6)),
+                high: parseFloat((c.high * ratio).toFixed(6)),
+                low: parseFloat((c.low * ratio).toFixed(6)),
+                close: parseFloat((c.close * ratio).toFixed(6))
             });
         }
     }
