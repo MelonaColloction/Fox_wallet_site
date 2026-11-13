@@ -3102,27 +3102,38 @@ function startPriceUpdater() {
     
     if (state.priceUpdateInterval) clearInterval(state.priceUpdateInterval);
     
-    // ✅ تایمر آپدیت زنده صفحه اصلی (هر ۵ ثانیه)
+    // ✅ تایمر آپدیت زنده صفحه اصلی (هر ۱ ثانیه)
     state.priceUpdateInterval = setInterval(async () => {
         if (document.hidden) return;
 
-        // ۱. آپدیت قیمت‌ها با استفاده از موتور زنده price.js
-        // (این تابع قیمت‌ها رو از getLivePrice می‌خونه و روی توکن‌ها اعمال می‌کنه)
+        // ۱. آپدیت قیمت توکن‌ها
         await refreshTokenBalances(); 
         
         // ۲. آپدیت کارت بالای صفحه (ارزش کل و درصد 24h)
         renderHeroBalance();
 
-        // ۳. اگر روی صفحه توکن بودیم، چارت رو هم آپدیت کن
-        if (currentTokenDetail && document.getElementById('tokenDetailOverlay').classList.contains('show')) {
-            // چارت خودش تایمر ۱ ثانیه‌ای جداگانه داره، پس نیازی به رفرش کل چارت نیست
+        // ۳. ✅ آپدیت قیمت و درصد NFTها در صفحه اصلی
+        if (window.NFT_PRICES && state.allNFTs && state.allNFTs.length > 0) {
+            for (let nft of state.allNFTs) {
+                // گرفتن قیمت جدید از price.js
+                if (window.getCurrentNFTPrice) {
+                    const priceData = window.getCurrentNFTPrice(nft.contract, nft.basePrice || 0);
+                    if (priceData) {
+                        nft.pricePerNFT = priceData.price;
+                        nft.change24h = priceData.change24h;
+                        nft.totalPrice = priceData.price * nft.balance;
+                    }
+                }
+            }
+            // رندر مجدد لیست NFTها (که قیمت‌ها و درصدهای جدید رو نشون بده)
+            renderNFTs(state.allNFTs);
         }
 
         // ۴. آپدیت قیمت AVAX (از API)
         if (state.provider) {
             updateAVAXPrice();
         }
-    }, 5000); // هر ۵ ثانیه
+    }, 2500); // هر ۱ ثانیه
 }
 
 // ═══════════════════════════════════════════════════════════════
