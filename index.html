@@ -2068,7 +2068,6 @@ function switchNFTChartRange(days, btn, contract, basePrice) {
     if (btn) btn.classList.add('active');
     createNFTChart(contract, basePrice, days);
 }
-
 let liveNftChartInterval = null;
 
 function createNFTChart(contract, basePrice, timeframe) {
@@ -2114,7 +2113,7 @@ function createNFTChart(contract, basePrice, timeframe) {
         series.setData(candles);
         nftChartInstance.timeScale().fitContent();
         
-        // ✅ تایمر زنده برای NFT
+        // ✅ تایمر زنده برای NFT (کندل، قیمت و درصد)
         liveNftChartInterval = setInterval(() => {
             if (!nftChartInstance) return;
             
@@ -2132,6 +2131,7 @@ function createNFTChart(contract, basePrice, timeframe) {
             }
             
             if (currentNewPrice > 0) {
+                // ۱. آپدیت کندل آخر
                 const lastCandle = candles[candles.length - 1];
                 series.update({
                     time: lastCandle.time,
@@ -2141,9 +2141,11 @@ function createNFTChart(contract, basePrice, timeframe) {
                     close: currentNewPrice
                 });
                 
+                // ۲. آپدیت قیمت بالای صفحه (NFT)
                 const priceEl = document.querySelector('.nft-price');
                 if (priceEl) priceEl.textContent = '$' + currentNewPrice.toFixed(4);
                 
+                // ۳. آپدیت درصد سود/ضرر (24h)
                 if (yesterdayPrice > 0) {
                     const newChange = ((currentNewPrice / yesterdayPrice) - 1) * 100;
                     const changeEl = document.querySelector('.nft-change');
@@ -2153,7 +2155,7 @@ function createNFTChart(contract, basePrice, timeframe) {
                     }
                 }
             }
-        }, 1000);
+        }, 1000); // هر ۱ ثانیه آپدیت
         
         if (window._nftChartResize) window.removeEventListener('resize', window._nftChartResize);
         window._nftChartResize = () => { if (nftChartInstance && container) nftChartInstance.applyOptions({ width: container.clientWidth, height: container.clientHeight }); };
@@ -3451,7 +3453,12 @@ function createCandleChart(token, timeframe) {
             }
         }
 
-        if (window.generatePriceHistory) {
+        // ✅ ۱. اگر AVAX بود، از تابع اختصاصی خودش در index.html استفاده کن
+        if (token.isNative) {
+            candles = generateAvaxCandles(basePriceToUse, timeframe);
+        } 
+        // ✅ ۲. برای توکن‌ها و NFTها از price.js استفاده کن
+        else if (window.generatePriceHistory) {
             candles = window.generatePriceHistory(basePriceToUse, timeframe, addressToUse, configToUse);
         }
         
@@ -3463,18 +3470,16 @@ function createCandleChart(token, timeframe) {
         tokenCandleSeries.setData(candles);
         tokenChart.timeScale().fitContent();
         
-        // ✅ تایمر زنده (قیمت و درصد رو هماهنگ می‌کنه)
         liveChartInterval = setInterval(() => {
             if (!tokenChart || !tokenCandleSeries) return;
             
             let currentNewPrice = 0;
-            let isTokenType = false;
             let yesterdayPrice = 0;
             
             if (token.isNative) {
                 currentNewPrice = token.priceUSD; 
             } else if (window.getLivePrice) {
-                isTokenType = !!window.TOKEN_PRICES[addressToUse.toLowerCase()];
+                const isTokenType = !!window.TOKEN_PRICES[addressToUse.toLowerCase()];
                 currentNewPrice = window.getLivePrice(addressToUse, basePriceToUse, isTokenType);
                 
                 if (window.getTickPrice) {
@@ -3485,22 +3490,18 @@ function createCandleChart(token, timeframe) {
             }
             
             if (currentNewPrice > 0) {
-                // ۱. آپدیت کندل آخر چارت
                 const lastCandle = candles[candles.length - 1];
-                const updatedCandle = {
+                tokenCandleSeries.update({
                     time: lastCandle.time,
                     open: lastCandle.open,
                     high: Math.max(lastCandle.high, currentNewPrice),
                     low: Math.min(lastCandle.low, currentNewPrice),
                     close: currentNewPrice
-                };
-                tokenCandleSeries.update(updatedCandle);
+                });
                 
-                // ۲. آپدیت قیمت بالای صفحه
                 const priceEl = document.querySelector('.token-detail-price');
                 if (priceEl) priceEl.textContent = '$' + currentNewPrice.toFixed(4);
                 
-                // ۳. آپدیت درصد سود/ضرر (24h) زنده
                 if (yesterdayPrice > 0) {
                     const newChange = ((currentNewPrice / yesterdayPrice) - 1) * 100;
                     const changeEl = document.querySelector('.token-detail-change');
@@ -3510,7 +3511,7 @@ function createCandleChart(token, timeframe) {
                     }
                 }
             }
-        }, 1000); // هر ۱ ثانیه
+        }, 1000);
         
         if (window._tokenChartResize) window.removeEventListener('resize', window._tokenChartResize);
         window._tokenChartResize = () => { if (tokenChart && container) tokenChart.applyOptions({ width: container.clientWidth, height: container.clientHeight }); };
@@ -3528,24 +3529,26 @@ function generateAvaxCandles(currentPrice, timeframe) {
     const candles = [];
     const now = Math.floor(Date.now() / 1000);
     
-    // تعریف تعداد کندل و بازه زمانی برای هر تایم‌فریم
-    const configs = {
-        '1m':  { count: 60, sec: 60 },
-        '1h':  { count: 24, sec: 3600 },
-        '6h':  { count: 28, sec: 21600 },
-        '1d':  { count: 30, sec: 86400 },
-        '7d':  { count: 30, sec: 604800 },
-        '30d': { count: 30, sec: 2592000 },
-        '6m':  { count: 30, sec: 15552000 },
-        '1y':  { count: 30, sec: 31536000 },
-        'all': { count: 30, sec: 31536000 }
+    // ✅ مبدأ دقیق: ۲۱ سپتامبر ۲۰۲۰
+    const avaxStartTs = Math.floor(new Date("2020-09-21T00:00:00Z").getTime() / 1000);
+    
+    const secMap = {
+        '6h': 21600, '1d': 86400, '7d': 604800, 
+        '30d': 2592000, '6m': 15552000, '1y': 31536000, 'all': 31536000
     };
     
-    const cfg = configs[timeframe] || configs['1d'];
-    const sec = cfg.sec;
-    const totalCandles = cfg.count;
+    let sec = secMap[timeframe] || 86400;
     
-    const currentBucket = Math.floor(now / sec);
+    // ✅ محاسبه تعداد بازه‌ها از ۲۰۲۰ تا الان
+    const totalElapsed = now - avaxStartTs;
+    let totalCandles = Math.floor(totalElapsed / sec) + 1;
+    
+    // محدودیت برای جلوگیری از شلوغی (حداکثر ۳۰۰ کندل)
+    if (totalCandles > 300) {
+        sec = Math.ceil(totalElapsed / 300);
+        totalCandles = Math.floor(totalElapsed / sec) + 1;
+    }
+    
     const hashFunc = window.stableHash || function(str) { 
         let hash = 0; 
         for (let i = 0; i < str.length; i++) { 
@@ -3555,50 +3558,45 @@ function generateAvaxCandles(currentPrice, timeframe) {
         return Math.abs(hash); 
     };
 
-    // ✅ ۱. اول یه مسیر تصادفی از قدیم به جدید می‌سازیم
     let tempCandles = [];
-    let tempPrice = currentPrice * 0.90; // فرض می‌کنیم قیمت تو گذشته ۱۰٪ پایین‌تر بوده (قابل تغییر)
-    
+    // ✅ قیمت شروع در سال ۲۰۲۰: ۵٪ قیمت فعلی (مثلاً حدود ۰.۴ دلار)
+    let tempPrice = currentPrice * 0.05; 
+
     for (let i = 0; i < totalCandles; i++) {
-        const bucket = currentBucket - (totalCandles - 1 - i);
-        const time = bucket * sec;
+        const time = avaxStartTs + (i * sec);
+        if (time > now) break;
         
         let open = tempPrice;
         let close = open, high = open, low = open;
         
         for (let j = 0; j < 4; j++) {
-            const subSeed = hashFunc("avax_history_" + time + "_" + j);
-            const change = ((subSeed % 10000) / 10000 - 0.5) * 1.5; // نوسان ۱.۵ درصدی
+            const subSeed = hashFunc("history_avax_" + time + "_" + j);
+            // نوسان ۱.۵ درصدی برای هر بازه
+            const change = ((subSeed % 10000) / 10000 - 0.5) * 1.5; 
             close = close * (1 + change / 100);
             if (close > high) high = close;
             if (close < low) low = close;
         }
         
-        tempCandles.push({
-            time: time,
-            open: open,
-            high: high,
-            low: low,
-            close: close
-        });
+        tempCandles.push({ time, open, high, low, close });
         tempPrice = close;
     }
     
-    // ✅ ۲. حالا میانگین اختلاف آخرین کندل با قیمت واقعی رو حساب می‌کنیم
-    // و همه کندل‌ها رو با یه ضریب تصحیح می‌کنیم تا آخرین کندل دقیقاً بشه currentPrice
+    // ✅ اصلاح نهایی: با ضریب تصحیح، آخرین کندل رو دقیقاً روی قیمت الان تنظیم می‌کنیم
     if (tempCandles.length > 0) {
         const lastClose = tempCandles[tempCandles.length - 1].close;
-        const ratio = currentPrice / lastClose; // ضریب تصحیح
+        const ratio = currentPrice / lastClose; 
         
         for (let c of tempCandles) {
-            c.open = parseFloat((c.open * ratio).toFixed(4));
-            c.high = parseFloat((c.high * ratio).toFixed(4));
-            c.low = parseFloat((c.low * ratio).toFixed(4));
-            c.close = parseFloat((c.close * ratio).toFixed(4));
-            candles.push(c);
+            candles.push({
+                time: c.time,
+                open: parseFloat((c.open * ratio).toFixed(4)),
+                high: parseFloat((c.high * ratio).toFixed(4)),
+                low: parseFloat((c.low * ratio).toFixed(4)),
+                close: parseFloat((c.close * ratio).toFixed(4))
+            });
         }
     }
-    
     return candles;
 }
 
@@ -3948,13 +3946,109 @@ function renderNFTs(items) {
 }
 
 function closeAllNFTs() { document.getElementById('allNFTsModal').classList.add('closed'); }
-function openNFTDetail(contract, id, name, image, collection) {
-    const body = document.getElementById('nftDetailBody'); const nftItem = state.allNFTs.find(n => n.contract.toLowerCase() === contract.toLowerCase() && n.id === id);
-    let imageHtml = image ? `<img src="${image}" class="detail-nft-image" onerror="this.outerHTML='&lt;div class=\\'detail-nft-image placeholder\\'&gt;🎨&lt;/div&gt;'" />` : `<div class="detail-nft-image placeholder">🎨</div>`;
-    let priceRows = ''; if (nftItem && nftItem.pricePerNFT > 0) priceRows = `<div class="detail-row"><span class="detail-label">${t('detailPrice')}</span><span class="detail-value gold">${nftItem.pricePerNFT.toFixed(2)} $</span></div><div class="detail-row"><span class="detail-label">${t('detailTotalPrice')}</span><span class="detail-value green">${nftItem.totalPrice.toFixed(2)} $</span></div>`;
-    body.innerHTML = `${imageHtml}<div class="detail-nft-name">${name}</div><div class="detail-nft-collection">📚 ${collection}</div><div class="detail-row"><span class="detail-label">${t('detailTokenId')}</span><span class="detail-value white">#${id}</span></div>${nftItem ? `<div class="detail-row"><span class="detail-label">${t('detailAmount')}</span><span class="detail-value green">×${nftItem.balance}</span></div>` : ''}${priceRows}<div class="detail-row"><span class="detail-label">📋 ${t('contract')}:</span><span class="detail-value" title="${contract}">${contract.slice(0, 10)}...${contract.slice(-8)}</span></div><button class="btn btn-success btn-full" onclick="openSendNFTFromDetail('${contract}', ${id}, '${name.replace(/'/g, "\\'")}', '${(image || '').replace(/'/g, "\\'")}', '${collection.replace(/'/g, "\\'")}')" style="margin-top: 16px;">📤 ${t('sendNFTBtn')}</button>`;
-    document.getElementById('nftDetailModal').classList.remove('closed');
+function openNFTDetailPage(contract, name, image, collection) {
+    const overlay = document.getElementById('nftDetailOverlay');
+    const titleEl = document.getElementById('nftDetailPageTitle');
+    const contentEl = document.getElementById('nftDetailPageContent');
+    
+    if (!overlay || !contentEl) return;
+    titleEl.textContent = name;
+
+    const nftInfo = window.NFT_PRICES.collections[contract.toLowerCase()] || {};
+    const basePrice = nftInfo.basePrice || 0;
+    const maxSupply = nftInfo.maxSupply || 100;
+
+    const savedNftTf = localStorage.getItem('fox_timeframe_' + contract.toLowerCase()) || '1d';
+    const currentNftLabel = t(savedNftTf);
+
+    let currentPrice = 0, change24h = 0;
+    if (window.getCurrentNFTPrice) {
+        const priceData = window.getCurrentNFTPrice(contract, basePrice);
+        currentPrice = priceData.price;
+        change24h = priceData.change24h;
+    }
+
+    const userNFT = state.allNFTs.find(n => n.contract.toLowerCase() === contract.toLowerCase());
+    const userBalance = userNFT ? userNFT.balance : 0;
+
+    const changeClass = change24h >= 0 ? 'up' : 'down';
+    const changeSign = change24h >= 0 ? '+' : '';
+
+    let imageHtml = image 
+        ? `<img src="${image}" class="nft-detail-image" onerror="this.outerHTML='&lt;div class=\\'nft-detail-image placeholder\\'&gt;🎨&lt;/div&gt;'" />` 
+        : `<div class="nft-detail-image placeholder">🎨</div>`;
+
+    const chartTabsHtml = `
+        <div class="timeframe-selector-wrap">
+            <button class="timeframe-btn" onclick="toggleTimeframeDropdown(this)">
+                <span>${currentNftLabel}</span> <span>▼</span>
+            </button>
+            <div class="timeframe-dropdown">
+                <button class="${savedNftTf === '6h' ? 'active' : ''}" onclick="selectTimeframe('6h', this, 'nft', '${contract}', ${basePrice})">${t('6h')}</button>
+                <button class="${savedNftTf === '1d' ? 'active' : ''}" onclick="selectTimeframe('1d', this, 'nft', '${contract}', ${basePrice})">${t('1d')}</button>
+                <button class="${savedNftTf === '7d' ? 'active' : ''}" onclick="selectTimeframe('7d', this, 'nft', '${contract}', ${basePrice})">${t('7d')}</button>
+                <button class="${savedNftTf === '30d' ? 'active' : ''}" onclick="selectTimeframe('30d', this, 'nft', '${contract}', ${basePrice})">${t('30d')}</button>
+                <button class="${savedNftTf === '6m' ? 'active' : ''}" onclick="selectTimeframe('6m', this, 'nft', '${contract}', ${basePrice})">${t('6m')}</button>
+                <button class="${savedNftTf === '1y' ? 'active' : ''}" onclick="selectTimeframe('1y', this, 'nft', '${contract}', ${basePrice})">${t('1y')}</button>
+                <button class="${savedNftTf === 'all' ? 'active' : ''}" onclick="selectTimeframe('all', this, 'nft', '${contract}', ${basePrice})">${t('all')}</button>
+            </div>
+        </div>
+    `;
+
+    contentEl.innerHTML = `
+        <div class="nft-detail-hero">
+            ${imageHtml}
+            <div class="nft-detail-name">${name}</div>
+            <div class="nft-detail-symbol">${collection}</div>
+            <div class="token-detail-contract" onclick="copyToClipboard('${contract}').then(ok=>ok&&toast(t('copied')))">
+                <span>${contract.slice(0, 8)}...${contract.slice(-6)}</span><span>📋</span>
+            </div>
+        </div>
+
+        <div class="nft-price-row">
+            <div class="nft-price">$${currentPrice.toFixed(4)}</div>
+            <div class="nft-change ${changeClass}">${changeSign}${change24h.toFixed(2)}%</div>
+        </div>
+
+        <div class="chart-container-wrap">
+            ${chartTabsHtml}
+            <div class="chart-box" id="nftChartBox"></div>
+        </div>
+
+        <div class="nft-supply-grid">
+            <div class="nft-supply-item">
+                <div class="nft-supply-label">${currentLang === 'fa' ? 'کل ساپلای' : 'Total Supply'}</div>
+                <div class="nft-supply-value">${maxSupply}</div>
+            </div>
+            <div class="nft-supply-item">
+                <div class="nft-supply-label">${currentLang === 'fa' ? 'موجودی شما' : 'Your Balance'}</div>
+                <div class="nft-supply-value green">${userBalance} ${currentLang === 'fa' ? 'از' : 'of'} ${maxSupply}</div>
+            </div>
+        </div>
+
+        <div class="token-actions-grid">
+            <button class="token-action-btn send" onclick="openSendNFTFromDetail('${contract}', 1, '${name.replace(/'/g, "\\'")}', '${(image || '').replace(/'/g, "\\'")}', '${collection.replace(/'/g, "\\'")}')">📤 ${t('heroSend')}</button>
+            <button class="token-action-btn receive" onclick="showQRCode()">📥 ${t('heroReceive')}</button>
+        </div>
+
+        <div class="nft-history-box" style="background: var(--bg-status); border-radius: 16px; padding: 16px; margin-bottom: 16px; border: 1px solid var(--border-light);">
+            <div class="nft-history-title" style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; font-weight: 700; margin-bottom: 12px;">📜 ${t('tabHistory')}</div>
+            <div id="nftTxHistoryList" class="token-tx-list"></div>
+            
+            <button class="btn btn-secondary btn-full" onclick="showAllFilteredTx('nft', '${contract}', '📜 ${name.replace(/'/g, "\\'")}')" style="margin-top: 12px; font-size: 0.75rem;">${t('viewAllNftTx')}</button>
+        </div>
+    `;
+
+    overlay.classList.add('show');
+    document.body.style.overflow = 'hidden';
+    overlay.style.overflowY = 'auto';
+
+    setTimeout(() => {
+        createNFTChart(contract, basePrice, savedNftTf);
+        renderNFTTxHistory(contract);
+    }, 100);
 }
+
 function closeNFTDetail() { document.getElementById('nftDetailModal').classList.add('closed'); }
 function openSendNFTFromDetail(contract, id, name, image, collection) { state.selectedNFT = { contract, id, name, image, collection, balance: 1 }; closeNFTDetail(); showSendModal(); switchSendTab('nft'); }
 
