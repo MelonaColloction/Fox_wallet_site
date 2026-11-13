@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════
-// Fox Wallet - Final Market Price Engine (Fixed Dates & Candles)
+// Fox Wallet - Final Market Price Engine (Fixed Dates & Wicks)
 // ═══════════════════════════════════════════════════════════════
 
 window.NFT_PRICES = {
@@ -23,6 +23,7 @@ function stableHash(str) {
     return Math.abs(hash); 
 }
 
+// ✅ تشخیص روزهای نزولی (۸ روز در ماه)
 function isBearishDay(contractAddress, targetTime) {
     const date = new Date(targetTime * 1000);
     const year = date.getUTCFullYear();
@@ -40,45 +41,45 @@ function isBearishDay(contractAddress, targetTime) {
     return bearishDays.includes(day);
 }
 
+// ✅ نویز ساعتی (برای نوسانات کنترل‌شده)
 function getNoise(contractAddress, time, seedPrefix) {
-    const block = Math.floor(time / 60); 
+    const block = Math.floor(time / 3600); 
     const hash = stableHash(contractAddress + seedPrefix + block);
     return ((hash % 1000) / 1000 - 0.5) * 2; 
 }
 
 function calculatePrice(basePrice, targetTime, startDayTs, contractAddress, isToken) {
     if (targetTime <= startDayTs) return basePrice;
+    
     const daysPassed = (targetTime - startDayTs) / 86400;
     const dailyGrowthRate = isToken ? 0.0034 : 0.00185;
+    
+    // رشد بلندمدت
     const trendPrice = basePrice * Math.pow((1 + dailyGrowthRate), daysPassed);
     
+    // نویزها
     const isBearish = isBearishDay(contractAddress, targetTime);
     const dailyNoise = getNoise(contractAddress, targetTime, "_d_");
-    const minutelyNoise = getNoise(contractAddress, targetTime, "_m_");
+    const hourlyNoise = getNoise(contractAddress, targetTime, "_h_");
     
-    let baseNoise = isBearish ? -0.015 : 0.015; 
-    let totalNoise = baseNoise + (dailyNoise * 0.01) + (minutelyNoise * 0.005);
+    let baseNoise = isBearish ? -0.012 : 0.012; 
+    let totalNoise = baseNoise + (dailyNoise * 0.005) + (hourlyNoise * 0.002);
     
     let finalPrice = trendPrice * (1 + totalNoise);
-    const targetDays = 3650; 
-    const targetPrice = isToken ? 1000000 : 20000; 
-    
-    if (daysPassed > 0 && daysPassed <= targetDays) {
-        const theoreticalPrice = basePrice * Math.pow((1 + dailyGrowthRate), daysPassed);
-        const progress = theoreticalPrice / targetPrice;
-        finalPrice = finalPrice * (1 + (progress * 0.1)); 
-    }
     return finalPrice < 0.0001 ? 0.0001 : finalPrice;
 }
 
 window.getCurrentTokenPrice = function(contractAddress, basePrice, volatility, config) {
     if(!config) config = { startDate: "2026-11-11" };
     const now = Math.floor(Date.now() / 1000);
-    const startDayTs = new Date(config.startDate + "T00:00:00Z").getTime() / 1000;
+    const startDayTs = Math.floor(new Date(config.startDate + "T00:00:00Z").getTime() / 1000);
+    
     if (now < startDayTs) return { price: basePrice, change24h: 0 };
+    
     const isToken = !!window.TOKEN_PRICES[contractAddress.toLowerCase()];
     const currentPrice = calculatePrice(basePrice, now, startDayTs, contractAddress, isToken);
     const yesterdayPrice = calculatePrice(basePrice, now - 86400, startDayTs, contractAddress, isToken);
+    
     return {
         price: parseFloat(currentPrice.toFixed(6)),
         change24h: yesterdayPrice > 0 ? parseFloat((((currentPrice / yesterdayPrice) - 1) * 100).toFixed(2)) : 0
@@ -108,17 +109,18 @@ window.generatePriceHistory = function(basePrice, timeframe, contractAddress, co
     if (!config) config = { startDate: "2026-11-11" };
     const isToken = !!window.TOKEN_PRICES[contractAddress.toLowerCase()];
     const now = Math.floor(Date.now() / 1000);
-    const startDayTs = new Date(config.startDate + "T00:00:00Z").getTime() / 1000;
     
-    // ✅ ۱ دقیقه و ۱ ساعت حذف شد
+    // ✅ زمان شروع دقیقاً نیمه‌شب UTC (برای تاریخ میلادی درست)
+    const startDayTs = Math.floor(new Date(config.startDate + "T00:00:00Z").getTime() / 1000);
+    
     const secMap = {
         '6h': 21600, '1d': 86400, '7d': 604800, 
         '30d': 2592000, '6m': 15552000, '1y': 31536000, 'all': 31536000
     };
-    let sec = secMap[timeframe] || 86400;
     
-    // ✅ محاسبه تعداد کندل‌ها (همه روزها)
-    let totalCandles = Math.floor((now - startDayTs) / sec);
+    let sec = secMap[timeframe] || 86400;
+    let totalCandles = Math.floor((now - startDayTs) / sec) + 1;
+    
     if (totalCandles < 2) totalCandles = 2;
     
     if (totalCandles > 400) {
@@ -127,16 +129,19 @@ window.generatePriceHistory = function(basePrice, timeframe, contractAddress, co
     }
     
     const candles = [];
-    const currentBucket = Math.floor(now / sec);
-    const startBucket = currentBucket - (totalCandles - 1);
+    const startBucket = Math.floor(startDayTs / sec); 
     
     for (let i = 0; i < totalCandles; i++) {
-        const bucket = startBucket + i;
-        const time = bucket * sec;
+        const time = (startBucket + i) * sec;
+        if (time > now + sec) break;
+        
         const open = calculatePrice(basePrice, time, startDayTs, contractAddress, isToken);
-        const close = calculatePrice(basePrice, time + sec - 1, startDayTs, contractAddress, isToken);
-        const high = Math.max(open, close) * 1.0002;
-        const low = Math.min(open, close) * 0.9998;
+        const close = calculatePrice(basePrice, Math.min(time + sec - 1, now), startDayTs, contractAddress, isToken);
+        
+        // ✅ سایه‌ها فقط ۰.۰۱٪ (بسیار کوتاه، دقیقاً مثل AVAX)
+        const high = Math.max(open, close) * 1.0001;
+        const low = Math.min(open, close) * 0.9999;
+        
         candles.push({
             time: time,
             open: parseFloat(open.toFixed(6)),
@@ -146,14 +151,7 @@ window.generatePriceHistory = function(basePrice, timeframe, contractAddress, co
         });
     }
     
-    if (candles.length > 0) {
-        const last = candles[candles.length - 1];
-        const currentPrice = calculatePrice(basePrice, now, startDayTs, contractAddress, isToken);
-        last.close = parseFloat(currentPrice.toFixed(6));
-        last.high = Math.max(last.open, last.high, currentPrice) * 1.0002;
-        last.low = Math.min(last.open, last.low, currentPrice) * 0.9998;
-    }
     return candles;
 };
 
-console.log("✅ price.js loaded (Fixed)");
+console.log("✅ price.js loaded (Fixed Dates & Wicks)");
