@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════
-// Fox Wallet - Final Market Price Engine (Accurate & Fixed)
+// Fox Wallet - Final Live Engine (Start: 2026-11-11)
 // ═══════════════════════════════════════════════════════════════
 
 window.NFT_PRICES = {
@@ -23,7 +23,7 @@ function stableHash(str) {
     return Math.abs(hash); 
 }
 
-// ✅ تشخیص روزهای نزولی (۸ روز در ماه)
+// ✅ تشخیص روزهای نزولی (دقیقاً ۸ روز تصادفی در هر ماه)
 function isBearishDay(contractAddress, targetTime) {
     const date = new Date(targetTime * 1000);
     const year = date.getUTCFullYear();
@@ -41,25 +41,26 @@ function isBearishDay(contractAddress, targetTime) {
     return bearishDays.includes(day);
 }
 
-// ✅ موتور اصلی: محاسبه قیمت در هر ثانیه (Tick)
+// ✅ موتور قیمت لحظه‌ای (Tick) - بر اساس ثانیه و میلی‌ثانیه
 function getTickPrice(basePrice, targetTime, startDayTs, contractAddress, isToken) {
     if (targetTime <= startDayTs) return basePrice;
     
     const daysPassed = (targetTime - startDayTs) / 86400;
     const dailyGrowthRate = isToken ? 0.0034 : 0.00185;
     
-    // ۱. روند اصلی (رشد بلندمدت)
+    // ۱. روند اصلی رشد بلندمدت
     const trendPrice = basePrice * Math.pow((1 + dailyGrowthRate), daysPassed);
     
-    // ۲. نویز لحظه‌ای (برای هر ثانیه)
-    const tickHash = stableHash(contractAddress + "_tick_" + targetTime);
+    // ۲. نویز لحظه‌ای (هر میلی‌ثانیه تغییر می‌کنه)
+    const msTime = Math.floor(targetTime * 1000);
+    const tickHash = stableHash(contractAddress + "_tick_" + msTime);
     const tickNoise = ((tickHash % 10000) / 10000 - 0.5) * 2; 
     
-    // ۳. روند نزولی روزهای خاص
+    // ۳. روزهای نزولی (۸ روز در ماه)
     const isBearish = isBearishDay(contractAddress, targetTime);
     const trendBias = isBearish ? -0.008 : 0.008; 
     
-    const totalChange = trendBias + (tickNoise * 0.001); // نویز ثانیه‌ای خیلی ریز
+    const totalChange = trendBias + (tickNoise * 0.0005); // نویز خیلی ریز
     let finalPrice = trendPrice * (1 + totalChange);
     
     return finalPrice < 0.0001 ? 0.0001 : finalPrice;
@@ -101,59 +102,46 @@ window.getTokenInfo = function(contractAddress) {
     return null;
 };
 
-// ✅ ساخت کندل‌ها با بازه‌های زمانی دقیق
+// ✅ ساخت کندل‌ها با مبدأ دقیق ۱۱ نوامبر ۲۰۲۶
 window.generatePriceHistory = function(basePrice, timeframe, contractAddress, config) {
     if (!config) config = { startDate: "2026-11-11" };
     
     const isToken = !!window.TOKEN_PRICES[contractAddress.toLowerCase()];
     const now = Math.floor(Date.now() / 1000);
-    const startDayTs = Math.floor(new Date(config.startDate + "T00:00:00Z").getTime() / 1000);
     
-    // ✅ تعریف دقیق ثانیه‌ها برای هر بازه زمانی
+    // ✅ مبدأ مطلق و ثابت: ۱۱ نوامبر ۲۰۲۶ ساعت ۰۰:۰۰ UTC
+    const startDayTs = Math.floor(new Date("2026-11-11T00:00:00Z").getTime() / 1000);
+    
     const secMap = {
-        '6h': 21600,            // ۶ ساعت
-        '1d': 86400,            // ۱ روز
-        '7d': 604800,           // ۷ روز
-        '30d': 2592000,         // ۳۰ روز (۱ ماه)
-        '6m': 15552000,         // ۶ ماه
-        '1y': 31536000,         // ۱ سال
-        'all': 31536000         // کل (هر کندل ۱ سال)
+        '6h': 21600, '1d': 86400, '7d': 604800, 
+        '30d': 2592000, '6m': 15552000, '1y': 31536000, 'all': 31536000
     };
     
-    const sec = secMap[timeframe] || 86400;
+    let sec = secMap[timeframe] || 86400;
     
-    // ✅ محاسبه تعداد بازه‌های کامل گذشته + ۱ برای کندل در حال جریان (امروز)
-    const totalElapsedSeconds = now - startDayTs;
-    let totalCandles = Math.floor(totalElapsedSeconds / sec) + 1;
-    
+    // ✅ محاسبه تعداد کندل‌ها از مبدأ تا الان + ۱ برای کندل در حال جریان
+    let totalCandles = Math.floor((now - startDayTs) / sec) + 1;
     if (totalCandles < 1) totalCandles = 1;
     
-    // محدودیت برای جلوگیری از شلوغی بیش از حد (مثلاً برای ۶ ساعت در ۱۰ سال)
     if (totalCandles > 400) {
-        // اگه تعداد کندل‌ها بیشتر از ۴۰۰ شد، بازه رو بزرگتر می‌کنیم
-        const newSec = Math.ceil(totalElapsedSeconds / 400);
-        totalCandles = Math.floor(totalElapsedSeconds / newSec) + 1;
-        return buildCandles(basePrice, contractAddress, isToken, startDayTs, now, newSec, totalCandles);
+        sec = Math.ceil((now - startDayTs) / 400);
+        totalCandles = Math.floor((now - startDayTs) / sec) + 1;
     }
     
-    return buildCandles(basePrice, contractAddress, isToken, startDayTs, now, sec, totalCandles);
-};
-
-// ✅ تابع کمکی برای ساخت کندل‌ها (برای جلوگیری از تکرار کد)
-function buildCandles(basePrice, contractAddress, isToken, startDayTs, now, sec, totalCandles) {
     const candles = [];
-    const startBucket = Math.floor(startDayTs / sec);
     
     for (let i = 0; i < totalCandles; i++) {
-        const time = (startBucket + i) * sec;
+        // ✅ زمان هر کندل = مبدأ + (شماره کندل * طول کندل)
+        const time = startDayTs + (i * sec);
         if (time > now + sec) break;
         
         const candleEndTime = Math.min(time + sec - 1, now);
         
+        // ✅ قیمت شروع و پایان از موتور لحظه‌ای
         const open = getTickPrice(basePrice, time, startDayTs, contractAddress, isToken);
         const close = getTickPrice(basePrice, candleEndTime, startDayTs, contractAddress, isToken);
         
-        // ✅ سایه‌های طبیعی
+        // سایه‌های طبیعی
         const highHash = stableHash(contractAddress + "_high_" + time);
         const lowHash = stableHash(contractAddress + "_low_" + time);
         const high = Math.max(open, close) * (1 + ((highHash % 50) / 10000)); 
@@ -167,7 +155,8 @@ function buildCandles(basePrice, contractAddress, isToken, startDayTs, now, sec,
             close: parseFloat(close.toFixed(6))
         });
     }
+    
     return candles;
-}
+};
 
-console.log("✅ price.js loaded (Accurate Timeframes & Today's Candle)");
+console.log("✅ price.js loaded (Live & Accurate)");
