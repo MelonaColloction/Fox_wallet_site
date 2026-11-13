@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════
-// Fox Wallet - True Live Synced Market Engine
+// Fox Wallet - True Live Synced Market Engine (Single Price)
 // ═══════════════════════════════════════════════════════════════
 
 window.NFT_PRICES = {
@@ -54,7 +54,6 @@ function getTickPrice(basePrice, targetTime, startDayTs, contractAddress, isToke
     
     const msTime = Math.floor(targetTime * 1000);
     const tickHash = stableHash(contractAddress + "_tick_" + msTime);
-    // نویز ملایم برای نوسانات ثانیه‌ای
     const tickNoise = ((tickHash % 10000) / 10000 - 0.5) * 2 * 0.005; 
     
     const isBearish = isBearishDay(contractAddress, targetTime);
@@ -66,7 +65,7 @@ function getTickPrice(basePrice, targetTime, startDayTs, contractAddress, isToke
     return finalPrice < 0.0001 ? 0.0001 : finalPrice;
 }
 
-// ✅ قیمت لحظه‌ای (این تابع هر لحظه صدا زده می‌شه)
+// ✅ توابع قیمت لحظه‌ای (دقیقاً یک عدد برای هر لحظه)
 window.getLivePrice = function(contractAddress, basePrice, isToken) {
     const now = Math.floor(Date.now() / 1000);
     const startDayTs = Math.floor(new Date("2026-11-11T00:00:00Z").getTime() / 1000);
@@ -75,13 +74,13 @@ window.getLivePrice = function(contractAddress, basePrice, isToken) {
 
 window.getCurrentTokenPrice = function(contractAddress, basePrice, volatility, config) {
     if(!config) config = { startDate: "2026-11-11" };
+    const isToken = !!window.TOKEN_PRICES[contractAddress.toLowerCase()];
     const now = Math.floor(Date.now() / 1000);
     const startDayTs = Math.floor(new Date(config.startDate + "T00:00:00Z").getTime() / 1000);
     
     if (now < startDayTs) return { price: basePrice, change24h: 0 };
     
-    const isToken = !!window.TOKEN_PRICES[contractAddress.toLowerCase()];
-    const currentPrice = getTickPrice(basePrice, now, startDayTs, contractAddress, isToken);
+    const currentPrice = getLivePrice(contractAddress, basePrice, isToken);
     const yesterdayPrice = getTickPrice(basePrice, now - 86400, startDayTs, contractAddress, isToken);
     
     return {
@@ -109,7 +108,7 @@ window.getTokenInfo = function(contractAddress) {
     return null;
 };
 
-// ✅ ساخت کندل‌ها (کندل آخر دقیقاً از قیمت زنده)
+// ✅ ساخت کندل‌ها
 window.generatePriceHistory = function(basePrice, timeframe, contractAddress, config) {
     if (!config) config = { startDate: "2026-11-11" };
     
@@ -123,14 +122,11 @@ window.generatePriceHistory = function(basePrice, timeframe, contractAddress, co
     };
     
     let sec = secMap[timeframe] || 86400;
-    
-    const totalElapsedSeconds = now - startDayTs;
-    let totalCandles = Math.floor(totalElapsedSeconds / sec) + 1;
-    
+    let totalCandles = Math.floor((now - startDayTs) / sec) + 1;
     const candles = [];
     
-    // ✅ قیمت زنده فعلی برای کندل آخر
-    const livePriceNow = getTickPrice(basePrice, now, startDayTs, contractAddress, isToken);
+    // ✅ قیمت زنده فعلی برای آخرین کندل
+    const livePrice = window.getLivePrice(contractAddress, basePrice, isToken);
     
     for (let i = 0; i < totalCandles; i++) {
         const time = startDayTs + (i * sec);
@@ -140,7 +136,7 @@ window.generatePriceHistory = function(basePrice, timeframe, contractAddress, co
         const candleEndTime = isLastCandle ? now : (time + sec - 1);
         
         const open = getTickPrice(basePrice, time, startDayTs, contractAddress, isToken);
-        const close = isLastCandle ? livePriceNow : getTickPrice(basePrice, candleEndTime, startDayTs, contractAddress, isToken);
+        const close = isLastCandle ? livePrice : getTickPrice(basePrice, candleEndTime, startDayTs, contractAddress, isToken);
         
         const highHash = stableHash(contractAddress + "_high_" + time);
         const lowHash = stableHash(contractAddress + "_low_" + time);
@@ -159,4 +155,4 @@ window.generatePriceHistory = function(basePrice, timeframe, contractAddress, co
     return candles;
 };
 
-console.log("✅ price.js loaded (True Live Synced)");
+console.log("✅ price.js loaded (Single Source of Truth)");
