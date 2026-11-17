@@ -312,34 +312,6 @@ body {
 .nft-price-unit { font-size: 0.55rem; color: var(--accent-gold); margin-top: 3px; font-weight: 600; display: block; }
 .nft-price-total { font-size: 0.6rem; color: var(--accent-success); margin-top: 2px; font-weight: 700; display: block; }
 
-
-/* NFT gallery controls and responsive display modes */
-.nft-gallery-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px;margin:4px 0 12px;border:1px solid var(--border-light);border-radius:16px;background:var(--bg-card)}
-.nft-gallery-heading{display:flex;flex-direction:column;gap:3px;min-width:0}
-.nft-gallery-heading span{color:var(--text-primary);font-size:.82rem;font-weight:800}
-.nft-gallery-heading small{color:var(--text-muted);font-size:.62rem}
-.nft-view-switch{display:flex;gap:4px;padding:4px;border-radius:12px;background:var(--bg-input);flex-shrink:0}
-.nft-view-btn{width:34px;height:34px;border:0;border-radius:9px;cursor:pointer;color:var(--text-secondary);background:transparent;font-size:1.05rem}
-.nft-view-btn.active{color:var(--bg-primary);background:var(--accent-success);box-shadow:0 3px 10px rgba(34,197,94,.18)}
-#nftList.view-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
-#nftList.view-large{grid-template-columns:minmax(0,1fr)}
-#nftList.view-large .nft-card{aspect-ratio:auto;min-height:0;padding:14px}
-#nftList.view-large .nft-card .nft-image{aspect-ratio:1.15/1;max-height:390px}
-#nftList.view-featured{grid-template-columns:repeat(2,minmax(0,1fr))}
-#nftList.view-featured .nft-card:first-child{grid-column:1/-1;aspect-ratio:auto;padding:14px}
-#nftList.view-featured .nft-card:first-child .nft-image{aspect-ratio:16/9;max-height:420px}
-#nftList.view-featured .nft-card:first-child .nft-name{font-size:.95rem}
-#nftList.view-list{grid-template-columns:minmax(0,1fr);gap:8px}
-#nftList.view-list .nft-card{aspect-ratio:auto;min-height:94px;flex-direction:row;justify-content:flex-start;text-align:start;gap:12px;padding:10px;position:relative}
-#nftList.view-list .nft-card .nft-image{width:76px;height:76px;aspect-ratio:1/1;margin:0;border-radius:12px;flex-shrink:0}
-#nftList.view-list .nft-card .nft-name{white-space:normal;margin:0;width:auto;flex:1}
-#nftList video.nft-image{object-fit:cover}
-.nft-detail-media{cursor:zoom-in}
-.send-modal-pro .send-field-label{gap:8px}
-.send-modal-pro input:focus{outline:none}
-.send-modal-pro .send-address-field:focus-within,.send-modal-pro .send-amount-field:focus-within{border-color:var(--accent-success);box-shadow:0 0 0 3px rgba(74,222,128,.10)}
-@media(max-width:420px){.nft-gallery-toolbar{padding:9px;gap:6px}.nft-view-btn{width:30px;height:32px}#nftList.view-list .nft-card{gap:8px}#nftList.view-list .nft-card .nft-image{width:66px;height:66px}}
-
 /* TX */
 .tx-list { display: flex; flex-direction: column; gap: 10px; margin: 6px 0 10px 0; }
 .tx-item {
@@ -351,8 +323,8 @@ body {
 .tx-item.incoming { border-right: 3px solid var(--accent-success); }
 .tx-item.outgoing { border-right: 3px solid var(--accent-primary); }
 .tx-item .tx-image {
-    width: 50px; height: 50px; min-width:50px; min-height:50px; border-radius: 10px; object-fit: cover;
-    background: var(--bg-input); flex-shrink: 0; display:block;
+    width: 50px; height: 50px; border-radius: 10px; object-fit: cover;
+    background: var(--bg-input); flex-shrink: 0;
 }
 .tx-item .tx-image.placeholder {
     display: flex; align-items: center; justify-content: center;
@@ -433,27 +405,6 @@ body {
 }
 .send-tab.active { background: var(--accent-success); color: var(--bg-primary); }
 .send-section { padding: 8px 0; }
-
-/* Professional wallet send experience + NFT media */
-.send-modal-pro { max-width: 480px; padding: 22px; background: linear-gradient(160deg,var(--bg-secondary),var(--bg-card)); }
-.send-modal-pro .send-intro { display:flex; align-items:center; gap:12px; padding:12px; margin:10px 0 16px; border:1px solid var(--border-light); border-radius:16px; background:var(--bg-status); }
-.send-modal-pro .send-intro-icon { width:42px;height:42px;display:grid;place-items:center;border-radius:14px;background:var(--accent-bg-success);font-size:1.35rem; }
-.send-modal-pro .send-field-label { display:flex;justify-content:space-between;align-items:center;font-size:.7rem;font-weight:700;color:var(--text-secondary);margin:12px 3px 6px; }
-.send-modal-pro .send-address-field,.send-modal-pro .send-amount-field { background:var(--bg-input);border:1px solid var(--border-light);border-radius:14px;padding:5px; }
-.send-modal-pro .send-address-field input,.send-modal-pro .send-amount-field input { background:transparent;border:0;min-width:0; }
-.send-modal-pro .send-tool-btn { min-width:42px;border-radius:11px; }
-.send-modal-pro .send-max-btn { border:0;border-radius:9px;padding:7px 10px;background:var(--accent-bg-success);color:var(--accent-success);font-weight:800;cursor:pointer; }
-.send-modal-pro .send-network-note { display:flex;gap:8px;align-items:center;padding:10px 12px;border-radius:12px;background:var(--bg-status);border:1px solid var(--border-light);font-size:.65rem;color:var(--text-muted);margin:12px 0; }
-.send-modal-pro .send-primary-btn { min-height:48px;border-radius:14px;font-size:.88rem;font-weight:800;box-shadow:0 8px 22px rgba(34,197,94,.14); }
-.send-token-choice { flex:1;min-width:0;padding:10px 7px;text-align:center;background:var(--bg-item);border:1px solid var(--border-light);border-radius:14px;cursor:pointer;transition:.2s; }
-.send-token-choice.active { background:var(--accent-bg-success);border:2px solid var(--accent-success);padding:9px 6px; }
-.send-token-choice .choice-logo { width:34px;height:34px;border-radius:50%;background:var(--bg-input);display:grid;place-items:center;font-size:1rem;margin:0 auto 5px;overflow:hidden; }
-.nft-media { display:block;width:100%;height:100%;object-fit:cover;background:var(--bg-input);pointer-events:none; }
-.nft-card .nft-media { width:100%;aspect-ratio:1/1;height:auto;border-radius:12px;margin-bottom:8px;flex-shrink:0;object-fit:cover; }
-.nft-detail-media { width:min(100%,420px);height:auto;max-height:58vh;aspect-ratio:1/1;object-fit:cover;border-radius:22px;background:#080b10;border:1px solid var(--border-light);margin:0 auto 14px;display:block;box-shadow:0 12px 36px rgba(0,0,0,.28); }
-.nft-detail-image { width:min(100%,420px);height:auto;max-height:58vh;aspect-ratio:1/1;object-fit:contain;border-radius:22px;background:#080b10; }
-.nft-detail-hero { width:100%; }
-.nft-selector-item .nft-media { width:100%;aspect-ratio:1/1;border-radius:8px;object-fit:cover; }
 .balance-info { font-size: 0.7rem; color: var(--text-muted); margin: 8px 4px; text-align: left; }
 
 .nft-selector-grid {
@@ -1419,20 +1370,13 @@ body {
 
         <!-- TAB: NFTs -->
         <div class="tab-content" id="tabContentNFTs">
-            <div class="nft-gallery-toolbar" aria-label="NFT display options">
-                <div class="nft-gallery-heading">
-                    <span id="nftGalleryTitle">نمایش NFTها</span>
-                    <small id="nftGallerySubtitle">حالت نمایش را انتخاب کنید</small>
-                </div>
-                <div class="nft-view-switch" role="group" aria-label="NFT view mode">
-                    <button type="button" class="nft-view-btn" data-view="grid" onclick="setNFTViewMode('grid')" aria-label="Grid view" title="Grid">▦</button>
-                    <button type="button" class="nft-view-btn" data-view="large" onclick="setNFTViewMode('large')" aria-label="Large view" title="Large">▣</button>
-                    <button type="button" class="nft-view-btn" data-view="featured" onclick="setNFTViewMode('featured')" aria-label="Featured view" title="Featured">▤</button>
-                    <button type="button" class="nft-view-btn" data-view="list" onclick="setNFTViewMode('list')" aria-label="List view" title="List">☷</button>
-                </div>
-            </div>
-            <div class="nft-grid view-grid" id="nftList">
+            <div class="nft-grid" id="nftList">
                 <div class="empty-state" style="grid-column: 1/-1;" id="emptyNFTMsg">هیچ NFT ای نیست</div>
+            </div>
+            <div class="nft-pagination" id="nftPagination" style="display:none;">
+                <button class="btn btn-secondary" id="nftPrevPage" onclick="changeNFTPage(-1)">قبلی / Previous</button>
+                <span id="nftPageInfo">صفحه ۱ / Page 1</span>
+                <button class="btn btn-secondary" id="nftNextPage" onclick="changeNFTPage(1)">بعدی / Next</button>
             </div>
         </div>
 
@@ -1724,49 +1668,41 @@ body {
 
     <!-- SEND MODAL -->
     <div class="modal-overlay closed" id="sendModal">
-        <div class="modal send-modal-pro">
+        <div class="modal">
             <h2 style="color:var(--accent-success);" id="sendModalTitle">📤 ارسال</h2>
-            <div class="desc" id="sendModalDesc">چه چیزی ارسال می‌کنید؟</div>
-            <div class="send-intro"><div class="send-intro-icon">🔐</div><div><div style="font-size:.78rem;font-weight:800;color:var(--text-primary);" data-i18n="sendSecureTitle">ارسال امن دارایی</div><div style="font-size:.63rem;color:var(--text-muted);margin-top:3px;" data-i18n="sendSecureDesc">اطلاعات تراکنش را قبل از تأیید بررسی کنید.</div></div></div>
+            <div class="desc" id="sendModalDesc">دارایی موردنظر را انتخاب و ارسال کنید / Choose and send an asset</div>
             <div class="send-tabs">
-                <button class="send-tab active" id="tabToken" onclick="switchSendTab('token')">💰 توکن</button>
-                <button class="send-tab" id="tabNFT" onclick="switchSendTab('nft')">🖼️ NFT</button>
+                <button class="send-tab active" id="tabToken" onclick="switchSendTab('token')">💰 ارسال توکن / Send Token</button>
+                <button class="send-tab" id="tabNFT" onclick="switchSendTab('nft')">🖼️ ارسال NFT / Send NFT</button>
             </div>
             <div id="sendTokenSection" class="send-section">
                 <div style="margin-bottom:8px;">
-                    <div class="send-field-label" id="sendSelectTokenLabel" data-i18n="sendSelectToken">انتخاب توکن:</div>
+                    <div style="font-size:0.7rem;color:var(--text-muted);margin-bottom:6px;" id="sendSelectTokenLabel">انتخاب توکن / Select Token:</div>
                     <div id="sendTokenSelector" style="display:flex;gap:8px;"></div>
                 </div>
-                <div class="send-field-label"><span data-i18n="recipient">آدرس گیرنده</span><span style="color:var(--text-muted);" data-i18n="sendNetwork">شبکه Avalanche</span></div>
-                <div class="input-group send-address-field">
-                    <input type="text" id="tokenSendTo" placeholder="0x..." autocomplete="off" spellcheck="false" data-i18n-placeholder="recipientAddressPlaceholder" />
-                    <button class="btn btn-secondary send-tool-btn" onclick="openScannerForSend()" title="Scan QR" data-i18n-title="scanQR">▦</button>
-                    <button class="btn btn-secondary send-tool-btn" onclick="openFavoritesForSend()" title="Saved addresses" data-i18n-title="savedAddresses">★</button>
+                <div class="input-group">
+                    <input type="text" id="tokenSendTo" placeholder="آدرس گیرنده / Recipient Address" />
+                    <button class="btn btn-secondary" onclick="openScannerForSend()" style="padding: 10px 12px; flex-shrink:0;">📷</button>
+                    <button class="btn btn-secondary" onclick="openFavoritesForSend()" style="padding: 10px 12px; flex-shrink:0;">⭐</button>
                 </div>
-                <div class="send-field-label"><span data-i18n="sendAmountLabel">مقدار ارسال</span><button type="button" class="send-max-btn" onclick="setSendTokenMax()">MAX</button></div>
-                <div class="input-group send-amount-field">
-                    <input type="number" id="tokenAmount" placeholder="0.00" step="any" min="0" inputmode="decimal" />
+                <div class="input-group">
+                    <input type="number" id="tokenAmount" placeholder="مقدار / Amount" step="any" min="0" />
                     <span class="input-suffix" id="sendTokenSymbol">AVAX</span>
                 </div>
-                <div class="balance-info"><span id="tokenBalanceInfo">موجودی: 0 AVAX</span></div>
-                <div class="send-network-note">🛡️ <span data-i18n="sendTokenSafety">تراکنش پس از تأیید شما امضا می‌شود. کارمزد شبکه جداگانه محاسبه خواهد شد.</span></div>
-                <button class="btn btn-success btn-full send-primary-btn" onclick="startSendToken()" id="tokenSendBtn">ارسال توکن</button>
+                <div class="balance-info"><span id="tokenBalanceInfo">موجودی / Balance: 0 AVAX</span></div>
+                <button class="btn btn-success btn-full" onclick="startSendToken()" id="tokenSendBtn">ارسال توکن / Send Token</button>
             </div>
             <div id="sendNFTSection" class="send-section hidden">
-                <div class="send-field-label"><span data-i18n="sendChooseNFT">انتخاب دارایی NFT</span><span style="color:var(--text-muted);" data-i18n="yourAssets">دارایی‌های شما</span></div>
                 <div class="nft-selector-grid" id="sendNFTGrid"></div>
-                <div class="send-field-label"><span>آدرس گیرنده</span><span style="color:var(--text-muted);">شبکه Avalanche</span></div>
-                <div class="input-group send-address-field">
-                    <input type="text" id="nftSendTo" placeholder="0x..." autocomplete="off" spellcheck="false" data-i18n-placeholder="recipientAddressPlaceholder" />
-                    <button class="btn btn-secondary send-tool-btn" onclick="openScannerForNFT()" title="اسکن QR">▦</button>
-                    <button class="btn btn-secondary send-tool-btn" onclick="openFavoritesForNFT()" title="آدرس‌های ذخیره‌شده">★</button>
+                <div class="input-group">
+                    <input type="text" id="nftSendTo" placeholder="آدرس گیرنده / Recipient Address" />
+                    <button class="btn btn-secondary" onclick="openScannerForNFT()" style="padding: 10px 12px; flex-shrink:0;">📷</button>
+                    <button class="btn btn-secondary" onclick="openFavoritesForNFT()" style="padding: 10px 12px; flex-shrink:0;">⭐</button>
                 </div>
-                <div class="send-field-label"><span data-i18n="sendQuantity">تعداد</span><span style="color:var(--text-muted);" data-i18n="sendQuantityHint">بر اساس موجودی انتخاب‌شده</span></div>
-                <div class="input-group send-amount-field"><input type="number" id="nftAmount" placeholder="1" step="1" min="1" value="1" inputmode="numeric" /></div>
-                <div class="send-network-note">🖼️ <span data-i18n="sendNFTSafety">انتقال NFT برگشت‌ناپذیر است؛ مجموعه، شناسه و گیرنده را در مرحله تأیید بررسی کنید.</span></div>
-                <button class="btn btn-success btn-full send-primary-btn" onclick="startSendNFT()" id="nftSendBtn">ارسال NFT</button>
+                <div class="input-group"><input type="number" id="nftAmount" placeholder="تعداد / Quantity" step="1" min="1" value="1" /></div>
+                <button class="btn btn-success btn-full" onclick="startSendNFT()" id="nftSendBtn">ارسال NFT / Send NFT</button>
             </div>
-            <button class="btn btn-outline btn-full" onclick="closeSendModal()" style="margin-top:8px;" id="sendCancelBtn">❌ لغو</button>
+            <button class="btn btn-outline btn-full" onclick="closeSendModal()" style="margin-top:8px;" id="sendCancelBtn">❌ لغو / Cancel</button>
         </div>
     </div>
 
@@ -1991,7 +1927,6 @@ async function showAllFilteredTx(filterType, filterValue, titleText) {
         }
         html += '</div>';
         body.innerHTML = html;
-        hydrateNFTVideos(body, 'any');
     }
     
     modal.classList.remove('closed');
@@ -2001,13 +1936,12 @@ function closeAllFilteredTx() {
     document.getElementById('allFilteredTxModal').classList.add('closed');
 }
   // باز کردن صفحه NFT
-function openNFTDetailPage(contract, name, image, collection, nftTokenId = 1) {
+function openNFTDetailPage(contract, name, image, collection) {
     const overlay = document.getElementById('nftDetailOverlay');
     const titleEl = document.getElementById('nftDetailPageTitle');
     const contentEl = document.getElementById('nftDetailPageContent');
     
     if (!overlay || !contentEl) return;
-    stopNFTVideos(document.getElementById('nftList') || document);
     titleEl.textContent = name;
 
     const nftInfo = window.NFT_PRICES.collections[contract.toLowerCase()] || {};
@@ -2030,7 +1964,9 @@ function openNFTDetailPage(contract, name, image, collection, nftTokenId = 1) {
     const changeClass = change24h >= 0 ? 'up' : 'down';
     const changeSign = change24h >= 0 ? '+' : '';
 
-    let imageHtml = renderNFTMedia(image, 'nft-detail-media', name);
+    let imageHtml = isGuardianVideo(image)
+        ? `<video class="guardian-video-detail" src="image/Guardian.mp4" controls playsinline preload="metadata" poster="${guardianPosterData || ''}">مرورگر شما از پخش ویدئو پشتیبانی نمی‌کند / Your browser does not support video.</video>`
+        : (image ? `<img src="${image}" class="nft-detail-image" onerror="this.outerHTML='&lt;div class=\'nft-detail-image placeholder\'&gt;🎨&lt;/div&gt;'" />` : `<div class="nft-detail-image placeholder">🎨</div>`);
 
     const chartTabsHtml = `
     <div class="timeframe-selector-wrap">
@@ -2124,13 +2060,10 @@ async function renderNFTTxHistory(contractAddress) {
         html += await renderTxItem(display[i], realIndex);
     }
     container.innerHTML = html;
-    hydrateNFTVideos(container, 'any');
 }
 
 function closeNFTDetailPage() {
-    const detailOverlay = document.getElementById('nftDetailOverlay');
-    if(detailOverlay)stopNFTVideos(detailOverlay);
-    if(detailOverlay)detailOverlay.classList.remove('show');
+    document.getElementById('nftDetailOverlay').classList.remove('show');
     document.body.style.overflow = '';
     if (tokenChart) { try { tokenChart.remove(); } catch(e) {} tokenChart = null; }
 }
@@ -2493,17 +2426,6 @@ viewAllNftTx: 'مشاهده همه تراکنش‌های این NFT',
         name: 'نام', favoriteNameRequired: '❌ نام را وارد کنید', favoriteInvalidAddress: '❌ آدرس معتبر نیست',
         favoriteAdded: '✅ آدرس ذخیره شد', favoriteDeleted: '🗑️ آدرس حذف شد',
         favoriteAlreadySaved: '❌ قبلاً ذخیره شده',
-        nftGalleryTitle: 'نمایش NFTها', nftGallerySubtitle: 'حالت نمایش را انتخاب کنید',
-        nftViewGrid: 'شبکه‌ای', nftViewLarge: 'بزرگ', nftViewFeatured: 'ویژه', nftViewList: 'فهرستی',
-        sendSecureTitle: 'ارسال امن دارایی', sendSecureDesc: 'اطلاعات تراکنش را قبل از تأیید بررسی کنید.',
-        sendSelectToken: 'انتخاب توکن:', sendNetwork: 'شبکه Avalanche', sendAmountLabel: 'مقدار ارسال',
-        sendTokenSafety: 'تراکنش پس از تأیید شما امضا می‌شود. کارمزد شبکه جداگانه محاسبه خواهد شد.',
-        sendChooseNFT: 'انتخاب دارایی NFT', yourAssets: 'دارایی‌های شما', sendQuantity: 'تعداد',
-        sendQuantityHint: 'بر اساس موجودی انتخاب‌شده',
-        estimatedNetworkFee: 'کارمزد تخمینی شبکه', feeEstimateUnavailable: 'برآورد کارمزد در دسترس نیست',
-        sendNFTSafety: 'انتقال NFT برگشت‌ناپذیر است؛ مجموعه، شناسه و گیرنده را در مرحله تأیید بررسی کنید.',
-        recipientAddressPlaceholder: 'آدرس گیرنده (0x...)', scanQR: 'اسکن QR', savedAddresses: 'آدرس‌های ذخیره‌شده',
-
         allNFTsTitle: '🖼️ همه NFT ها', nftDetailTitle: '🖼️ جزئیات NFT',
         detailTokenId: '🆔 شناسه:', detailAmount: '📦 تعداد:', detailFrom: '📤 از:', detailTo: '📥 به:',
         detailGas: '⛽ کارمزد:', detailTime: '🕐 زمان:', detailHash: '🔗 هش:', detailValue: '💰 مقدار:',
@@ -2628,17 +2550,6 @@ viewAllNftTx: 'View All NFT Transactions',
         name: 'Name', favoriteNameRequired: '❌ Enter a name', favoriteInvalidAddress: '❌ Invalid address',
         favoriteAdded: '✅ Address saved', favoriteDeleted: '🗑️ Address deleted',
         favoriteAlreadySaved: '❌ Already saved',
-        nftGalleryTitle: 'NFT display', nftGallerySubtitle: 'Choose a layout',
-        nftViewGrid: 'Grid', nftViewLarge: 'Large', nftViewFeatured: 'Featured', nftViewList: 'List',
-        sendSecureTitle: 'Secure asset transfer', sendSecureDesc: 'Review transaction details before confirming.',
-        sendSelectToken: 'Select token:', sendNetwork: 'Avalanche network', sendAmountLabel: 'Amount to send',
-        sendTokenSafety: 'The transaction is signed only after your confirmation. Network fees are calculated separately.',
-        sendChooseNFT: 'Choose an NFT', yourAssets: 'Your assets', sendQuantity: 'Quantity',
-        sendQuantityHint: 'Based on the selected NFT balance',
-        estimatedNetworkFee: 'Estimated network fee', feeEstimateUnavailable: 'Fee estimate unavailable',
-        sendNFTSafety: 'NFT transfers are irreversible. Verify the collection, token ID, and recipient before confirming.',
-        recipientAddressPlaceholder: 'Recipient address (0x...)', scanQR: 'Scan QR', savedAddresses: 'Saved addresses',
-
         allNFTsTitle: '🖼️ All NFTs', nftDetailTitle: '🖼️ NFT Details',
         detailTokenId: '🆔 ID:', detailAmount: '📦 Amount:', detailFrom: '📤 From:', detailTo: '📥 To:',
         detailGas: '⛽ Gas:', detailTime: '🕐 Time:', detailHash: '🔗 Hash:', detailValue: '💰 Value:',
@@ -3401,10 +3312,6 @@ async function refreshTokenBalances() {
 }
 
 function switchMainTab(tab) {
-    const wasNFTTab=document.getElementById('tabContentNFTs')?.classList.contains('active');
-    if(wasNFTTab&&tab!=='nfts'){
-        stopNFTVideos(document.getElementById('tabContentNFTs')||document);
-    }
     document.getElementById('tabTokensBtn').classList.toggle('active', tab === 'tokens');
     document.getElementById('tabNFTsBtn').classList.toggle('active', tab === 'nfts');
     document.getElementById('tabHistoryBtn').classList.toggle('active', tab === 'history');
@@ -4015,204 +3922,88 @@ async function loadAllNFTs(forceFetch = false) {
     }
 }
 
-// NFT media cache: videos replay automatically 10 seconds after each playback.
-const NFT_MEDIA_DB = 'FoxWalletNFTMedia';
-const NFT_MEDIA_STORE = 'media';
-const NFT_MEDIA_URLS = window.__foxNftMediaUrls || (window.__foxNftMediaUrls = {});
-const NFT_VIDEO_INITIALIZED = new WeakSet();
-const NFT_VIDEO_REPLAY_DELAY = 10000;
-function isNFTVideo(src){return /\.(mp4|webm|ogg|mov)(?:[?#].*)?$/i.test(String(src||''));}
-function openNFTMediaDB(){
-    return new Promise((resolve,reject)=>{
-        if(!('indexedDB' in window))return reject(new Error('IndexedDB unavailable'));
-        const req=indexedDB.open(NFT_MEDIA_DB,1);
-        req.onupgradeneeded=()=>{if(!req.result.objectStoreNames.contains(NFT_MEDIA_STORE))req.result.createObjectStore(NFT_MEDIA_STORE);};
-        req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);
-    });
-}
-async function getCachedNFTMedia(key){
-    const db=await openNFTMediaDB();
-    return new Promise((resolve,reject)=>{
-        const tx=db.transaction(NFT_MEDIA_STORE,'readonly'),req=tx.objectStore(NFT_MEDIA_STORE).get(key);
-        req.onsuccess=()=>resolve(req.result||null);req.onerror=()=>reject(req.error);
-        tx.oncomplete=()=>db.close();tx.onerror=()=>{db.close();reject(tx.error);};
-    });
-}
-async function putCachedNFTMedia(key,blob){
-    const db=await openNFTMediaDB();
-    return new Promise((resolve,reject)=>{
-        const tx=db.transaction(NFT_MEDIA_STORE,'readwrite');tx.objectStore(NFT_MEDIA_STORE).put(blob,key);
-        tx.oncomplete=()=>{db.close();resolve(true);};tx.onerror=()=>{db.close();reject(tx.error);};tx.onabort=()=>{db.close();reject(tx.error);};
-    });
-}
-function renderNFTMedia(src,className,alt='NFT media'){
-    if(!src)return `<div class="${className} placeholder">🎨</div>`;
-    const safeSrc=String(src).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
-    const safeAlt=String(alt).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
-    if(isNFTVideo(src))return `<video class="${className} nft-media" data-nft-video="${safeSrc}" muted playsinline webkit-playsinline preload="metadata" disablepictureinpicture controlslist="nodownload noplaybackrate" aria-label="${safeAlt}"></video>`;
-    return `<img src="${safeSrc}" alt="${safeAlt}" class="${className}" loading="lazy" />`;
-}
-function stopNFTVideos(root=document){
-    // Pause while a view is being hidden, but keep an already scheduled
-    // 10-second replay timer so the playback cycle is not reset.
-    root.querySelectorAll('video[data-nft-video]').forEach(v=>{
-        try{v.pause();}catch(e){}
-        if(v._nftStartTimer){clearTimeout(v._nftStartTimer);v._nftStartTimer=null;}
-    });
-}
-function nftVideoIsVisible(video){return !!(video.isConnected && video.getClientRects().length && document.visibilityState!=='hidden');}
-function scheduleNFTVideoReplay(video){
-    if(video._nftReplayTimer)clearTimeout(video._nftReplayTimer);
-    video._nftReplayTimer=setTimeout(()=>{
-        video._nftReplayTimer=null;
-        if(!video.isConnected)return;
-        if(!nftVideoIsVisible(video)){scheduleNFTVideoReplay(video);return;}
-        try{video.currentTime=0;}catch(e){}
-        const p=video.play();if(p?.catch)p.catch(err=>console.warn('NFT video replay blocked:',err));
-    },NFT_VIDEO_REPLAY_DELAY);
-}
-async function hydrateNFTVideos(root=document,section='any'){
-    const videos = [];
-    if(root && root.matches && root.matches('video[data-nft-video]')) videos.push(root);
-    if(root && root.querySelectorAll) videos.push(...root.querySelectorAll('video[data-nft-video]'));
-    for(const video of videos){
-        if(nftVideoIntersectionObserver && !video._nftIntersectionObserved){
-            nftVideoIntersectionObserver.observe(video);
-            video._nftIntersectionObserved=true;
-        }
-        const path=video.dataset.nftVideo;
-        try{
-            if(!video.src){
-                let objectUrl=NFT_MEDIA_URLS[path];
-                if(!objectUrl){
-                    let blob=await getCachedNFTMedia(path).catch(()=>null);
-                    if(!blob){const response=await fetch(path,{cache:'force-cache'});if(!response.ok)throw new Error('Video not found: '+path);blob=await response.blob();await putCachedNFTMedia(path,blob).catch(()=>{});}
-                    objectUrl=URL.createObjectURL(blob);NFT_MEDIA_URLS[path]=objectUrl;
-                }
-                if(!video.isConnected)continue;
-                video.muted=true;video.defaultMuted=true;video.loop=false;video.autoplay=false;video.controls=false;video.playsInline=true;
-                video.src=objectUrl;video.load();
-            }
-            if(!NFT_VIDEO_INITIALIZED.has(video)){
-                NFT_VIDEO_INITIALIZED.add(video);
-                video.addEventListener('ended',()=>scheduleNFTVideoReplay(video));
-                const start=()=>{
-                    if(!video.isConnected)return;
-                    if(!nftVideoIsVisible(video)){video._nftStartTimer=setTimeout(start,1000);return;}
-                    const p=video.play();if(p?.catch)p.catch(err=>console.warn('NFT autoplay blocked:',err));
-                };
-                if(video.readyState>=2)start();else video.addEventListener('canplay',start,{once:true});
-            } else if(video.paused && !video._nftReplayTimer && nftVideoIsVisible(video)) {
-                // Resume a video paused by navigation/visibility without restarting its cycle.
-                const p=video.play();if(p?.catch)p.catch(err=>console.warn('NFT video resume blocked:',err));
-            }
-        }catch(err){console.warn('NFT media load/cache:',err);}
-    }
-}
+let nftCurrentPage = 0;
+let guardianPosterData = null;
 
-// Global manager: every NFT video inserted anywhere in the wallet is hydrated,
-// including transaction history, detail modals, filtered lists and dynamically
-// rendered sections. Each completed playback is followed by a 10-second pause.
-let nftVideoDomObserver = null;
-let nftVideoIntersectionObserver = null;
-function startGlobalNFTVideoManager(){
-    if(!nftVideoDomObserver && document.documentElement){
-        nftVideoDomObserver = new MutationObserver(mutations=>{
-            for(const mutation of mutations){
-                for(const node of mutation.addedNodes){
-                    if(node.nodeType===1) hydrateNFTVideos(node,'any');
-                }
-            }
+function isGuardianVideo(src) { return !!src && /(?:^|\/)Guardian\.mp4(?:[?#].*)?$/i.test(src); }
+function nftThumbnailMarkup(src, className, altText = 'NFT') {
+    if (!src) return `<div class="${className} placeholder">🎨</div>`;
+    if (isGuardianVideo(src)) return `<img class="${className}" data-guardian-frame="${src}" alt="${altText}" src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" />`;
+    return `<img src="${src}" alt="${altText}" class="${className}" onerror="this.outerHTML='&lt;div class=\'${className} placeholder\'&gt;🎨&lt;/div&gt;'" />`;
+}
+async function hydrateGuardianFrames(root = document) {
+    const targets = root.querySelectorAll ? root.querySelectorAll('img[data-guardian-frame]') : [];
+    if (!targets.length) return;
+    if (!guardianPosterData) {
+        guardianPosterData = await new Promise(resolve => {
+            const video = document.createElement('video');
+            video.preload = 'auto'; video.muted = true; video.playsInline = true;
+            video.src = 'image/Guardian.mp4';
+            const capture = () => {
+                try {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = video.videoWidth || 640; canvas.height = video.videoHeight || 640;
+                    const ctx = canvas.getContext('2d'); ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                    resolve(canvas.toDataURL('image/jpeg', .82));
+                } catch (e) { resolve(''); }
+            };
+            video.addEventListener('seeked', capture, { once:true });
+            video.addEventListener('loadeddata', () => { try { video.currentTime = Math.min(.15, video.duration || .15); } catch(e) { capture(); } }, { once:true });
+            video.addEventListener('error', () => resolve(''), { once:true });
+            video.load();
         });
-        nftVideoDomObserver.observe(document.documentElement,{childList:true,subtree:true});
     }
-    if('IntersectionObserver' in window && !nftVideoIntersectionObserver){
-        nftVideoIntersectionObserver = new IntersectionObserver(entries=>{
-            for(const entry of entries){
-                const video=entry.target;
-                if(entry.isIntersecting && video.isConnected && video.paused && !video._nftReplayTimer){
-                    hydrateNFTVideos(video,'any');
-                }
-            }
-        },{threshold:0.05});
-        document.querySelectorAll('video[data-nft-video]').forEach(v=>nftVideoIntersectionObserver.observe(v));
-    }
-    hydrateNFTVideos(document,'any');
+    if (guardianPosterData) targets.forEach(img => { img.src = guardianPosterData; img.removeAttribute('data-guardian-frame'); });
 }
-if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',startGlobalNFTVideoManager,{once:true});
-else startGlobalNFTVideoManager();
-document.addEventListener('visibilitychange',()=>{
-    if(document.visibilityState==='visible') hydrateNFTVideos(document,'any');
-});
-
-function getNFTViewMode(){
-    const mode=localStorage.getItem('fox_nft_view_mode')||'grid';
-    return ['grid','large','featured','list'].includes(mode)?mode:'grid';
-}
-function setNFTViewMode(mode){
-    if(!['grid','large','featured','list'].includes(mode))return;
-    localStorage.setItem('fox_nft_view_mode',mode);
-    const container=document.getElementById('nftList');
-    if(container){container.classList.remove('view-grid','view-large','view-featured','view-list');container.classList.add('view-'+mode);}
-    document.querySelectorAll('.nft-view-btn').forEach(btn=>{
-        const active=btn.dataset.view===mode;btn.classList.toggle('active',active);btn.setAttribute('aria-pressed',active?'true':'false');
-    });
+function changeNFTPage(delta) {
+    const totalPages = Math.max(1, Math.ceil((state.allNFTs || []).length / 2));
+    nftCurrentPage = Math.max(0, Math.min(totalPages - 1, nftCurrentPage + delta));
+    renderNFTs(state.allNFTs || []);
 }
 function renderNFTs(items) {
-    const container = document.getElementById('nftList'); 
+    const container = document.getElementById('nftList');
     const badge = document.getElementById('nftCountBadge');
-    setNFTViewMode(getNFTViewMode());
-    
-    if (badge) { 
-        if (items.length > 0) { 
-            badge.textContent = items.length; 
-            badge.style.display = 'inline-block'; 
-        } else {
-            badge.style.display = 'none'; 
-        }
+    const pager = document.getElementById('nftPagination');
+    if (badge) {
+        if (items.length > 0) { badge.textContent = items.length; badge.style.display = 'inline-block'; }
+        else badge.style.display = 'none';
     }
-    
     if (!container) return;
-    
-    if (items.length === 0) { 
-        container.innerHTML = `<div class="empty-state" style="grid-column:1/-1;"><div class="empty-state-icon">🎨</div><div>${t('emptyNFTs')}</div></div>`; 
-        return; 
+    if (items.length === 0) {
+        container.innerHTML = `<div class="empty-state" style="grid-column:1/-1;"><div class="empty-state-icon">🎨</div><div>${t('emptyNFTs')}</div></div>`;
+        if (pager) pager.style.display = 'none';
+        return;
     }
-    
+    const totalPages = Math.max(1, Math.ceil(items.length / 2));
+    nftCurrentPage = Math.min(nftCurrentPage, totalPages - 1);
+    const pageItems = items.slice(nftCurrentPage * 2, nftCurrentPage * 2 + 2);
     let html = '';
-    for (const item of items) {
-        const safeName = item.name.replace(/'/g, "\\'").replace(/"/g, '&quot;'); 
-        const safeImage = (item.image || '').replace(/'/g, "\\'"); 
+    for (const item of pageItems) {
+        const safeName = item.name.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+        const safeImage = (item.image || '').replace(/'/g, "\\'");
         const safeCollection = item.contractName.replace(/'/g, "\\'");
-        
-        let imageHtml = renderNFTMedia(item.image, 'nft-image', item.name);
-
-            
-        // ✅ نمایش قیمت واحد و ارزش کل (زیر هم)
-        const unitPrice = Number(item.pricePerNFT || 0);
-        const totalValue = Number(item.totalPrice != null ? item.totalPrice : unitPrice * Number(item.balance || 0));
-        const priceHtml = `
-            <span class="nft-price-unit">${currentLang === 'fa' ? 'قیمت هر عدد' : 'Unit price'}: $${unitPrice.toFixed(2)}</span>
-            <span class="nft-price-total">${currentLang === 'fa' ? 'قیمت کل' : 'Total value'}: $${totalValue.toFixed(2)}</span>
-        `;
-        
-        html += `
-            <div class="nft-card" onclick="openNFTDetailPage('${item.contract}', '${safeName}', '${safeImage}', '${safeCollection}', ${item.id})">
-                ${imageHtml}
-                <div class="nft-name">${item.name}</div>
-                <span class="nft-id">ID: ${item.id}</span>
-                <span class="nft-balance">${currentLang === 'fa' ? 'تعداد موجود' : 'Available'}: × ${item.balance}</span>
-                ${priceHtml}
-            </div>
-        `;
+        const imageHtml = nftThumbnailMarkup(item.image, 'nft-image', item.name);
+        let priceHtml = '';
+        if (item.pricePerNFT && item.pricePerNFT > 0) {
+            const totalValue = item.pricePerNFT * item.balance;
+            priceHtml = `<div style="font-size:.75rem;font-weight:700;color:var(--accent-gold);margin-top:4px;">$${item.pricePerNFT.toFixed(2)}</div><div style="font-size:.65rem;font-weight:700;color:var(--accent-success);margin-top:2px;">$${totalValue.toFixed(2)}</div>`;
+        }
+        html += `<div class="nft-card" onclick="openNFTDetailPage('${item.contract}', '${safeName}', '${safeImage}', '${safeCollection}')">${imageHtml}<div class="nft-name">${item.name}</div><span class="nft-id">ID: ${item.id}</span><span class="nft-balance">× ${item.balance}</span>${priceHtml}</div>`;
     }
-    
     container.innerHTML = html;
-    hydrateNFTVideos(container, 'any');
+    if (pager) {
+        pager.style.display = totalPages > 1 ? 'flex' : 'none';
+        const info = document.getElementById('nftPageInfo');
+        const prev = document.getElementById('nftPrevPage'); const next = document.getElementById('nftNextPage');
+        if (info) info.textContent = `${currentLang === 'fa' ? 'صفحه' : 'Page'} ${nftCurrentPage + 1} / ${totalPages}`;
+        if (prev) prev.disabled = nftCurrentPage === 0;
+        if (next) next.disabled = nftCurrentPage >= totalPages - 1;
+    }
+    hydrateGuardianFrames(container);
 }
 
 function closeAllNFTs() { document.getElementById('allNFTsModal').classList.add('closed'); }
-function openNFTDetailPage(contract, name, image, collection, nftTokenId = 1) {
+function openNFTDetailPage(contract, name, image, collection) {
     const overlay = document.getElementById('nftDetailOverlay');
     const titleEl = document.getElementById('nftDetailPageTitle');
     const contentEl = document.getElementById('nftDetailPageContent');
@@ -4240,7 +4031,9 @@ function openNFTDetailPage(contract, name, image, collection, nftTokenId = 1) {
     const changeClass = change24h >= 0 ? 'up' : 'down';
     const changeSign = change24h >= 0 ? '+' : '';
 
-    let imageHtml = renderNFTMedia(image, 'nft-detail-media', name);
+    let imageHtml = image 
+        ? `<img src="${image}" class="nft-detail-image" onerror="this.outerHTML='&lt;div class=\\'nft-detail-image placeholder\\'&gt;🎨&lt;/div&gt;'" />` 
+        : `<div class="nft-detail-image placeholder">🎨</div>`;
 
     const chartTabsHtml = `
         <div class="timeframe-selector-wrap">
@@ -4291,7 +4084,7 @@ function openNFTDetailPage(contract, name, image, collection, nftTokenId = 1) {
         </div>
 
         <div class="token-actions-grid">
-            <button class="token-action-btn send" onclick="openSendNFTFromDetail('${contract}', ${nftTokenId}, '${name.replace(/'/g, "\\'")}', '${(image || '').replace(/'/g, "\\'")}', '${collection.replace(/'/g, "\\'")}')">📤 ${t('heroSend')}</button>
+            <button class="token-action-btn send" onclick="openSendNFTFromDetail('${contract}', 1, '${name.replace(/'/g, "\\'")}', '${(image || '').replace(/'/g, "\\'")}', '${collection.replace(/'/g, "\\'")}')">📤 ${t('heroSend')}</button>
             <button class="token-action-btn receive" onclick="showQRCode()">📥 ${t('heroReceive')}</button>
         </div>
 
@@ -4308,21 +4101,13 @@ function openNFTDetailPage(contract, name, image, collection, nftTokenId = 1) {
     overlay.style.overflowY = 'auto';
 
     setTimeout(() => {
-        hydrateNFTVideos(contentEl, 'any');
         createNFTChart(contract, basePrice, savedNftTf);
         renderNFTTxHistory(contract);
     }, 100);
 }
 
-function closeNFTDetail() { closeNFTDetailPage(); const legacy = document.getElementById('nftDetailModal'); if (legacy) legacy.classList.add('closed'); }
-function openSendNFTFromDetail(contract, id, name, image, collection) {
-    const owned = (state.allNFTs || []).find(n => n.contract.toLowerCase() === contract.toLowerCase() && Number(n.id) === Number(id));
-    closeNFTDetail();
-    showSendModal();
-    state.selectedNFT = { contract, id, name, image, collection, balance: owned ? owned.balance : 1 };
-    renderSendNFTGrid();
-    switchSendTab('nft');
-}
+function closeNFTDetail() { document.getElementById('nftDetailModal').classList.add('closed'); }
+function openSendNFTFromDetail(contract, id, name, image, collection) { state.selectedNFT = { contract, id, name, image, collection, balance: 1 }; closeNFTDetail(); showSendModal(); switchSendTab('nft'); }
 
 // ═══════════════════════════════════════════════════════════════
 // TX HISTORY
@@ -4344,8 +4129,7 @@ async function renderTxHistory() {
     }
     const displayItems = state.txHistory.slice(0, 5); let html = '<div class="tx-list">';
     for (let i = 0; i < displayItems.length; i++) html += await renderTxItem(displayItems[i], i);
-    html += '</div>'; container.innerHTML = html;
-    hydrateNFTVideos(container, 'any');
+    html += '</div>'; container.innerHTML = html; hydrateGuardianFrames(container);
     if (showAllBtn) showAllBtn.style.display = 'block';
 }
 
@@ -4357,7 +4141,7 @@ async function renderTxItem(tx, index) {
         let displayImage = null; const contractAddr = tx.contract || tx.contractAddress;
         if (contractAddr) { const ci = CONFIG.nftContracts.find(c => c.address.toLowerCase() === contractAddr.toLowerCase()); if (ci && ci.image) displayImage = ci.image; }
         if (!displayImage && tx.image) displayImage = tx.image;
-        iconHtml = displayImage ? renderNFTMedia(displayImage, 'tx-image', tx.nftName || 'NFT') : `<div class="tx-image placeholder">🎨</div>`;
+        iconHtml = displayImage ? `<img src="${displayImage}" class="tx-image" onerror="this.outerHTML='&lt;div class=\\'tx-image placeholder\\'&gt;🎨&lt;/div&gt;'" />` : `<div class="tx-image placeholder">🎨</div>`;
         titleHtml = isIncoming ? t('typeReceiveNFT') : t('typeSendNFT'); const nftInfo = tx.nftName || `NFT #${tx.tokenId}`; amountHtml = `<div class="tx-sub">${nftInfo} × ${tx.amount || 1}</div>`;
     } else if (tx.type === 'swap') { iconHtml = '🔄'; titleHtml = t('typeSwap'); amountHtml = `<div class="tx-sub">${formatAmount(tx.fromAmount)} ${tx.fromSymbol} → ${formatAmount(tx.toAmount)} ${tx.toSymbol}</div>`; }
     const dateStr = formatTime(tx.timestamp);
@@ -4373,8 +4157,7 @@ async function showAllTxHistory() {
         let html = '<div class="tx-list">';
         for (let index = 0; index < state.txHistory.length; index++) html += await renderTxItem(state.txHistory[index], index);
         html += '</div>';
-        body.innerHTML = html;
-        hydrateNFTVideos(body, 'any');
+        body.innerHTML = html; hydrateGuardianFrames(body);
     }
     modal.classList.remove('closed');
 }
@@ -4389,12 +4172,12 @@ async function openTxDetail(index) {
         let displayImage = null; const contractAddr = tx.contract || tx.contractAddress;
         if (contractAddr) { const ci = CONFIG.nftContracts.find(c => c.address.toLowerCase() === contractAddr.toLowerCase()); if (ci && ci.image) displayImage = ci.image; }
         if (!displayImage && tx.image) displayImage = tx.image;
-        let imageHtml = displayImage ? renderNFTMedia(displayImage, 'detail-nft-image', tx.nftName || 'NFT') : `<div class="detail-nft-image placeholder">🎨</div>`;
+        let imageHtml = displayImage ? `<img src="${displayImage}" class="detail-nft-image" onerror="this.outerHTML='&lt;div class=\\'detail-nft-image placeholder\\'&gt;🎨&lt;/div&gt;'" />` : `<div class="detail-nft-image placeholder">🎨</div>`;
         contentHtml = `${imageHtml}<div class="detail-nft-name">${tx.nftName || 'NFT'}</div><div class="detail-nft-collection">${isIncoming ? '📥 ' + t('typeReceiveNFT') : '📤 ' + t('typeSendNFT')}</div><div class="detail-row"><span class="detail-label">${t('detailTokenId')}</span><span class="detail-value white">#${tx.tokenId}</span></div><div class="detail-row"><span class="detail-label">${t('detailAmount')}</span><span class="detail-value green">×${tx.amount || 1}</span></div>${tx.to ? `<div class="detail-row"><span class="detail-label">${t('detailTo')}</span><span class="detail-value" title="${tx.to}">${fullAddr(tx.to)}</span></div>` : ''}${tx.gasFee ? `<div class="detail-row"><span class="detail-label">${t('detailGas')}</span><span class="detail-value gold">${tx.gasFee} AVAX</span></div>` : ''}<div class="detail-row"><span class="detail-label">${t('detailTime')}</span><span class="detail-value white">${formatTime(tx.timestamp)}</span></div>${tx.hash ? `<div class="hash-row"><span class="hash-label">${t('detailHash')}</span><span class="hash-value" onclick="copyTxHash('${tx.hash}')">${tx.hash.slice(0, 12)}...${tx.hash.slice(-8)}</span><button class="hash-copy-btn" onclick="copyTxHash('${tx.hash}')">📋</button></div>` : ''}`;
     } else if (tx.type === 'swap') {
         contentHtml = `<div class="success-icon" style="background: linear-gradient(135deg, var(--accent-primary), #d63652);">🔄</div><div class="success-title" style="color: var(--accent-primary);">${t('typeSwap')}</div><div class="success-sub">${formatTime(tx.timestamp)}</div><div class="detail-row"><span class="detail-label">💰 ${t('from')}</span><span class="detail-value red">-${formatAmount(tx.fromAmount)} ${tx.fromSymbol}</span></div><div class="detail-row"><span class="detail-label">📥 ${t('to')}</span><span class="detail-value green">+${formatAmount(tx.toAmount)} ${tx.toSymbol}</span></div><div class="detail-row"><span class="detail-label">⛽ ${t('fee')}</span><span class="detail-value gold">${tx.gasFee || '0'} AVAX</span></div><div class="detail-row"><span class="detail-label">${t('detailTime')}</span><span class="detail-value white">${formatTime(tx.timestamp)}</span></div><div class="hash-row"><span class="hash-label">${t('detailHash')}</span><span class="hash-value" onclick="copyTxHash('${tx.hash}')">${tx.hash.slice(0, 12)}...${tx.hash.slice(-8)}</span><button class="hash-copy-btn" onclick="copyTxHash('${tx.hash}')">📋</button></div>`;
     }
-    body.innerHTML = contentHtml; document.getElementById('txDetailModal').classList.remove('closed'); hydrateNFTVideos(body, 'any');
+    body.innerHTML = contentHtml; document.getElementById('txDetailModal').classList.remove('closed'); hydrateGuardianFrames(body);
 }
 function closeTxDetailModal() { document.getElementById('txDetailModal').classList.add('closed'); }
 async function copyTxHash(hash) { const ok = await copyToClipboard(hash); if (ok) toast(t('hashCopied')); }
@@ -4517,7 +4300,7 @@ function renderSendTokenSelector() {
     for (const token of tokens) {
         const isActive = token.symbol === currentSendToken;
         const logo = token.isNative ? '🔺' : (token.image ? `<img src="${token.image}" onerror="this.parentElement.innerHTML='🪙'" style="width:100%;height:100%;object-fit:cover;" />` : '🪙');
-        html += `<div class="send-token-choice ${isActive ? 'active' : ''}" onclick="selectSendToken('${token.symbol}')"><div class="choice-logo">${logo}</div><div style="font-size:.68rem;font-weight:800;color:var(--text-primary);">${token.symbol}</div><div style="font-size:.58rem;color:var(--text-muted);margin-top:3px;">${formatTokenBalance(token.balance)}</div></div>`;
+        html += `<div onclick="selectSendToken('${token.symbol}')" style="flex:1;padding:10px 6px;text-align:center;background:${isActive ? 'var(--accent-bg-success)' : 'var(--bg-item)'};border:2px solid ${isActive ? 'var(--accent-success)' : 'var(--border-light)'};border-radius:14px;cursor:pointer;transition:0.2s;"><div style="width:32px;height:32px;border-radius:50%;background:var(--bg-input);display:flex;align-items:center;justify-content:center;font-size:1rem;margin:0 auto 4px;overflow:hidden;">${logo}</div><div style="font-size:0.65rem;font-weight:700;color:var(--text-primary);">${token.symbol}</div><div style="font-size:0.55rem;color:var(--text-muted);">${formatTokenBalance(token.balance)}</div></div>`;
     }
     container.innerHTML = html;
     const symbolEl = document.getElementById('sendTokenSymbol'); const infoEl = document.getElementById('tokenBalanceInfo'); const selected = tokenBalances[currentSendToken];
@@ -4525,13 +4308,6 @@ function renderSendTokenSelector() {
     if (infoEl && selected) infoEl.textContent = `${t('balanceInfo')}: ${formatTokenBalance(selected.balance)} ${currentSendToken}`;
 }
 function selectSendToken(symbol) { currentSendToken = symbol; renderSendTokenSelector(); }
-function setSendTokenMax() {
-    const selected = tokenBalances[currentSendToken]; if (!selected) return;
-    let max = Number(selected.balance || 0);
-    // Keep a small AVAX reserve for network gas.
-    if (selected.isNative || currentSendToken === 'AVAX') max = Math.max(0, max - 0.002);
-    document.getElementById('tokenAmount').value = max > 0 ? String(Number(max.toFixed(Math.min(selected.decimals || 18, 8)))) : '';
-}
 
 function renderSendNFTGrid() {
     const grid = document.getElementById('sendNFTGrid'); if (!grid) return;
@@ -4540,43 +4316,15 @@ function renderSendNFTGrid() {
     for (const item of state.allNFTs) {
         const safeName = item.name.replace(/'/g, "\\'").replace(/"/g, '&quot;'); const safeImage = (item.image || '').replace(/'/g, "\\'"); const safeCollection = item.contractName.replace(/'/g, "\\'");
         const isSelected = state.selectedNFT && state.selectedNFT.contract === item.contract && state.selectedNFT.id === item.id;
-        let imgHtml = renderNFTMedia(item.image, 'nft-media', item.name);
+        let imgHtml = item.image ? (isGuardianVideo(item.image) ? `<img style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;background:var(--bg-input);" data-guardian-frame="${item.image}" alt="${item.name}" src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" />` : `<img src="${item.image}" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;" onerror="this.style.display='none'" />`) : `<div style="width:100%;aspect-ratio:1;background:var(--bg-input);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:2rem;">🎨</div>`;
         html += `<div class="nft-selector-item ${isSelected ? 'selected' : ''}" onclick="selectNFTForSend('${item.contract}', ${item.id}, '${safeName}', '${safeImage}', '${safeCollection}', ${item.balance})">${imgHtml}<div class="nft-sel-name">${item.name}</div><div class="nft-sel-id">ID: ${item.id} · ×${item.balance}</div></div>`;
     }
     grid.innerHTML = html;
-    hydrateNFTVideos(grid, 'any');
+    hydrateGuardianFrames(grid);
 }
 function selectNFTForSend(contract, id, name, image, collection, balance) { state.selectedNFT = { contract, id, name, image, collection, balance }; renderSendNFTGrid(); toast('✅ ' + name); }
 
-async function estimatePendingTxFee(tx) {
-    tx.estimatedGasFee = null;
-    try {
-        if (!state.provider) return;
-        const feeData = await state.provider.getFeeData();
-        const gasPrice = feeData && (feeData.maxFeePerGas || feeData.gasPrice);
-        if (!gasPrice) return;
-        let gasLimit;
-        if (tx.type === 'token' && tx.tokenIsNative) {
-            gasLimit = await state.signer.estimateGas({ to: tx.to, value: tx.amountWei });
-        } else if (tx.type === 'token') {
-            const token = new ethers.Contract(tx.tokenAddress, ['function transfer(address,uint256) returns (bool)'], state.signer);
-            gasLimit = await token.estimateGas.transfer(tx.to, tx.amountWei);
-        } else if (tx.type === 'nft') {
-            const nft = new ethers.Contract(tx.contract, ['function safeTransferFrom(address,address,uint256,uint256,bytes)'], state.signer);
-            gasLimit = await nft.estimateGas.safeTransferFrom(state.address, tx.to, tx.tokenId, tx.amount, '0x');
-        }
-        if (gasLimit) {
-            // Add a modest buffer for the displayed estimate; final network fee can differ.
-            const bufferedGas = gasLimit.mul(120).div(100);
-            tx.estimatedGasFee = Number(ethers.utils.formatEther(bufferedGas.mul(gasPrice))).toFixed(6);
-        }
-    } catch (err) {
-        console.warn('Gas estimate unavailable:', err);
-        tx.estimatedGasFee = null;
-    }
-}
-
-async function startSendToken() {
+function startSendToken() {
     if (!state.signer) { showNotification('error', '❌', t('openWalletFirst')); return; }
     const to = document.getElementById('tokenSendTo').value.trim(); const amountStr = document.getElementById('tokenAmount').value.trim();
     if (!to || !ethers.utils.isAddress(to)) { showNotification('error', '❌', t('invalidAddress')); return; }
@@ -4587,11 +4335,10 @@ async function startSendToken() {
     if (currentSendToken === 'AVAX' && amount < 0.001) { showNotification('error', '❌', t('minAmount')); return; }
     if (currentSendToken === 'AVAX' && amount >= selected.balance) { showNotification('error', '❌', t('insufficientBalance')); return; }
     state.pendingTx = { type: 'token', tokenSymbol: currentSendToken, tokenAddress: selected.address, tokenDecimals: selected.decimals, tokenIsNative: selected.isNative, to, amount, amountWei: ethers.utils.parseUnits(amount.toString(), selected.decimals), timestamp: Date.now() };
-    await estimatePendingTxFee(state.pendingTx);
     showConfirmModal();
 }
 
-async function startSendNFT() {
+function startSendNFT() {
     if (!state.signer) { showNotification('error', '❌', t('openWalletFirst')); return; }
     if (!state.selectedNFT) { showNotification('error', '❌', t('selectNFTFirst')); return; }
     const to = document.getElementById('nftSendTo').value.trim(); const amount = parseInt(document.getElementById('nftAmount').value) || 1;
@@ -4599,15 +4346,14 @@ async function startSendNFT() {
     if (to.toLowerCase() === state.address.toLowerCase()) { showNotification('error', '❌', t('cantSendToSelf')); return; }
     if (amount <= 0 || amount > state.selectedNFT.balance) { showNotification('error', '❌', t('invalidAmount')); return; }
     state.pendingTx = { type: 'nft', to, amount, contract: state.selectedNFT.contract, tokenId: state.selectedNFT.id, nftName: state.selectedNFT.name, image: state.selectedNFT.image, collection: state.selectedNFT.collection, timestamp: Date.now() };
-    await estimatePendingTxFee(state.pendingTx);
     showConfirmModal();
 }
 
 function showConfirmModal() {
     const tx = state.pendingTx; if (!tx) return;
     const detailsEl = document.getElementById('confirmDetails'); const titleEl = document.getElementById('confirmTitleText'); const subEl = document.getElementById('confirmSubText'); const passBtn = document.getElementById('confirmPasswordBtn'); const iconEl = document.getElementById('confirmIcon');
-    if (tx.type === 'token') { titleEl.textContent = t('confirmTitle'); subEl.textContent = t('confirmSub'); passBtn.textContent = t('confirmPassBtn'); iconEl.textContent = '⚠️'; detailsEl.innerHTML = `<div class="detail-row"><span class="detail-label">${t('detailAmount')}</span><span class="detail-value red">-${formatTokenBalance(tx.amount)} ${tx.tokenSymbol}</span></div><div class="detail-row"><span class="detail-label">${t('detailTo')}</span><span class="detail-value" title="${tx.to}">${fullAddr(tx.to)}</span></div><div class="detail-row"><span class="detail-label">${t('sendNetwork')}</span><span class="detail-value white">Avalanche C-Chain</span></div><div class="detail-row"><span class="detail-label">${t('estimatedNetworkFee')}</span><span class="detail-value gold">${tx.estimatedGasFee ? '~' + tx.estimatedGasFee + ' AVAX' : t('feeEstimateUnavailable')}</span></div>`; }
-    else if (tx.type === 'nft') { titleEl.textContent = t('confirmTitle'); subEl.textContent = t('confirmSub'); passBtn.textContent = t('confirmPassBtn'); iconEl.textContent = '⚠️'; detailsEl.innerHTML = `<div class="detail-row"><span class="detail-label">NFT:</span><span class="detail-value white">${tx.nftName} · #${tx.tokenId}</span></div><div class="detail-row"><span class="detail-label">${t('detailAmount')}</span><span class="detail-value green">×${tx.amount}</span></div><div class="detail-row"><span class="detail-label">${t('detailTo')}</span><span class="detail-value" title="${tx.to}">${fullAddr(tx.to)}</span></div><div class="detail-row"><span class="detail-label">${t('sendNetwork')}</span><span class="detail-value white">Avalanche C-Chain</span></div><div class="detail-row"><span class="detail-label">${t('estimatedNetworkFee')}</span><span class="detail-value gold">${tx.estimatedGasFee ? '~' + tx.estimatedGasFee + ' AVAX' : t('feeEstimateUnavailable')}</span></div>`; }
+    if (tx.type === 'token') { titleEl.textContent = t('confirmTitle'); subEl.textContent = t('confirmSub'); passBtn.textContent = t('confirmPassBtn'); iconEl.textContent = '⚠️'; detailsEl.innerHTML = `<div class="detail-row"><span class="detail-label">${t('detailAmount')}</span><span class="detail-value red">-${formatTokenBalance(tx.amount)} ${tx.tokenSymbol}</span></div><div class="detail-row"><span class="detail-label">${t('detailTo')}</span><span class="detail-value" title="${tx.to}">${fullAddr(tx.to)}</span></div>`; }
+    else if (tx.type === 'nft') { titleEl.textContent = t('confirmTitle'); subEl.textContent = t('confirmSub'); passBtn.textContent = t('confirmPassBtn'); iconEl.textContent = '⚠️'; detailsEl.innerHTML = `<div class="detail-row"><span class="detail-label">NFT:</span><span class="detail-value white">${tx.nftName}</span></div><div class="detail-row"><span class="detail-label">${t('detailAmount')}</span><span class="detail-value green">×${tx.amount}</span></div><div class="detail-row"><span class="detail-label">${t('detailTo')}</span><span class="detail-value" title="${tx.to}">${fullAddr(tx.to)}</span></div>`; }
     else if (tx.type === 'swap') { titleEl.textContent = t('confirmSwapTitle'); subEl.textContent = t('confirmSwapSub'); passBtn.textContent = t('confirmSwapBtn'); iconEl.textContent = '🔄'; detailsEl.innerHTML = `<div class="detail-row"><span class="detail-label">💰 ${t('from')}</span><span class="detail-value red">-${formatAmount(tx.fromAmount)} ${tx.fromToken}</span></div><div class="detail-row"><span class="detail-label">📥 ${t('to')}</span><span class="detail-value green">+${formatAmount(tx.toAmount)} ${tx.toToken}</span></div>`; }
     const bioEnabled = Settings.getBiometricEnabled() && biometricAvailable; const bioBtn = document.getElementById('confirmBiometricBtn'); const passSection = document.getElementById('confirmPasswordSection');
     if (bioEnabled) { bioBtn.style.display = 'block'; passSection.style.display = 'none'; subEl.textContent = t('confirmSubBio'); } else { bioBtn.style.display = 'none'; passSection.style.display = 'block'; }
@@ -4877,7 +4623,9 @@ function showSuccessModal(tx) {
     } else if (tx.type === 'nft') {
         titleEl.textContent = t('successTitle');
         subEl.textContent = t('successSub');
-        let imageHtml = tx.image ? renderNFTMedia(tx.image, 'detail-nft-image', tx.nftName || 'NFT') : `<div class="detail-nft-image placeholder">🎨</div>`;
+        let imageHtml = tx.image
+            ? `<img src="${tx.image}" class="detail-nft-image" onerror="this.outerHTML='&lt;div class=\\'detail-nft-image placeholder\\'&gt;🎨&lt;/div&gt;'" />`
+            : `<div class="detail-nft-image placeholder">🎨</div>`;
         html = `
             ${imageHtml}
             <div class="detail-nft-name">${tx.nftName}</div>
@@ -4911,7 +4659,6 @@ function showSuccessModal(tx) {
     }
     content.innerHTML = html;
     document.getElementById('successModal').classList.remove('closed');
-    hydrateNFTVideos(content, 'any');
 }
 function closeSuccessModal() { document.getElementById('successModal').classList.add('closed'); }
 
@@ -5309,16 +5056,6 @@ function toggleBalanceVisibility() {
 // UPDATE UI
 // ═══════════════════════════════════════════════════════════════
 function updateUI() {
-    document.querySelectorAll('[data-i18n]').forEach(el=>{const key=el.dataset.i18n;if(key)el.textContent=t(key);});
-    document.querySelectorAll('[data-i18n-placeholder]').forEach(el=>{const key=el.dataset.i18nPlaceholder;if(key)el.placeholder=t(key);});
-    document.querySelectorAll('[data-i18n-title]').forEach(el=>{const key=el.dataset.i18nTitle;if(key)el.title=t(key);});
-    const galleryTitle=document.getElementById('nftGalleryTitle');if(galleryTitle)galleryTitle.textContent=t('nftGalleryTitle');
-    const gallerySubtitle=document.getElementById('nftGallerySubtitle');if(gallerySubtitle)gallerySubtitle.textContent=t('nftGallerySubtitle');
-    document.querySelectorAll('.nft-view-btn').forEach(btn=>{
-        const key=({grid:'nftViewGrid',large:'nftViewLarge',featured:'nftViewFeatured',list:'nftViewList'})[btn.dataset.view];
-        if(key){btn.title=t(key);btn.setAttribute('aria-label',t(key));}
-    });
-    setNFTViewMode(getNFTViewMode());
     const lsTitle = document.getElementById('langSelectTitle'); if (lsTitle) lsTitle.textContent = t('langChooseTitle');
     const lsDesc = document.getElementById('langSelectDesc'); if (lsDesc) lsDesc.textContent = t('langChooseDesc');
     const lsBtn = document.getElementById('langConfirmBtn'); if (lsBtn) lsBtn.textContent = t('langContinue');
@@ -5648,4 +5385,4 @@ window.addEventListener('beforeunload', function () {
 });
 </script>
 </body>
-</html>
+    </html>
