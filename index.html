@@ -1373,11 +1373,6 @@ body {
             <div class="nft-grid" id="nftList">
                 <div class="empty-state" style="grid-column: 1/-1;" id="emptyNFTMsg">هیچ NFT ای نیست</div>
             </div>
-            <div class="nft-pagination" id="nftPagination" style="display:none;">
-                <button class="btn btn-secondary" id="nftPrevPage" onclick="changeNFTPage(-1)">قبلی / Previous</button>
-                <span id="nftPageInfo">صفحه ۱ / Page 1</span>
-                <button class="btn btn-secondary" id="nftNextPage" onclick="changeNFTPage(1)">بعدی / Next</button>
-            </div>
         </div>
 
         <!-- TAB: HISTORY -->
@@ -1670,39 +1665,39 @@ body {
     <div class="modal-overlay closed" id="sendModal">
         <div class="modal">
             <h2 style="color:var(--accent-success);" id="sendModalTitle">📤 ارسال</h2>
-            <div class="desc" id="sendModalDesc">دارایی موردنظر را انتخاب و ارسال کنید / Choose and send an asset</div>
+            <div class="desc" id="sendModalDesc">چه چیزی ارسال می‌کنید؟</div>
             <div class="send-tabs">
-                <button class="send-tab active" id="tabToken" onclick="switchSendTab('token')">💰 ارسال توکن / Send Token</button>
-                <button class="send-tab" id="tabNFT" onclick="switchSendTab('nft')">🖼️ ارسال NFT / Send NFT</button>
+                <button class="send-tab active" id="tabToken" onclick="switchSendTab('token')">💰 توکن</button>
+                <button class="send-tab" id="tabNFT" onclick="switchSendTab('nft')">🖼️ NFT</button>
             </div>
             <div id="sendTokenSection" class="send-section">
                 <div style="margin-bottom:8px;">
-                    <div style="font-size:0.7rem;color:var(--text-muted);margin-bottom:6px;" id="sendSelectTokenLabel">انتخاب توکن / Select Token:</div>
+                    <div style="font-size:0.7rem;color:var(--text-muted);margin-bottom:6px;" id="sendSelectTokenLabel">انتخاب توکن:</div>
                     <div id="sendTokenSelector" style="display:flex;gap:8px;"></div>
                 </div>
                 <div class="input-group">
-                    <input type="text" id="tokenSendTo" placeholder="آدرس گیرنده / Recipient Address" />
+                    <input type="text" id="tokenSendTo" placeholder="آدرس گیرنده" />
                     <button class="btn btn-secondary" onclick="openScannerForSend()" style="padding: 10px 12px; flex-shrink:0;">📷</button>
                     <button class="btn btn-secondary" onclick="openFavoritesForSend()" style="padding: 10px 12px; flex-shrink:0;">⭐</button>
                 </div>
                 <div class="input-group">
-                    <input type="number" id="tokenAmount" placeholder="مقدار / Amount" step="any" min="0" />
+                    <input type="number" id="tokenAmount" placeholder="مقدار" step="any" min="0" />
                     <span class="input-suffix" id="sendTokenSymbol">AVAX</span>
                 </div>
-                <div class="balance-info"><span id="tokenBalanceInfo">موجودی / Balance: 0 AVAX</span></div>
-                <button class="btn btn-success btn-full" onclick="startSendToken()" id="tokenSendBtn">ارسال توکن / Send Token</button>
+                <div class="balance-info"><span id="tokenBalanceInfo">موجودی: 0 AVAX</span></div>
+                <button class="btn btn-success btn-full" onclick="startSendToken()" id="tokenSendBtn">ارسال توکن</button>
             </div>
             <div id="sendNFTSection" class="send-section hidden">
                 <div class="nft-selector-grid" id="sendNFTGrid"></div>
                 <div class="input-group">
-                    <input type="text" id="nftSendTo" placeholder="آدرس گیرنده / Recipient Address" />
+                    <input type="text" id="nftSendTo" placeholder="آدرس گیرنده" />
                     <button class="btn btn-secondary" onclick="openScannerForNFT()" style="padding: 10px 12px; flex-shrink:0;">📷</button>
                     <button class="btn btn-secondary" onclick="openFavoritesForNFT()" style="padding: 10px 12px; flex-shrink:0;">⭐</button>
                 </div>
-                <div class="input-group"><input type="number" id="nftAmount" placeholder="تعداد / Quantity" step="1" min="1" value="1" /></div>
-                <button class="btn btn-success btn-full" onclick="startSendNFT()" id="nftSendBtn">ارسال NFT / Send NFT</button>
+                <div class="input-group"><input type="number" id="nftAmount" placeholder="تعداد" step="1" min="1" value="1" /></div>
+                <button class="btn btn-success btn-full" onclick="startSendNFT()" id="nftSendBtn">ارسال NFT</button>
             </div>
-            <button class="btn btn-outline btn-full" onclick="closeSendModal()" style="margin-top:8px;" id="sendCancelBtn">❌ لغو / Cancel</button>
+            <button class="btn btn-outline btn-full" onclick="closeSendModal()" style="margin-top:8px;" id="sendCancelBtn">❌ لغو</button>
         </div>
     </div>
 
@@ -1964,9 +1959,9 @@ function openNFTDetailPage(contract, name, image, collection) {
     const changeClass = change24h >= 0 ? 'up' : 'down';
     const changeSign = change24h >= 0 ? '+' : '';
 
-    let imageHtml = isGuardianVideo(image)
-        ? `<video class="guardian-video-detail" src="image/Guardian.mp4" controls playsinline preload="metadata" poster="${guardianPosterData || ''}">مرورگر شما از پخش ویدئو پشتیبانی نمی‌کند / Your browser does not support video.</video>`
-        : (image ? `<img src="${image}" class="nft-detail-image" onerror="this.outerHTML='&lt;div class=\'nft-detail-image placeholder\'&gt;🎨&lt;/div&gt;'" />` : `<div class="nft-detail-image placeholder">🎨</div>`);
+    let imageHtml = image 
+        ? `<img src="${image}" class="nft-detail-image" onerror="this.outerHTML='&lt;div class=\\'nft-detail-image placeholder\\'&gt;🎨&lt;/div&gt;'" />` 
+        : `<div class="nft-detail-image placeholder">🎨</div>`;
 
     const chartTabsHtml = `
     <div class="timeframe-selector-wrap">
@@ -2946,7 +2941,7 @@ const CONFIG = {
         slippage: 1.0, deadlineMinutes: 20
     },
     nftContracts: [
-        { address: '0x4B1e65f73D8433043Bbe0AB8Cb3f118FAC662F9a', name: 'Guardian Collection', image: 'image/Guardian.mp4', itemNames: { 1: 'The Guardian of Foxeggs' } },
+        { address: '0x4B1e65f73D8433043Bbe0AB8Cb3f118FAC662F9a', name: 'Guardian Collection', image: 'image/guardian.png', itemNames: { 1: 'The Guardian of Foxeggs' } },
         { address: '0xcfd6c099bc8B3c91D47D62156AEc6BA128eB6B92', name: 'FoxEggs Autumn Edition', image: 'image/autumn.png', itemNames: { 1: 'Fox of Autumn Nights' } },
         { address: '0xaA890ebf2a6356c9Da9E5B13C01db4aC88A70c8a', name: 'Fox Eggs: Frozen Realm', image: 'image/frozen.png', itemNames: { 1: 'Frostbite Fox' } }
     ],
@@ -3102,45 +3097,125 @@ async function updateAVAXPrice() {
 }
 
 function startPriceUpdater() {
-    loadCachedAVAXPrice().then(() => { refreshTokenBalances(); });
-    updateAVAXPrice();
-    
+    if (typeof loadCachedAVAXPrice === 'function') {
+        loadCachedAVAXPrice()
+            .catch(() => {})
+            .finally(() => {
+                if (typeof refreshTokenBalances === 'function') {
+                    refreshTokenBalances().catch(() => {});
+                }
+            });
+    }
+
     if (state.priceUpdateInterval) clearInterval(state.priceUpdateInterval);
-    
-    state.priceUpdateInterval = setInterval(async () => {
+
+    state.priceUpdateInterval = setInterval(() => {
         if (document.hidden) return;
 
-        // ۱. آپدیت قیمت توکن‌ها
-        await refreshTokenBalances(); 
-        
-        // ۲. آپدیت کارت بالای صفحه (ارزش کل و درصد 24h)
-        renderHeroBalance();
+        // ═══════════════════════════════════════════════════════
+        // ① آپدیت توکن‌ها (قیمت و درصد ۲۴ ساعته)
+        // ═══════════════════════════════════════════════════════
+        if (window.TOKEN_PRICES && typeof tokenBalances !== 'undefined') {
+            const tokenCards = document.querySelectorAll('.token-card');
+            
+            for (let symbol in tokenBalances) {
+                const token = tokenBalances[symbol];
+                if (token.isNative) continue;
+                
+                const info = window.getTokenInfo ? window.getTokenInfo(token.address) : null;
+                if (info) {
+                    token.priceUSD = info.currentPrice;
+                    token.change24h = info.change24h;
+                    token.valueUSD = (token.balance || 0) * token.priceUSD;
 
-        // ۳. ✅ آپدیت قیمت NFTها
-        if (window.NFT_PRICES && state.allNFTs && state.allNFTs.length > 0) {
-            for (let nft of state.allNFTs) {
-                if (window.getCurrentNFTPrice) {
-                    // گرفتن قیمت پایه از کانفیگ
-                    const nftConfig = window.NFT_PRICES.collections[nft.contract.toLowerCase()];
-                    const basePrice = nftConfig ? nftConfig.basePrice : 0;
-                    
-                    const priceData = window.getCurrentNFTPrice(nft.contract, basePrice);
-                    if (priceData) {
-                        nft.pricePerNFT = priceData.price;
-                        nft.totalPrice = priceData.price * nft.balance; 
+                    // پیدا کردن کارت مربوط به این توکن
+                    for (let card of tokenCards) {
+                        const nameEl = card.querySelector('.token-name');
+                        if (nameEl && nameEl.textContent === token.name) {
+                            
+                            // آپدیت قیمت دلاری (رنگ قرمز در عکس شما)
+                            const valueEl = card.querySelector('.token-value');
+                            if (valueEl) valueEl.textContent = '$' + formatUSD(token.valueUSD || 0);
+                            
+                            // آپدیت درصد ۲۴ ساعته (رنگ قرمز در عکس شما)
+                            const changeEl = card.querySelector('.token-change');
+                            if (changeEl) {
+                                const changeClass = token.change24h >= 0 ? 'up' : 'down';
+                                const changeSign = token.change24h >= 0 ? '+' : '';
+                                changeEl.textContent = `${changeSign}${token.change24h.toFixed(2)}%`;
+                                changeEl.className = `token-change ${changeClass}`;
+                            }
+                            break;
+                        }
                     }
                 }
             }
-            renderNFTs(state.allNFTs);
         }
 
-        // ۴. آپدیت قیمت AVAX (از API)
-        if (state.provider) {
-            updateAVAXPrice();
+        // ═══════════════════════════════════════════════════════
+        // ② آپدیت NFTها (قیمت واحد و قیمت کل)
+        // ═══════════════════════════════════════════════════════
+        if (window.NFT_PRICES && state.allNFTs && state.allNFTs.length > 0) {
+            const nftCards = document.querySelectorAll('.nft-card');
+
+            for (let nft of state.allNFTs) {
+                const nftConfig = window.NFT_PRICES.collections[nft.contract.toLowerCase()];
+                const basePrice = nftConfig ? nftConfig.basePrice : 0;
+                const priceData = window.getCurrentNFTPrice ? window.getCurrentNFTPrice(nft.contract, basePrice) : null;
+                
+                if (priceData) {
+                    nft.pricePerNFT = priceData.price;
+                    nft.totalPrice = priceData.price * (nft.balance || 1);
+
+                    // پیدا کردن کارت مربوط به این NFT
+                    for (let card of nftCards) {
+                        const nameEl = card.querySelector('.nft-name');
+                        const idEl = card.querySelector('.nft-id');
+                        
+                        if (nameEl && nameEl.textContent === nft.name && idEl && idEl.textContent.includes(nft.id)) {
+                            
+                            // پیدا کردن تمام div های داخل کارت
+                            const priceDivs = card.querySelectorAll('div');
+                            for (let div of priceDivs) {
+                                // قیمت واحد (رنگ زرد در عکس شما)
+                                if (div.style.color === 'var(--accent-gold)') {
+                                    div.textContent = `$${nft.pricePerNFT.toFixed(2)}`;
+                                } 
+                                // قیمت کل (رنگ سبز در عکس شما)
+                                else if (div.style.color === 'var(--accent-success)' && div.style.fontSize === '0.65rem') {
+                                    div.textContent = `$${nft.totalPrice.toFixed(2)}`;
+                                }
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
         }
-    }, 2500); // هر ۱ ثانیه
+
+        // ═══════════════════════════════════════════════════════
+        // ③ آپدیت کارت بالای صفحه (ارزش کل و درصد کل ۲۴ ساعته)
+        // ═══════════════════════════════════════════════════════
+        try {
+            renderHeroBalance();
+        } catch(e) { console.error("Hero balance error:", e); }
+
+        // ═══════════════════════════════════════════════════════
+        // ④ AVAX — فقط آنلاین
+        // ═══════════════════════════════════════════════════════
+        if (navigator.onLine && state.provider && typeof updateAVAXPrice === 'function') {
+            updateAVAXPrice().catch(() => {});
+        }
+    }, 1000);
+
+    if (!window._foxOnlineListenerAdded) {
+        window._foxOnlineListenerAdded = true;
+        window.addEventListener('online', () => {
+            if (typeof refreshTokenBalances === 'function') refreshTokenBalances().catch(() => {});
+            if (state.provider && typeof updateAVAXPrice === 'function') updateAVAXPrice().catch(() => {});
+        });
+    }
 }
-
 // ═══════════════════════════════════════════════════════════════
 // TOKEN SYSTEM — با موازی‌سازی (اصلاح #9)
 // ═══════════════════════════════════════════════════════════════
@@ -3922,84 +3997,58 @@ async function loadAllNFTs(forceFetch = false) {
     }
 }
 
-let nftCurrentPage = 0;
-let guardianPosterData = null;
-
-function isGuardianVideo(src) { return !!src && /(?:^|\/)Guardian\.mp4(?:[?#].*)?$/i.test(src); }
-function nftThumbnailMarkup(src, className, altText = 'NFT') {
-    if (!src) return `<div class="${className} placeholder">🎨</div>`;
-    if (isGuardianVideo(src)) return `<img class="${className}" data-guardian-frame="${src}" alt="${altText}" src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" />`;
-    return `<img src="${src}" alt="${altText}" class="${className}" onerror="this.outerHTML='&lt;div class=\'${className} placeholder\'&gt;🎨&lt;/div&gt;'" />`;
-}
-async function hydrateGuardianFrames(root = document) {
-    const targets = root.querySelectorAll ? root.querySelectorAll('img[data-guardian-frame]') : [];
-    if (!targets.length) return;
-    if (!guardianPosterData) {
-        guardianPosterData = await new Promise(resolve => {
-            const video = document.createElement('video');
-            video.preload = 'auto'; video.muted = true; video.playsInline = true;
-            video.src = 'image/Guardian.mp4';
-            const capture = () => {
-                try {
-                    const canvas = document.createElement('canvas');
-                    canvas.width = video.videoWidth || 640; canvas.height = video.videoHeight || 640;
-                    const ctx = canvas.getContext('2d'); ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-                    resolve(canvas.toDataURL('image/jpeg', .82));
-                } catch (e) { resolve(''); }
-            };
-            video.addEventListener('seeked', capture, { once:true });
-            video.addEventListener('loadeddata', () => { try { video.currentTime = Math.min(.15, video.duration || .15); } catch(e) { capture(); } }, { once:true });
-            video.addEventListener('error', () => resolve(''), { once:true });
-            video.load();
-        });
-    }
-    if (guardianPosterData) targets.forEach(img => { img.src = guardianPosterData; img.removeAttribute('data-guardian-frame'); });
-}
-function changeNFTPage(delta) {
-    const totalPages = Math.max(1, Math.ceil((state.allNFTs || []).length / 2));
-    nftCurrentPage = Math.max(0, Math.min(totalPages - 1, nftCurrentPage + delta));
-    renderNFTs(state.allNFTs || []);
-}
 function renderNFTs(items) {
-    const container = document.getElementById('nftList');
+    const container = document.getElementById('nftList'); 
     const badge = document.getElementById('nftCountBadge');
-    const pager = document.getElementById('nftPagination');
-    if (badge) {
-        if (items.length > 0) { badge.textContent = items.length; badge.style.display = 'inline-block'; }
-        else badge.style.display = 'none';
+    
+    if (badge) { 
+        if (items.length > 0) { 
+            badge.textContent = items.length; 
+            badge.style.display = 'inline-block'; 
+        } else {
+            badge.style.display = 'none'; 
+        }
     }
+    
     if (!container) return;
-    if (items.length === 0) {
-        container.innerHTML = `<div class="empty-state" style="grid-column:1/-1;"><div class="empty-state-icon">🎨</div><div>${t('emptyNFTs')}</div></div>`;
-        if (pager) pager.style.display = 'none';
-        return;
+    
+    if (items.length === 0) { 
+        container.innerHTML = `<div class="empty-state" style="grid-column:1/-1;"><div class="empty-state-icon">🎨</div><div>${t('emptyNFTs')}</div></div>`; 
+        return; 
     }
-    const totalPages = Math.max(1, Math.ceil(items.length / 2));
-    nftCurrentPage = Math.min(nftCurrentPage, totalPages - 1);
-    const pageItems = items.slice(nftCurrentPage * 2, nftCurrentPage * 2 + 2);
+    
     let html = '';
-    for (const item of pageItems) {
-        const safeName = item.name.replace(/'/g, "\\'").replace(/"/g, '&quot;');
-        const safeImage = (item.image || '').replace(/'/g, "\\'");
+    for (const item of items) {
+        const safeName = item.name.replace(/'/g, "\\'").replace(/"/g, '&quot;'); 
+        const safeImage = (item.image || '').replace(/'/g, "\\'"); 
         const safeCollection = item.contractName.replace(/'/g, "\\'");
-        const imageHtml = nftThumbnailMarkup(item.image, 'nft-image', item.name);
-        let priceHtml = '';
+        
+        let imageHtml = item.image 
+            ? `<img src="${item.image}" alt="${item.name}" class="nft-image" onerror="this.outerHTML='&lt;div class=\\'nft-image placeholder\\'&gt;🎨&lt;/div&gt;'" />` 
+            : `<div class="nft-image placeholder">🎨</div>`;
+            
+        // ✅ نمایش قیمت واحد و ارزش کل (زیر هم)
+        let priceHtml = ''; 
         if (item.pricePerNFT && item.pricePerNFT > 0) {
             const totalValue = item.pricePerNFT * item.balance;
-            priceHtml = `<div style="font-size:.75rem;font-weight:700;color:var(--accent-gold);margin-top:4px;">$${item.pricePerNFT.toFixed(2)}</div><div style="font-size:.65rem;font-weight:700;color:var(--accent-success);margin-top:2px;">$${totalValue.toFixed(2)}</div>`;
+            priceHtml = `
+                <div style="font-size: 0.75rem; font-weight: 700; color: var(--accent-gold); margin-top: 4px;">$${item.pricePerNFT.toFixed(2)}</div>
+                <div style="font-size: 0.65rem; font-weight: 700; color: var(--accent-success); margin-top: 2px;">$${totalValue.toFixed(2)}</div>
+            `;
         }
-        html += `<div class="nft-card" onclick="openNFTDetailPage('${item.contract}', '${safeName}', '${safeImage}', '${safeCollection}')">${imageHtml}<div class="nft-name">${item.name}</div><span class="nft-id">ID: ${item.id}</span><span class="nft-balance">× ${item.balance}</span>${priceHtml}</div>`;
+        
+        html += `
+            <div class="nft-card" onclick="openNFTDetailPage('${item.contract}', '${safeName}', '${safeImage}', '${safeCollection}')">
+                ${imageHtml}
+                <div class="nft-name">${item.name}</div>
+                <span class="nft-id">ID: ${item.id}</span>
+                <span class="nft-balance">× ${item.balance}</span>
+                ${priceHtml}
+            </div>
+        `;
     }
+    
     container.innerHTML = html;
-    if (pager) {
-        pager.style.display = totalPages > 1 ? 'flex' : 'none';
-        const info = document.getElementById('nftPageInfo');
-        const prev = document.getElementById('nftPrevPage'); const next = document.getElementById('nftNextPage');
-        if (info) info.textContent = `${currentLang === 'fa' ? 'صفحه' : 'Page'} ${nftCurrentPage + 1} / ${totalPages}`;
-        if (prev) prev.disabled = nftCurrentPage === 0;
-        if (next) next.disabled = nftCurrentPage >= totalPages - 1;
-    }
-    hydrateGuardianFrames(container);
 }
 
 function closeAllNFTs() { document.getElementById('allNFTsModal').classList.add('closed'); }
@@ -4129,7 +4178,7 @@ async function renderTxHistory() {
     }
     const displayItems = state.txHistory.slice(0, 5); let html = '<div class="tx-list">';
     for (let i = 0; i < displayItems.length; i++) html += await renderTxItem(displayItems[i], i);
-    html += '</div>'; container.innerHTML = html; hydrateGuardianFrames(container);
+    html += '</div>'; container.innerHTML = html;
     if (showAllBtn) showAllBtn.style.display = 'block';
 }
 
@@ -4157,7 +4206,7 @@ async function showAllTxHistory() {
         let html = '<div class="tx-list">';
         for (let index = 0; index < state.txHistory.length; index++) html += await renderTxItem(state.txHistory[index], index);
         html += '</div>';
-        body.innerHTML = html; hydrateGuardianFrames(body);
+        body.innerHTML = html;
     }
     modal.classList.remove('closed');
 }
@@ -4177,7 +4226,7 @@ async function openTxDetail(index) {
     } else if (tx.type === 'swap') {
         contentHtml = `<div class="success-icon" style="background: linear-gradient(135deg, var(--accent-primary), #d63652);">🔄</div><div class="success-title" style="color: var(--accent-primary);">${t('typeSwap')}</div><div class="success-sub">${formatTime(tx.timestamp)}</div><div class="detail-row"><span class="detail-label">💰 ${t('from')}</span><span class="detail-value red">-${formatAmount(tx.fromAmount)} ${tx.fromSymbol}</span></div><div class="detail-row"><span class="detail-label">📥 ${t('to')}</span><span class="detail-value green">+${formatAmount(tx.toAmount)} ${tx.toSymbol}</span></div><div class="detail-row"><span class="detail-label">⛽ ${t('fee')}</span><span class="detail-value gold">${tx.gasFee || '0'} AVAX</span></div><div class="detail-row"><span class="detail-label">${t('detailTime')}</span><span class="detail-value white">${formatTime(tx.timestamp)}</span></div><div class="hash-row"><span class="hash-label">${t('detailHash')}</span><span class="hash-value" onclick="copyTxHash('${tx.hash}')">${tx.hash.slice(0, 12)}...${tx.hash.slice(-8)}</span><button class="hash-copy-btn" onclick="copyTxHash('${tx.hash}')">📋</button></div>`;
     }
-    body.innerHTML = contentHtml; document.getElementById('txDetailModal').classList.remove('closed'); hydrateGuardianFrames(body);
+    body.innerHTML = contentHtml; document.getElementById('txDetailModal').classList.remove('closed');
 }
 function closeTxDetailModal() { document.getElementById('txDetailModal').classList.add('closed'); }
 async function copyTxHash(hash) { const ok = await copyToClipboard(hash); if (ok) toast(t('hashCopied')); }
@@ -4316,11 +4365,10 @@ function renderSendNFTGrid() {
     for (const item of state.allNFTs) {
         const safeName = item.name.replace(/'/g, "\\'").replace(/"/g, '&quot;'); const safeImage = (item.image || '').replace(/'/g, "\\'"); const safeCollection = item.contractName.replace(/'/g, "\\'");
         const isSelected = state.selectedNFT && state.selectedNFT.contract === item.contract && state.selectedNFT.id === item.id;
-        let imgHtml = item.image ? (isGuardianVideo(item.image) ? `<img style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;background:var(--bg-input);" data-guardian-frame="${item.image}" alt="${item.name}" src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" />` : `<img src="${item.image}" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;" onerror="this.style.display='none'" />`) : `<div style="width:100%;aspect-ratio:1;background:var(--bg-input);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:2rem;">🎨</div>`;
+        let imgHtml = item.image ? `<img src="${item.image}" onerror="this.outerHTML='&lt;div style=\\'width:100%;aspect-ratio:1;background:var(--bg-input);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:2rem;\\'&gt;🎨&lt;/div&gt;'" />` : `<div style="width:100%;aspect-ratio:1;background:var(--bg-input);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:2rem;">🎨</div>`;
         html += `<div class="nft-selector-item ${isSelected ? 'selected' : ''}" onclick="selectNFTForSend('${item.contract}', ${item.id}, '${safeName}', '${safeImage}', '${safeCollection}', ${item.balance})">${imgHtml}<div class="nft-sel-name">${item.name}</div><div class="nft-sel-id">ID: ${item.id} · ×${item.balance}</div></div>`;
     }
     grid.innerHTML = html;
-    hydrateGuardianFrames(grid);
 }
 function selectNFTForSend(contract, id, name, image, collection, balance) { state.selectedNFT = { contract, id, name, image, collection, balance }; renderSendNFTGrid(); toast('✅ ' + name); }
 
@@ -5335,32 +5383,40 @@ async function init() {
         await NativeNotifications.requestPermission();
         await NativeNotifications.checkPermission();
 
-        const provider = await findBestRPC();
-        if (!provider) {
-            status(t('offline'), 'info');
-            showNotification('info', '📡 ' + t('offline'), t('offlineMsg'));
-            await loadAllTokenBalances(false); await loadAllNFTs(false); return;
-        }
-        state.provider = provider;
-        startPriceUpdater();
-        setupAutoLock();  // ✅ قفل خودکار
+        // ✅ ۱. اول کش را لود می‌کنیم تا صفحه فوراً پر شود
+await loadAllTokenBalances(false); 
+await loadAllNFTs(false);
 
-        if (state.unlocked && state.address) {
+// ✅ ۲. موتور قیمت را فوراً روشن می‌کنیم (بدون توجه به اینترنت)
+startPriceUpdater();
+setupAutoLock();
+
+// ✅ ۳. حالا در پس‌زمینه تلاش می‌کنیم به شبکه وصل شویم
+const provider = await findBestRPC();
+if (!provider) {
+    status(t('offline'), 'info');
+    showNotification('info', '📡 ' + t('offline'), t('offlineMsg'));
+    return; // موتور قیمت آفلاین کار خود را می‌کند
+}
+
+state.provider = provider;
+status(t('connected'), 'success');
+
+if (state.unlocked && state.address) {
     await refreshAll(true); 
     await loadFullTxHistory(); 
     restoreConnectedStatus();
     
-    // ✅ چک کردن تراکنش‌های جدید (AvaCloud) هر ۱۶ ثانیه
+    // چک کردن تراکنش‌های جدید (AvaCloud) هر ۱۶ ثانیه
     setInterval(() => { 
-        if (!document.hidden && state.unlocked && state.address && state.provider) {
+        if (!document.hidden && state.unlocked && state.address && state.provider && navigator.onLine) {
             checkAvaCloudUpdates(); 
         }
     }, 16000);
 
-    // ✅ چک کردن توکن‌ها و NFTهای جدید از شبکه هر ۳۰ ثانیه (بدون رفرش صفحه)
+    // چک کردن بالانس‌ها از شبکه هر ۳۰ ثانیه
     setInterval(() => {
-        if (!document.hidden && state.unlocked && state.address && state.provider) {
-            console.log("Auto-refreshing balances from network...");
+        if (!document.hidden && state.unlocked && state.address && state.provider && navigator.onLine) {
             loadAllTokenBalances(true); 
             loadAllNFTs(true);          
         }
