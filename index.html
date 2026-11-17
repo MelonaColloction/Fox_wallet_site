@@ -351,8 +351,8 @@ body {
 .tx-item.incoming { border-right: 3px solid var(--accent-success); }
 .tx-item.outgoing { border-right: 3px solid var(--accent-primary); }
 .tx-item .tx-image {
-    width: 50px; height: 50px; border-radius: 10px; object-fit: cover;
-    background: var(--bg-input); flex-shrink: 0;
+    width: 50px; height: 50px; min-width:50px; min-height:50px; border-radius: 10px; object-fit: cover;
+    background: var(--bg-input); flex-shrink: 0; display:block;
 }
 .tx-item .tx-image.placeholder {
     display: flex; align-items: center; justify-content: center;
@@ -449,8 +449,8 @@ body {
 .send-token-choice.active { background:var(--accent-bg-success);border:2px solid var(--accent-success);padding:9px 6px; }
 .send-token-choice .choice-logo { width:34px;height:34px;border-radius:50%;background:var(--bg-input);display:grid;place-items:center;font-size:1rem;margin:0 auto 5px;overflow:hidden; }
 .nft-media { display:block;width:100%;height:100%;object-fit:cover;background:var(--bg-input);pointer-events:none; }
-.nft-card .nft-media { aspect-ratio:1/1;border-radius:12px;margin-bottom:8px;flex-shrink:0; }
-.nft-detail-media { width:min(100%,420px);height:auto;max-height:58vh;aspect-ratio:1/1;object-fit:contain;border-radius:22px;background:#080b10;border:1px solid var(--border-light);margin:0 auto 14px;display:block;box-shadow:0 12px 36px rgba(0,0,0,.28); }
+.nft-card .nft-media { width:100%;aspect-ratio:1/1;height:auto;border-radius:12px;margin-bottom:8px;flex-shrink:0;object-fit:cover; }
+.nft-detail-media { width:min(100%,420px);height:auto;max-height:58vh;aspect-ratio:1/1;object-fit:cover;border-radius:22px;background:#080b10;border:1px solid var(--border-light);margin:0 auto 14px;display:block;box-shadow:0 12px 36px rgba(0,0,0,.28); }
 .nft-detail-image { width:min(100%,420px);height:auto;max-height:58vh;aspect-ratio:1/1;object-fit:contain;border-radius:22px;background:#080b10; }
 .nft-detail-hero { width:100%; }
 .nft-selector-item .nft-media { width:100%;aspect-ratio:1/1;border-radius:8px;object-fit:cover; }
@@ -1991,6 +1991,7 @@ async function showAllFilteredTx(filterType, filterValue, titleText) {
         }
         html += '</div>';
         body.innerHTML = html;
+        hydrateNFTVideos(body, 'any');
     }
     
     modal.classList.remove('closed');
@@ -2007,7 +2008,6 @@ function openNFTDetailPage(contract, name, image, collection, nftTokenId = 1) {
     
     if (!overlay || !contentEl) return;
     stopNFTVideos(document.getElementById('nftList') || document);
-    NFT_DETAIL_SECTION_PLAYED.clear();
     titleEl.textContent = name;
 
     const nftInfo = window.NFT_PRICES.collections[contract.toLowerCase()] || {};
@@ -2124,12 +2124,12 @@ async function renderNFTTxHistory(contractAddress) {
         html += await renderTxItem(display[i], realIndex);
     }
     container.innerHTML = html;
+    hydrateNFTVideos(container, 'any');
 }
 
 function closeNFTDetailPage() {
     const detailOverlay = document.getElementById('nftDetailOverlay');
     if(detailOverlay)stopNFTVideos(detailOverlay);
-    NFT_DETAIL_SECTION_PLAYED.clear();
     if(detailOverlay)detailOverlay.classList.remove('show');
     document.body.style.overflow = '';
     if (tokenChart) { try { tokenChart.remove(); } catch(e) {} tokenChart = null; }
@@ -3404,7 +3404,6 @@ function switchMainTab(tab) {
     const wasNFTTab=document.getElementById('tabContentNFTs')?.classList.contains('active');
     if(wasNFTTab&&tab!=='nfts'){
         stopNFTVideos(document.getElementById('tabContentNFTs')||document);
-        NFT_MAIN_SECTION_PLAYED.clear();
     }
     document.getElementById('tabTokensBtn').classList.toggle('active', tab === 'tokens');
     document.getElementById('tabNFTsBtn').classList.toggle('active', tab === 'nfts');
@@ -4016,12 +4015,12 @@ async function loadAllNFTs(forceFetch = false) {
     }
 }
 
-// NFT media cache: Guardian.mp4 is stored in IndexedDB and plays once per section visit.
+// NFT media cache: videos replay automatically 10 seconds after each playback.
 const NFT_MEDIA_DB = 'FoxWalletNFTMedia';
 const NFT_MEDIA_STORE = 'media';
 const NFT_MEDIA_URLS = window.__foxNftMediaUrls || (window.__foxNftMediaUrls = {});
-const NFT_MAIN_SECTION_PLAYED = new Set();
-const NFT_DETAIL_SECTION_PLAYED = new Set();
+const NFT_VIDEO_INITIALIZED = new WeakSet();
+const NFT_VIDEO_REPLAY_DELAY = 10000;
 function isNFTVideo(src){return /\.(mp4|webm|ogg|mov)(?:[?#].*)?$/i.test(String(src||''));}
 function openNFTMediaDB(){
     return new Promise((resolve,reject)=>{
@@ -4053,46 +4052,49 @@ function renderNFTMedia(src,className,alt='NFT media'){
     if(isNFTVideo(src))return `<video class="${className} nft-media" data-nft-video="${safeSrc}" muted playsinline webkit-playsinline preload="metadata" disablepictureinpicture controlslist="nodownload noplaybackrate" aria-label="${safeAlt}"></video>`;
     return `<img src="${safeSrc}" alt="${safeAlt}" class="${className}" loading="lazy" />`;
 }
-function stopNFTVideos(root=document){root.querySelectorAll('video[data-nft-video]').forEach(v=>{try{v.pause();}catch(e){}});}
-async function hydrateNFTVideos(root=document,section='main'){
-    const mainActive=document.getElementById('tabContentNFTs')?.classList.contains('active');
-    const detailActive=document.getElementById('nftDetailOverlay')?.classList.contains('show');
-    if(section==='main'&&!mainActive)return;
-    if(section==='detail'&&!detailActive)return;
-    const played=section==='detail'?NFT_DETAIL_SECTION_PLAYED:NFT_MAIN_SECTION_PLAYED;
+function stopNFTVideos(root=document){
+    root.querySelectorAll('video[data-nft-video]').forEach(v=>{
+        try{v.pause();}catch(e){}
+        if(v._nftReplayTimer){clearTimeout(v._nftReplayTimer);v._nftReplayTimer=null;}
+        if(v._nftStartTimer){clearTimeout(v._nftStartTimer);v._nftStartTimer=null;}
+    });
+}
+function nftVideoIsVisible(video){return !!(video.isConnected && video.getClientRects().length && document.visibilityState!=='hidden');}
+function scheduleNFTVideoReplay(video){
+    if(video._nftReplayTimer)clearTimeout(video._nftReplayTimer);
+    video._nftReplayTimer=setTimeout(()=>{
+        video._nftReplayTimer=null;
+        if(!video.isConnected)return;
+        if(!nftVideoIsVisible(video)){scheduleNFTVideoReplay(video);return;}
+        try{video.currentTime=0;}catch(e){}
+        const p=video.play();if(p?.catch)p.catch(err=>console.warn('NFT video replay blocked:',err));
+    },NFT_VIDEO_REPLAY_DELAY);
+}
+async function hydrateNFTVideos(root=document,section='any'){
     for(const video of [...root.querySelectorAll('video[data-nft-video]')]){
         const path=video.dataset.nftVideo;
         try{
-            let objectUrl=NFT_MEDIA_URLS[path];
-            if(!objectUrl){
-                let blob=await getCachedNFTMedia(path).catch(()=>null);
-                if(!blob){
-                    const response=await fetch(path,{cache:'force-cache'});
-                    if(!response.ok)throw new Error('Video not found: '+path);
-                    blob=await response.blob();
-                    await putCachedNFTMedia(path,blob).catch(()=>{});
+            if(!video.src){
+                let objectUrl=NFT_MEDIA_URLS[path];
+                if(!objectUrl){
+                    let blob=await getCachedNFTMedia(path).catch(()=>null);
+                    if(!blob){const response=await fetch(path,{cache:'force-cache'});if(!response.ok)throw new Error('Video not found: '+path);blob=await response.blob();await putCachedNFTMedia(path,blob).catch(()=>{});}
+                    objectUrl=URL.createObjectURL(blob);NFT_MEDIA_URLS[path]=objectUrl;
                 }
-                objectUrl=URL.createObjectURL(blob);NFT_MEDIA_URLS[path]=objectUrl;
+                if(!video.isConnected)continue;
+                video.muted=true;video.defaultMuted=true;video.loop=false;video.autoplay=false;video.controls=false;video.playsInline=true;
+                video.src=objectUrl;video.load();
             }
-            if(!video.isConnected)continue;
-            video.muted=true;video.loop=false;video.autoplay=false;video.controls=false;video.playsInline=true;
-            video.src=objectUrl;video.load();
-            if(played.has(path)){
-                video.addEventListener('loadedmetadata',()=>{try{video.currentTime=video.duration||0;}catch(e){}video.pause();},{once:true});
-                continue;
+            if(!NFT_VIDEO_INITIALIZED.has(video)){
+                NFT_VIDEO_INITIALIZED.add(video);
+                video.addEventListener('ended',()=>scheduleNFTVideoReplay(video));
+                const start=()=>{
+                    if(!video.isConnected)return;
+                    if(!nftVideoIsVisible(video)){video._nftStartTimer=setTimeout(start,1000);return;}
+                    const p=video.play();if(p?.catch)p.catch(err=>console.warn('NFT autoplay blocked:',err));
+                };
+                if(video.readyState>=2)start();else video.addEventListener('canplay',start,{once:true});
             }
-            played.add(path);
-            video.addEventListener('ended',()=>video.pause(),{once:true});
-            const start=()=>{
-                const stillInSection = section==='detail'
-                    ? document.getElementById('nftDetailOverlay')?.classList.contains('show')
-                    : document.getElementById('tabContentNFTs')?.classList.contains('active');
-                if(video.isConnected && stillInSection){
-                    const promise=video.play();
-                    if(promise?.catch)promise.catch(err=>console.warn('NFT autoplay blocked:',err));
-                }
-            };
-            if(video.readyState>=2)start();else video.addEventListener('canplay',start,{once:true});
         }catch(err){console.warn('NFT media load/cache:',err);}
     }
 }
@@ -4141,28 +4143,26 @@ function renderNFTs(items) {
 
             
         // ✅ نمایش قیمت واحد و ارزش کل (زیر هم)
-        let priceHtml = ''; 
-        if (item.pricePerNFT && item.pricePerNFT > 0) {
-            const totalValue = item.pricePerNFT * item.balance;
-            priceHtml = `
-                <div style="font-size: 0.75rem; font-weight: 700; color: var(--accent-gold); margin-top: 4px;">$${item.pricePerNFT.toFixed(2)}</div>
-                <div style="font-size: 0.65rem; font-weight: 700; color: var(--accent-success); margin-top: 2px;">$${totalValue.toFixed(2)}</div>
-            `;
-        }
+        const unitPrice = Number(item.pricePerNFT || 0);
+        const totalValue = Number(item.totalPrice != null ? item.totalPrice : unitPrice * Number(item.balance || 0));
+        const priceHtml = `
+            <span class="nft-price-unit">${currentLang === 'fa' ? 'قیمت هر عدد' : 'Unit price'}: $${unitPrice.toFixed(2)}</span>
+            <span class="nft-price-total">${currentLang === 'fa' ? 'قیمت کل' : 'Total value'}: $${totalValue.toFixed(2)}</span>
+        `;
         
         html += `
             <div class="nft-card" onclick="openNFTDetailPage('${item.contract}', '${safeName}', '${safeImage}', '${safeCollection}', ${item.id})">
                 ${imageHtml}
                 <div class="nft-name">${item.name}</div>
                 <span class="nft-id">ID: ${item.id}</span>
-                <span class="nft-balance">× ${item.balance}</span>
+                <span class="nft-balance">${currentLang === 'fa' ? 'تعداد موجود' : 'Available'}: × ${item.balance}</span>
                 ${priceHtml}
             </div>
         `;
     }
     
     container.innerHTML = html;
-    hydrateNFTVideos(container, 'main');
+    hydrateNFTVideos(container, 'any');
 }
 
 function closeAllNFTs() { document.getElementById('allNFTsModal').classList.add('closed'); }
@@ -4262,7 +4262,7 @@ function openNFTDetailPage(contract, name, image, collection, nftTokenId = 1) {
     overlay.style.overflowY = 'auto';
 
     setTimeout(() => {
-        hydrateNFTVideos(contentEl, 'detail');
+        hydrateNFTVideos(contentEl, 'any');
         createNFTChart(contract, basePrice, savedNftTf);
         renderNFTTxHistory(contract);
     }, 100);
@@ -4299,6 +4299,7 @@ async function renderTxHistory() {
     const displayItems = state.txHistory.slice(0, 5); let html = '<div class="tx-list">';
     for (let i = 0; i < displayItems.length; i++) html += await renderTxItem(displayItems[i], i);
     html += '</div>'; container.innerHTML = html;
+    hydrateNFTVideos(container, 'any');
     if (showAllBtn) showAllBtn.style.display = 'block';
 }
 
@@ -4310,7 +4311,7 @@ async function renderTxItem(tx, index) {
         let displayImage = null; const contractAddr = tx.contract || tx.contractAddress;
         if (contractAddr) { const ci = CONFIG.nftContracts.find(c => c.address.toLowerCase() === contractAddr.toLowerCase()); if (ci && ci.image) displayImage = ci.image; }
         if (!displayImage && tx.image) displayImage = tx.image;
-        iconHtml = displayImage ? `<img src="${displayImage}" class="tx-image" onerror="this.outerHTML='&lt;div class=\\'tx-image placeholder\\'&gt;🎨&lt;/div&gt;'" />` : `<div class="tx-image placeholder">🎨</div>`;
+        iconHtml = displayImage ? renderNFTMedia(displayImage, 'tx-image', tx.nftName || 'NFT') : `<div class="tx-image placeholder">🎨</div>`;
         titleHtml = isIncoming ? t('typeReceiveNFT') : t('typeSendNFT'); const nftInfo = tx.nftName || `NFT #${tx.tokenId}`; amountHtml = `<div class="tx-sub">${nftInfo} × ${tx.amount || 1}</div>`;
     } else if (tx.type === 'swap') { iconHtml = '🔄'; titleHtml = t('typeSwap'); amountHtml = `<div class="tx-sub">${formatAmount(tx.fromAmount)} ${tx.fromSymbol} → ${formatAmount(tx.toAmount)} ${tx.toSymbol}</div>`; }
     const dateStr = formatTime(tx.timestamp);
@@ -4327,6 +4328,7 @@ async function showAllTxHistory() {
         for (let index = 0; index < state.txHistory.length; index++) html += await renderTxItem(state.txHistory[index], index);
         html += '</div>';
         body.innerHTML = html;
+        hydrateNFTVideos(body, 'any');
     }
     modal.classList.remove('closed');
 }
@@ -4341,12 +4343,12 @@ async function openTxDetail(index) {
         let displayImage = null; const contractAddr = tx.contract || tx.contractAddress;
         if (contractAddr) { const ci = CONFIG.nftContracts.find(c => c.address.toLowerCase() === contractAddr.toLowerCase()); if (ci && ci.image) displayImage = ci.image; }
         if (!displayImage && tx.image) displayImage = tx.image;
-        let imageHtml = displayImage ? `<img src="${displayImage}" class="detail-nft-image" onerror="this.outerHTML='&lt;div class=\\'detail-nft-image placeholder\\'&gt;🎨&lt;/div&gt;'" />` : `<div class="detail-nft-image placeholder">🎨</div>`;
+        let imageHtml = displayImage ? renderNFTMedia(displayImage, 'detail-nft-image', tx.nftName || 'NFT') : `<div class="detail-nft-image placeholder">🎨</div>`;
         contentHtml = `${imageHtml}<div class="detail-nft-name">${tx.nftName || 'NFT'}</div><div class="detail-nft-collection">${isIncoming ? '📥 ' + t('typeReceiveNFT') : '📤 ' + t('typeSendNFT')}</div><div class="detail-row"><span class="detail-label">${t('detailTokenId')}</span><span class="detail-value white">#${tx.tokenId}</span></div><div class="detail-row"><span class="detail-label">${t('detailAmount')}</span><span class="detail-value green">×${tx.amount || 1}</span></div>${tx.to ? `<div class="detail-row"><span class="detail-label">${t('detailTo')}</span><span class="detail-value" title="${tx.to}">${fullAddr(tx.to)}</span></div>` : ''}${tx.gasFee ? `<div class="detail-row"><span class="detail-label">${t('detailGas')}</span><span class="detail-value gold">${tx.gasFee} AVAX</span></div>` : ''}<div class="detail-row"><span class="detail-label">${t('detailTime')}</span><span class="detail-value white">${formatTime(tx.timestamp)}</span></div>${tx.hash ? `<div class="hash-row"><span class="hash-label">${t('detailHash')}</span><span class="hash-value" onclick="copyTxHash('${tx.hash}')">${tx.hash.slice(0, 12)}...${tx.hash.slice(-8)}</span><button class="hash-copy-btn" onclick="copyTxHash('${tx.hash}')">📋</button></div>` : ''}`;
     } else if (tx.type === 'swap') {
         contentHtml = `<div class="success-icon" style="background: linear-gradient(135deg, var(--accent-primary), #d63652);">🔄</div><div class="success-title" style="color: var(--accent-primary);">${t('typeSwap')}</div><div class="success-sub">${formatTime(tx.timestamp)}</div><div class="detail-row"><span class="detail-label">💰 ${t('from')}</span><span class="detail-value red">-${formatAmount(tx.fromAmount)} ${tx.fromSymbol}</span></div><div class="detail-row"><span class="detail-label">📥 ${t('to')}</span><span class="detail-value green">+${formatAmount(tx.toAmount)} ${tx.toSymbol}</span></div><div class="detail-row"><span class="detail-label">⛽ ${t('fee')}</span><span class="detail-value gold">${tx.gasFee || '0'} AVAX</span></div><div class="detail-row"><span class="detail-label">${t('detailTime')}</span><span class="detail-value white">${formatTime(tx.timestamp)}</span></div><div class="hash-row"><span class="hash-label">${t('detailHash')}</span><span class="hash-value" onclick="copyTxHash('${tx.hash}')">${tx.hash.slice(0, 12)}...${tx.hash.slice(-8)}</span><button class="hash-copy-btn" onclick="copyTxHash('${tx.hash}')">📋</button></div>`;
     }
-    body.innerHTML = contentHtml; document.getElementById('txDetailModal').classList.remove('closed');
+    body.innerHTML = contentHtml; document.getElementById('txDetailModal').classList.remove('closed'); hydrateNFTVideos(body, 'any');
 }
 function closeTxDetailModal() { document.getElementById('txDetailModal').classList.add('closed'); }
 async function copyTxHash(hash) { const ok = await copyToClipboard(hash); if (ok) toast(t('hashCopied')); }
@@ -4496,7 +4498,7 @@ function renderSendNFTGrid() {
         html += `<div class="nft-selector-item ${isSelected ? 'selected' : ''}" onclick="selectNFTForSend('${item.contract}', ${item.id}, '${safeName}', '${safeImage}', '${safeCollection}', ${item.balance})">${imgHtml}<div class="nft-sel-name">${item.name}</div><div class="nft-sel-id">ID: ${item.id} · ×${item.balance}</div></div>`;
     }
     grid.innerHTML = html;
-    hydrateNFTVideos(grid);
+    hydrateNFTVideos(grid, 'any');
 }
 function selectNFTForSend(contract, id, name, image, collection, balance) { state.selectedNFT = { contract, id, name, image, collection, balance }; renderSendNFTGrid(); toast('✅ ' + name); }
 
@@ -4829,9 +4831,7 @@ function showSuccessModal(tx) {
     } else if (tx.type === 'nft') {
         titleEl.textContent = t('successTitle');
         subEl.textContent = t('successSub');
-        let imageHtml = tx.image
-            ? `<img src="${tx.image}" class="detail-nft-image" onerror="this.outerHTML='&lt;div class=\\'detail-nft-image placeholder\\'&gt;🎨&lt;/div&gt;'" />`
-            : `<div class="detail-nft-image placeholder">🎨</div>`;
+        let imageHtml = tx.image ? renderNFTMedia(tx.image, 'detail-nft-image', tx.nftName || 'NFT') : `<div class="detail-nft-image placeholder">🎨</div>`;
         html = `
             ${imageHtml}
             <div class="detail-nft-name">${tx.nftName}</div>
@@ -4865,6 +4865,7 @@ function showSuccessModal(tx) {
     }
     content.innerHTML = html;
     document.getElementById('successModal').classList.remove('closed');
+    hydrateNFTVideos(content, 'any');
 }
 function closeSuccessModal() { document.getElementById('successModal').classList.add('closed'); }
 
