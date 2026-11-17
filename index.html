@@ -4053,9 +4053,10 @@ function renderNFTMedia(src,className,alt='NFT media'){
     return `<img src="${safeSrc}" alt="${safeAlt}" class="${className}" loading="lazy" />`;
 }
 function stopNFTVideos(root=document){
+    // Pause while a view is being hidden, but keep an already scheduled
+    // 10-second replay timer so the playback cycle is not reset.
     root.querySelectorAll('video[data-nft-video]').forEach(v=>{
         try{v.pause();}catch(e){}
-        if(v._nftReplayTimer){clearTimeout(v._nftReplayTimer);v._nftReplayTimer=null;}
         if(v._nftStartTimer){clearTimeout(v._nftStartTimer);v._nftStartTimer=null;}
     });
 }
@@ -4071,7 +4072,14 @@ function scheduleNFTVideoReplay(video){
     },NFT_VIDEO_REPLAY_DELAY);
 }
 async function hydrateNFTVideos(root=document,section='any'){
-    for(const video of [...root.querySelectorAll('video[data-nft-video]')]){
+    const videos = [];
+    if(root && root.matches && root.matches('video[data-nft-video]')) videos.push(root);
+    if(root && root.querySelectorAll) videos.push(...root.querySelectorAll('video[data-nft-video]'));
+    for(const video of videos){
+        if(nftVideoIntersectionObserver && !video._nftIntersectionObserved){
+            nftVideoIntersectionObserver.observe(video);
+            video._nftIntersectionObserved=true;
+        }
         const path=video.dataset.nftVideo;
         try{
             if(!video.src){
@@ -4094,10 +4102,48 @@ async function hydrateNFTVideos(root=document,section='any'){
                     const p=video.play();if(p?.catch)p.catch(err=>console.warn('NFT autoplay blocked:',err));
                 };
                 if(video.readyState>=2)start();else video.addEventListener('canplay',start,{once:true});
+            } else if(video.paused && !video._nftReplayTimer && nftVideoIsVisible(video)) {
+                // Resume a video paused by navigation/visibility without restarting its cycle.
+                const p=video.play();if(p?.catch)p.catch(err=>console.warn('NFT video resume blocked:',err));
             }
         }catch(err){console.warn('NFT media load/cache:',err);}
     }
 }
+
+// Global manager: every NFT video inserted anywhere in the wallet is hydrated,
+// including transaction history, detail modals, filtered lists and dynamically
+// rendered sections. Each completed playback is followed by a 10-second pause.
+let nftVideoDomObserver = null;
+let nftVideoIntersectionObserver = null;
+function startGlobalNFTVideoManager(){
+    if(!nftVideoDomObserver && document.documentElement){
+        nftVideoDomObserver = new MutationObserver(mutations=>{
+            for(const mutation of mutations){
+                for(const node of mutation.addedNodes){
+                    if(node.nodeType===1) hydrateNFTVideos(node,'any');
+                }
+            }
+        });
+        nftVideoDomObserver.observe(document.documentElement,{childList:true,subtree:true});
+    }
+    if('IntersectionObserver' in window && !nftVideoIntersectionObserver){
+        nftVideoIntersectionObserver = new IntersectionObserver(entries=>{
+            for(const entry of entries){
+                const video=entry.target;
+                if(entry.isIntersecting && video.isConnected && video.paused && !video._nftReplayTimer){
+                    hydrateNFTVideos(video,'any');
+                }
+            }
+        },{threshold:0.05});
+        document.querySelectorAll('video[data-nft-video]').forEach(v=>nftVideoIntersectionObserver.observe(v));
+    }
+    hydrateNFTVideos(document,'any');
+}
+if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',startGlobalNFTVideoManager,{once:true});
+else startGlobalNFTVideoManager();
+document.addEventListener('visibilitychange',()=>{
+    if(document.visibilityState==='visible') hydrateNFTVideos(document,'any');
+});
 
 function getNFTViewMode(){
     const mode=localStorage.getItem('fox_nft_view_mode')||'grid';
