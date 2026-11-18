@@ -2940,11 +2940,26 @@ const CONFIG = {
         },
         slippage: 1.0, deadlineMinutes: 20
     },
-    nftContracts: [
-        { address: '0x4B1e65f73D8433043Bbe0AB8Cb3f118FAC662F9a', name: 'Guardian Collection', image: 'image/guardian.png', itemNames: { 1: 'The Guardian of Foxeggs' } },
-        { address: '0xcfd6c099bc8B3c91D47D62156AEc6BA128eB6B92', name: 'FoxEggs Autumn Edition', image: 'image/autumn.png', itemNames: { 1: 'Fox of Autumn Nights' } },
-        { address: '0xaA890ebf2a6356c9Da9E5B13C01db4aC88A70c8a', name: 'Fox Eggs: Frozen Realm', image: 'image/frozen.png', itemNames: { 1: 'Frostbite Fox' } }
-    ],
+    
+nftContracts: [
+    {
+        address: '0x4B1e65f73D8433043Bbe0AB8Cb3f118FAC662F9a',
+        name: 'Fox Eggs Classic NFT',
+        image: 'image/guardian.png',
+        itemNames: {
+            1: 'The Guardian of Foxeggs'
+        }
+    },
+    {
+        address: '0xcfd6c099bc8B3c91D47D62156AEc6BA128eB6B92',
+        name: 'FOX Eggs Seasonal NFT',
+        image: 'image/autumn.png',
+        itemNames: {
+            1: 'Fox of Autumn Nights'
+        }
+    }
+],
+
     nftIdsToCheck: 1,
     getNFTPrice(contractAddress, tokenId) {
         if (typeof window.NFT_PRICES === 'undefined') return 0;
