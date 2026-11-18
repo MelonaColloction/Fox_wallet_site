@@ -4,8 +4,8 @@
 
 window.NFT_PRICES = {
     collections: {
-        "0x4b1e65f73d8433043bbe0ab8cb3f118fac662f9a": { name: "Fox Eggs Classic NFT", basePrice: 25.00, startDate: "2026-11-11", maxSupply: 100, image: 'image/guardian.png', volatility: 0.05 },
-        "0xcfd6c099bc8b3c91d47d62156aec6ba128eb6b92": { name: "Fox Eggs Seasonal NFT", basePrice: 15.00, startDate: "2026-11-11", maxSupply: 100, image: 'image/autumn.png', volatility: 0.05 }
+        "0x4b1e65f73d8433043bbe0ab8cb3f118fac662f9a": { name: "Fox Eggs Classic NFT", basePrice: 9.00, startDate: "2026-11-11", maxSupply: 100, image: 'image/guardian.png', volatility: 0.05 },
+        "0xcfd6c099bc8b3c91d47d62156aec6ba128eb6b92": { name: "Fox Eggs Seasonal NFT", basePrice: 10.00, startDate: "2026-11-11", maxSupply: 100, image: 'image/autumn.png', volatility: 0.05 }
     }
 };
 
