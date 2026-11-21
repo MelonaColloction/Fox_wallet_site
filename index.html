@@ -925,6 +925,15 @@ body {
 .wallet-menu-dropdown .menu-item:hover { background: var(--bg-item-hover); }
 .wallet-menu-dropdown .menu-item.danger { color: var(--accent-primary); background: rgba(233, 69, 96, 0.1); }
 .wallet-menu-dropdown .menu-item.danger:hover { background: rgba(233, 69, 96, 0.2); }
+/* Wallet menu uses the browser top layer so no modal/stacking context can cover it. */
+#walletMenuDropdown.wallet-menu-dropdown{position:fixed!important;inset:0!important;margin:auto!important;transform:none!important;z-index:2147483647!important;width:min(340px,calc(100vw - 36px))!important;max-width:calc(100vw - 36px)!important;max-height:calc(100dvh - 48px)!important;overflow-y:auto!important;overscroll-behavior:contain!important;padding:14px!important;background:var(--bg-secondary)!important;color:var(--text-primary)!important;border:1px solid var(--border-color)!important;border-radius:20px!important;box-shadow:0 24px 80px rgba(0,0,0,.75)!important;flex-direction:column!important;gap:8px!important;isolation:isolate!important}
+#walletMenuDropdown.wallet-menu-dropdown[open]{display:flex!important}
+#walletMenuDropdown::backdrop{background:rgba(0,0,0,.72)!important;backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px)}
+#walletMenuDropdown .menu-item{display:flex!important;align-items:center!important;min-height:54px!important;justify-content:flex-start!important;font-size:.95rem!important;touch-action:manipulation!important;color:var(--text-primary)!important;background:var(--bg-input)!important;border:0!important;border-radius:12px!important;padding:14px 16px!important;width:100%!important;font-family:inherit!important}
+#walletMenuDropdown .menu-item.danger{color:var(--accent-primary)!important;background:rgba(233,69,96,.1)!important}
+#walletMenuDropdown .wallet-menu-cancel{justify-content:center!important;color:var(--text-muted)!important;background:transparent!important;border:1px solid var(--border-light)!important}
+
+
 
 /* SEED GRID */
 .seed-grid-container {
@@ -1257,7 +1266,26 @@ body {
     font-weight: 700;
 }
 
-    </style>
+    
+/* Header icon-only controls: no text labels inside circular buttons */
+.header-controls .wallet-selector-btn,
+.header-controls .lang-btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 42px !important;
+    height: 42px !important;
+    min-width: 42px !important;
+    max-width: 42px !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    white-space: nowrap !important;
+    line-height: 1 !important;
+    flex: 0 0 42px !important;
+}
+
+body.fox-page-open{overflow:hidden!important;overscroll-behavior:none!important}
+</style>
 
 <style id="fox-mobile-premium-redesign">
 :root{
@@ -1407,6 +1435,144 @@ html[data-theme="black"] #mainCard{background:#050505!important}
 html[data-theme="black"] .hero-card,html[data-theme="black"] .token-card,html[data-theme="black"] .fox-bottom-nav,html[data-theme="black"] .hero-action-btn{background:linear-gradient(145deg,#151515,#090909)!important;border-color:#3a3a3a!important}
 </style>
 
+
+<style id="fox-wallet-polish-v2">
+/* Keep every panel tied to the currently selected theme instead of stale fixed gradients. */
+#mainCard { background: var(--bg-primary) !important; color:var(--text-primary)!important; }
+.hero-card,.token-card,.fox-bottom-nav,.hero-action-btn,.modal,.favorite-item,
+.settings-section,.empty-state,.swap-token-item {
+  background:var(--bg-secondary)!important;
+  color:var(--text-primary)!important;
+  border-color:var(--border-color)!important;
+  background-image:none!important;
+}
+.hero-card { box-shadow:0 12px 28px var(--shadow-color)!important; }
+.hero-card:before { display:none!important; }
+.hero-action-btn { background:var(--bg-secondary)!important; }
+.ha-icon { background:var(--bg-input)!important; }
+.token-card { min-width:0!important; }
+.token-info { min-width:0!important; overflow:hidden!important; }
+.token-name,.token-symbol,.token-value,.token-balance { max-width:100%; overflow-wrap:anywhere; }
+.fox-bottom-nav { background:var(--bg-secondary)!important; backdrop-filter:blur(14px)!important; }
+.fox-nav-item { color:var(--text-secondary)!important; }
+.fox-nav-item.active { color:var(--accent-primary)!important; background:var(--bg-item-hover)!important; box-shadow:inset 0 0 0 1px var(--border-color)!important; }
+.modal-overlay { overflow-y:auto!important; }
+.modal {
+  background:var(--bg-secondary)!important;
+  color:var(--text-primary)!important;
+  border:1px solid var(--border-color)!important;
+  box-shadow:0 14px 42px var(--shadow-color)!important;
+  max-height:min(88dvh,760px)!important;
+  overflow-y:auto!important;
+}
+.modal h2,.modal .desc { max-width:100%; overflow-wrap:anywhere; }
+#favoritesModal .modal { padding:20px 16px!important; }
+#favoritesModalTitle { line-height:1.45!important; white-space:normal!important; overflow-wrap:anywhere!important; }
+.favorites-list { max-height:min(42dvh,340px)!important; overflow-x:hidden!important; }
+.favorite-item { width:100%!important; min-width:0!important; align-items:center!important; }
+.favorite-item .fav-info { min-width:0!important; overflow:hidden!important; }
+.favorite-item .fav-name { overflow-wrap:anywhere!important; line-height:1.45!important; }
+.favorite-item .fav-address {
+  display:block!important; max-width:100%!important; overflow:hidden!important;
+  text-overflow:ellipsis!important; white-space:nowrap!important; direction:ltr!important;
+}
+.favorite-item .fav-actions { flex-shrink:0!important; }
+#addFavoriteModal input,#passwordPromptModal input,.password-prompt-field input,
+input,select,textarea {
+  background:var(--bg-input)!important;color:var(--text-primary)!important;
+  border:1px solid var(--border-color)!important; box-shadow:none!important;
+}
+input::placeholder,textarea::placeholder { color:var(--text-muted)!important; opacity:1!important; }
+.password-prompt-field { border:1px solid var(--border-color)!important; border-radius:16px!important; background:var(--bg-input)!important; }
+.password-prompt-field input { min-height:52px!important; font-size:1rem!important; letter-spacing:.04em; }
+.btn-primary,.btn-success {
+  background:var(--accent-primary)!important;color:#fff!important;
+  border:1px solid var(--accent-primary)!important;box-shadow:none!important;
+}
+.btn-outline { color:var(--text-primary)!important;border-color:var(--border-color)!important;background:transparent!important; }
+.theme-option { background:var(--bg-input)!important;border-color:var(--border-color)!important; }
+.theme-option.active { border-color:var(--accent-primary)!important;background:var(--bg-item-hover)!important; }
+#swapTokenPickerList > div { background:var(--bg-input)!important;border-color:var(--border-color)!important; }
+@media(max-width:380px) {
+  #favoritesModal .modal { padding:18px 12px!important; }
+  .favorite-item { padding:10px!important; gap:6px!important; }
+  .favorite-item .fav-action-btn { padding:5px!important; }
+}
+</style>
+
+<style id="fox-overlay-stack-fix">
+/* Overlay layers live at body level, above app content and fixed navigation. */
+.modal-overlay, .token-detail-overlay, .nft-detail-overlay, .lang-select-overlay {
+  position: fixed !important;
+  inset: 0 !important;
+  max-width: none;
+  isolation: isolate;
+}
+.fox-bottom-nav { z-index: 500 !important; }
+/* Overlay layers are promoted by the shared runtime stack; keep them viewport-fixed. */
+.modal-overlay, .token-detail-overlay, .nft-detail-overlay {
+  position: fixed !important;
+  inset: 0 !important;
+  max-width: none;
+}
+.modal-overlay.closed { display: none !important; }
+body.fox-page-open { overflow: hidden !important; }
+</style>
+
+<style id="fox-wallet-page-redesign">
+/* Fox Wallet mobile-first full-page flows: no modal stacking for keyboard-driven forms. */
+.modal-overlay.page-screen:not(.closed){
+  position:fixed!important;inset:0!important;z-index:4500!important;display:flex!important;
+  align-items:stretch!important;justify-content:center!important;padding:0!important;
+  overflow-x:hidden!important;overflow-y:auto!important;overscroll-behavior:contain!important;
+  background:var(--bg-primary)!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;
+  animation:foxPageEnter .18s ease-out!important;
+}
+.modal-overlay.page-screen>.modal,
+.modal-overlay.page-screen>.modal-fullscreen{
+  width:100%!important;max-width:560px!important;min-height:100dvh!important;height:auto!important;
+  max-height:none!important;margin:0 auto!important;border:0!important;border-radius:0!important;
+  box-shadow:none!important;background:var(--bg-primary)!important;overflow:visible!important;
+  padding:calc(22px + env(safe-area-inset-top,0px)) 18px calc(28px + env(safe-area-inset-bottom,0px))!important;
+}
+.modal-overlay.page-screen>.modal h2{font-size:1.28rem!important;font-weight:850!important;letter-spacing:-.02em!important;margin:8px 0 7px!important}
+.modal-overlay.page-screen>.modal .desc{font-size:.82rem!important;line-height:1.7!important;margin-bottom:20px!important;color:var(--text-muted)!important}
+.modal-overlay.page-screen .input-group{margin:14px 0!important;gap:8px!important}
+.modal-overlay.page-screen input,.modal-overlay.page-screen textarea,.modal-overlay.page-screen select{
+  min-height:52px!important;font-size:16px!important;line-height:1.4!important;scroll-margin-top:22px!important;
+  -webkit-appearance:none;appearance:none;touch-action:manipulation!important;
+}
+.modal-overlay.page-screen .btn{min-height:50px!important}
+#sendModal.page-screen>.modal,#swapModal.page-screen>.modal{padding-top:calc(28px + env(safe-area-inset-top,0px))!important}
+#sendModal .send-tabs{position:sticky;top:0;z-index:2;padding:8px 0 12px;background:var(--bg-primary)}
+#sendModal .send-section{padding:10px 0 18px}
+#sendModal .send-section .input-group{background:var(--bg-input);border:1px solid var(--border-light);border-radius:16px;padding:5px 8px}
+#sendModal .send-section .input-group input{background:transparent!important;border:0!important;min-width:0}
+#sendModal #sendTokenSelector{flex-wrap:wrap!important}
+#swapModal .swap-token-box{padding:18px!important;border-radius:20px!important;border:1px solid var(--border-color)!important;background:var(--bg-secondary)!important}
+#swapModal .swap-token-input{font-size:1.35rem!important;min-height:48px!important}
+#swapModal .swap-token-symbol{padding:10px 13px!important;border:1px solid var(--border-light)!important}
+#favoritesModal.page-screen>.modal{padding-top:calc(26px + env(safe-area-inset-top,0px))!important}
+#favoritesModal .favorites-list{padding:8px 0 20px}
+#addFavoriteModal.page-screen{z-index:4700!important}
+#favoritesModal.page-screen{z-index:4600!important}
+#qrModal.page-screen{z-index:4600!important}
+#swapTokenPickerModal.page-screen{z-index:4650!important}
+#sendModal.page-screen,#swapModal.page-screen{z-index:4500!important}
+#loginModal.page-screen,#addWalletModal.page-screen{z-index:4800!important}
+#renameWalletModal.page-screen,#seedVerifyModal.page-screen,#passwordPromptModal.page-screen{z-index:4850!important}
+#scanModal{z-index:5000!important}
+#loginModal.page-screen>.modal,#addWalletModal.page-screen>.modal{justify-content:flex-start}
+#qrModal.page-screen>.modal{text-align:center;display:flex;flex-direction:column;justify-content:center}
+#qrModal .qr-container{width:min(280px,80vw);min-height:0;aspect-ratio:1;margin:18px auto}
+@keyframes foxPageEnter{from{opacity:.72;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@media(min-width:600px){
+ .modal-overlay.page-screen:not(.closed){background:rgba(0,0,0,.72)!important;align-items:center!important;padding:20px!important}
+ .modal-overlay.page-screen>.modal,.modal-overlay.page-screen>.modal-fullscreen{min-height:min(780px,calc(100dvh - 40px))!important;max-height:calc(100dvh - 40px)!important;border:1px solid var(--border-color)!important;border-radius:26px!important;overflow-y:auto!important;box-shadow:0 24px 80px rgba(0,0,0,.38)!important}
+}
+@media(prefers-reduced-motion:reduce){.modal-overlay.page-screen:not(.closed){animation:none!important}}
+</style>
+
 </head>
 <body>
 
@@ -1460,8 +1626,8 @@ html[data-theme="black"] .hero-card,html[data-theme="black"] .token-card,html[da
                 <h1>Fox <span>Wallet</span></h1>
             </div>
             <div class="header-controls mobile-header-controls">
-                <button class="wallet-selector-btn" onclick="openWalletListModal()" id="walletSelectorBtn" aria-label="Wallets" title="Wallets">▣</button>
-                <button class="lang-btn" onclick="toggleLanguage()" id="langBtn" aria-label="Change language" title="Change language">🌐</button>
+                <button class="wallet-selector-btn" onclick="openWalletListModal()" id="walletSelectorBtn" aria-label="Wallets" title="Wallets">👛</button>
+                <button class="lang-btn" onclick="toggleLanguage()" id="langBtn" aria-label="Change language" title="Change language">🇺🇸</button>
                 <button class="top-settings-btn" onclick="showSettings()" aria-label="Settings" title="Settings">⚙</button>
             </div>
         </div>
@@ -1550,8 +1716,8 @@ html[data-theme="black"] .hero-card,html[data-theme="black"] .token-card,html[da
 
         <nav class="fox-bottom-nav" aria-label="Main navigation">
             <button class="fox-nav-item active" data-view="home" onclick="foxNavigate('home')"><span class="fox-nav-icon">⌂</span><span class="fox-nav-fa">خانه</span><span class="fox-nav-en">Home</span></button>
+            <button class="fox-nav-item" data-view="nfts" onclick="foxNavigate('nfts')"><span class="fox-nav-icon">◇</span><span class="fox-nav-fa">NFT</span><span class="fox-nav-en">NFT</span></button>
             <button class="fox-nav-item" data-view="history" onclick="foxNavigate('history')"><span class="fox-nav-icon">◷</span><span class="fox-nav-fa">تاریخچه</span><span class="fox-nav-en">History</span></button>
-            <button class="fox-nav-item" data-view="nfts" onclick="foxNavigate('nfts')"><span class="fox-nav-icon">◇</span><span class="fox-nav-fa">NFTها</span><span class="fox-nav-en">NFTs</span></button>
             <button class="fox-nav-item" data-view="addresses" onclick="foxNavigate('addresses')"><span class="fox-nav-icon">♧</span><span class="fox-nav-fa">آدرس‌ها</span><span class="fox-nav-en">Addresses</span></button>
         </nav>
         <div class="footer-text" id="footerText">🦊 Fox Wallet</div>
@@ -1573,7 +1739,7 @@ html[data-theme="black"] .hero-card,html[data-theme="black"] .token-card,html[da
     </div>
 
     <!-- RENAME WALLET MODAL -->
-    <div class="modal-overlay closed" id="renameWalletModal">
+    <div class="modal-overlay closed page-screen" id="renameWalletModal">
         <div class="modal">
             <h2 style="color:var(--accent-success);" id="renameTitle">✏️ تغییر نام</h2>
             <div class="desc" id="renameDesc">نام جدید را وارد کنید</div>
@@ -1598,7 +1764,7 @@ html[data-theme="black"] .hero-card,html[data-theme="black"] .token-card,html[da
     </div>
 
     <!-- SEED VERIFY MODAL -->
-    <div class="modal-overlay closed" id="seedVerifyModal">
+    <div class="modal-overlay closed page-screen" id="seedVerifyModal">
         <div class="modal">
             <h2 style="color:var(--accent-warning);" id="seedVerifyTitle">🔐 تأیید هویت</h2>
             <div class="desc" id="seedVerifyDescText">برای مشاهده عبارت بازیابی هویت خود را تأیید کنید</div>
@@ -1642,7 +1808,7 @@ html[data-theme="black"] .hero-card,html[data-theme="black"] .token-card,html[da
     </div>
 
     <!-- LOGIN MODAL -->
-    <div class="modal-overlay closed" id="loginModal">
+    <div class="modal-overlay closed page-screen" id="loginModal">
         <div class="modal">
             <div style="text-align: center; margin-bottom: 20px;">
                 <img src="Fox123.png" alt="Fox" style="width: 60px; height: 60px; border-radius: 50%; margin-bottom: 10px;" onerror="this.style.display='none'" />
@@ -1698,7 +1864,7 @@ html[data-theme="black"] .hero-card,html[data-theme="black"] .token-card,html[da
     </div>
 
     <!-- ADD WALLET MODAL -->
-    <div class="modal-overlay closed" id="addWalletModal">
+    <div class="modal-overlay closed page-screen" id="addWalletModal">
         <div class="modal">
             <h2 id="addWalletTitle">➕ افزودن کیف پول جدید</h2>
             <div class="desc" id="addWalletDesc">یک کیف پول بسازید یا وارد کنید</div>
@@ -1745,11 +1911,11 @@ html[data-theme="black"] .hero-card,html[data-theme="black"] .token-card,html[da
     </div>
 
     <!-- PASSWORD PROMPT MODAL -->
-    <div class="modal-overlay closed" id="passwordPromptModal">
+    <div class="modal-overlay closed page-screen" id="passwordPromptModal">
         <div class="modal">
             <h2 style="color:var(--accent-warning);" id="promptTitle">🔐 تأیید هویت</h2>
             <div class="desc" id="promptDesc">رمز عبور خود را وارد کنید</div>
-            <div class="input-group"><input type="password" id="promptPasswordInput" placeholder="رمز عبور" /></div>
+            <div class="input-group password-prompt-field"><input type="password" id="promptPasswordInput" placeholder="رمز عبور" autocomplete="current-password" autocapitalize="off" spellcheck="false" /></div>
             <button class="btn btn-success btn-full" onclick="submitPromptPassword()" style="margin-top:12px;" id="promptConfirmBtn">✅ تأیید</button>
             <button class="btn btn-outline btn-full" onclick="closePasswordPrompt()" style="margin-top:6px;" id="promptCancelBtn">❌ لغو</button>
         </div>
@@ -1796,7 +1962,7 @@ html[data-theme="black"] .hero-card,html[data-theme="black"] .token-card,html[da
     <div class="modal-overlay closed" id="favoritesModal">
         <div class="modal">
             <h2 style="color:var(--accent-warning);" id="favoritesModalTitle">⭐ آدرس‌های ذخیره‌شده</h2>
-            <div class="desc" id="favoritesModalDesc">آدرس‌های مورد علاقه شما</div>
+            <div class="desc" id="favoritesModalDesc" style="display:none;"></div>
             <div class="favorites-list" id="favoritesList"></div>
             <button class="btn btn-success btn-full" onclick="showAddFavoriteModal()" id="addFavBtn" style="margin-top:12px;">➕ افزودن آدرس</button>
             <button class="btn btn-outline btn-full" onclick="closeFavorites()" style="margin-top:6px;" id="favoritesCloseBtn">❌ بستن</button>
@@ -3089,12 +3255,9 @@ const CONFIG = {
             'function swapExactTokensForTokens(uint amountIn, uint amountOutMin, address[] path, address to, uint deadline) returns (uint[] amounts)'
         ],
         tokens: {
-            AVAX: { address: '0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7', decimals: 18, symbol: 'AVAX', isNative: true },
-            USDC: { address: '0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E', decimals: 6, symbol: 'USDC', isNative: false },
-            USDT: { address: '0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7', decimals: 6, symbol: 'USDT', isNative: false },
-            WETH: { address: '0x49D5c2BdFfac6CE2BFdB6640F4F80f226bc10bAB', decimals: 18, symbol: 'WETH.e', isNative: false },
-            WBTC: { address: '0x50b7545627a5162F82A992c33b87aDc75187B218', decimals: 8, symbol: 'WBTC.e', isNative: false },
-            JOE: { address: '0x6e84a6216eA6aCCaC0d42b5a6598716B1A73eE96', decimals: 18, symbol: 'JOE', isNative: false }
+            AVAX: { address: '0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7', decimals: 18, symbol: 'AVAX', isNative: true, name: 'Avalanche' },
+            USDT: { address: '0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7', decimals: 6, symbol: 'USDT', isNative: false, name: 'Tether' },
+            USDC: { address: '0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E', decimals: 6, symbol: 'USDC', isNative: false, name: 'USD Coin' }
         },
         slippage: 1.0, deadlineMinutes: 20
     },
@@ -3147,6 +3310,24 @@ nftContracts: [
 // EXTRA TOKENS
 // ═══════════════════════════════════════════════════════════════
 const EXTRA_TOKENS = [
+    {
+        address: '0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7',
+        name: 'Tether',
+        symbol: 'USDT',
+        decimals: 6,
+        image: 'usdt.png',
+        canSwap: true,
+        description: 'Tether (USDT) on Avalanche C-Chain.'
+    },
+    {
+        address: '0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E',
+        name: 'USD Coin',
+        symbol: 'USDC',
+        decimals: 6,
+        image: 'usdc.png',
+        canSwap: true,
+        description: 'USD Coin (USDC) on Avalanche C-Chain.'
+    },
     {
         address: '0xafeabf57f4540e6ae19b3ea34c0d207e06bf20ca',
         name: 'Fox Legacy',
@@ -3927,7 +4108,7 @@ function openSwapFromToken(symbol) {
 async function loadWallets() { try { const data = await walletsDB.getItem('foxWallets'); state.wallets = data ? data : []; await ensureWalletNames(); } catch (e) { state.wallets = []; } }
 async function saveWallets() { try { await walletsDB.setItem('foxWallets', state.wallets); } catch (e) {} }
 function openWalletListModal() { renderWalletListModal(); document.getElementById('walletListModal').classList.remove('closed'); }
-function closeWalletListModal() { document.getElementById('walletListModal').classList.add('closed'); const existingMenu = document.getElementById('walletMenuDropdown'); if (existingMenu) existingMenu.remove(); }
+function closeWalletListModal() { document.getElementById('walletListModal').classList.add('closed'); closeWalletMenu(); }
 
 function renderWalletListModal() {
     const container = document.getElementById('walletListContainer');
@@ -3942,15 +4123,36 @@ function renderWalletListModal() {
     container.innerHTML = html;
 }
 
-function openWalletMenu(index, btn) {
-    const existing = document.getElementById('walletMenuDropdown'); if (existing) existing.remove();
-    const menu = document.createElement('div'); menu.id = 'walletMenuDropdown'; menu.className = 'wallet-menu-dropdown';
-    const dir = currentLang === 'fa' ? 'right' : 'left';
-    menu.innerHTML = `<button class="menu-item" style="text-align:${dir};" onclick="openRenameWallet(${index})">${t('renameWallet')}</button><button class="menu-item" style="text-align:${dir};" onclick="openSeedForWallet(${index})">${t('exportSeed')}</button><button class="menu-item danger" style="text-align:${dir};" onclick="openDeleteWalletConfirm(${index})">${t('deleteWallet')}</button>`;
-    document.body.appendChild(menu);
-    setTimeout(() => { document.addEventListener('click', closeWalletMenuOnOutsideClick, { once: true }); }, 10);
+function closeWalletMenu() {
+    const menu = document.getElementById('walletMenuDropdown');
+    if (menu) { try { if (menu.open) menu.close(); } catch (e) {} menu.remove(); }
+    const backdrop = document.getElementById('walletMenuBackdrop'); if (backdrop) backdrop.remove();
 }
-function closeWalletMenuOnOutsideClick(e) { const menu = document.getElementById('walletMenuDropdown'); if (menu && !menu.contains(e.target)) menu.remove(); }
+function openWalletMenu(index, btn) {
+    closeWalletMenu();
+    if (!state.wallets || !state.wallets[index]) return;
+    // Native dialog enters the browser top layer: it cannot be hidden behind app modals.
+    const menu = document.createElement('dialog');
+    menu.id = 'walletMenuDropdown'; menu.className = 'wallet-menu-dropdown';
+    menu.setAttribute('aria-label', currentLang === 'fa' ? 'گزینه‌های کیف پول' : 'Wallet options');
+    menu.setAttribute('dir', currentLang === 'fa' ? 'rtl' : 'ltr');
+    const dir = currentLang === 'fa' ? 'right' : 'left';
+    menu.innerHTML = `<button type="button" class="menu-item" data-wallet-action="rename" style="text-align:${dir};">${t('renameWallet')}</button><button type="button" class="menu-item" data-wallet-action="seed" style="text-align:${dir};">${t('exportSeed')}</button><button type="button" class="menu-item danger" data-wallet-action="delete" style="text-align:${dir};">${t('deleteWallet')}</button><button type="button" class="menu-item wallet-menu-cancel" data-wallet-action="close" style="text-align:${dir};">${currentLang === 'fa' ? 'بستن' : 'Close'}</button>`;
+    menu.addEventListener('click', (e) => {
+        if (e.target === menu) { closeWalletMenu(); return; }
+        const action = e.target.closest('[data-wallet-action]')?.dataset.walletAction;
+        if (!action) return;
+        closeWalletMenu();
+        if (action === 'rename') openRenameWallet(index);
+        else if (action === 'seed') openSeedForWallet(index);
+        else if (action === 'delete') openDeleteWalletConfirm(index);
+    });
+    menu.addEventListener('cancel', (e) => { e.preventDefault(); closeWalletMenu(); });
+    document.body.appendChild(menu);
+    try { menu.showModal(); } catch (err) { menu.setAttribute('open', ''); }
+    const first = menu.querySelector('button'); if (first) requestAnimationFrame(() => first.focus({preventScroll:true}));
+}
+function closeWalletMenuOnOutsideClick(e) { const menu = document.getElementById('walletMenuDropdown'); if (menu && !menu.contains(e.target) && !e.target.closest('.wallet-menu-btn')) closeWalletMenu(); }
 
 async function switchWalletFromList(index) {
     closeWalletListModal();
@@ -3975,12 +4177,12 @@ async function switchWalletFromList(index) {
 }
 
 function openRenameWallet(index) {
-    const menu = document.getElementById('walletMenuDropdown'); if (menu) menu.remove();
+    closeWalletMenu();
     const wallet = state.wallets[index]; if (!wallet) return;
     state.renameTargetIndex = index; document.getElementById('renameInput').value = wallet.name || '';
-    document.getElementById('renameWalletModal').classList.remove('closed'); setTimeout(() => document.getElementById('renameInput').focus(), 100);
+    openFullPage('renameWalletModal'); setTimeout(() => document.getElementById('renameInput').focus({preventScroll:true}), 100);
 }
-function closeRenameWallet() { document.getElementById('renameWalletModal').classList.add('closed'); state.renameTargetIndex = null; }
+function closeRenameWallet() { closeFullPage('renameWalletModal'); state.renameTargetIndex = null; }
 async function saveRenameWallet() {
     const newName = document.getElementById('renameInput').value.trim();
     if (!newName) { toast(t('walletNamePlaceholder'), 'error'); return; }
@@ -3988,7 +4190,7 @@ async function saveRenameWallet() {
     state.wallets[state.renameTargetIndex].name = newName; await saveWallets(); closeRenameWallet(); renderWalletListModal(); showNotification('success', '✅', t('walletRenamed'));
 }
 
-function openDeleteWalletConfirm(index) { const menu = document.getElementById('walletMenuDropdown'); if (menu) menu.remove(); state.deleteTargetIndex = index; document.getElementById('deleteWalletConfirmModal').classList.remove('closed'); }
+function openDeleteWalletConfirm(index) { closeWalletMenu(); state.deleteTargetIndex = index; document.getElementById('deleteWalletConfirmModal').classList.remove('closed'); }
 function closeDeleteWalletConfirm() { document.getElementById('deleteWalletConfirmModal').classList.add('closed'); state.deleteTargetIndex = null; }
 
 async function confirmDeleteWallet() {
@@ -4026,15 +4228,15 @@ function openAddWalletFromList() {
 // SEED MANAGER
 // ═══════════════════════════════════════════════════════════════
 function openSeedForWallet(index) {
-    const menu = document.getElementById('walletMenuDropdown'); if (menu) menu.remove();
+    closeWalletMenu();
     state.seedTargetIndex = index; const wallet = state.wallets[index]; if (!wallet) return;
     document.getElementById('seedVerifyPass').value = '';
     const bioBtn = document.getElementById('seedVerifyBioBtn'); const passSection = document.getElementById('seedVerifyPasswordSection');
     if (Settings.getBiometricEnabled() && biometricAvailable) { bioBtn.style.display = 'block'; passSection.style.display = 'none'; }
     else { bioBtn.style.display = 'none'; passSection.style.display = 'block'; }
-    document.getElementById('seedVerifyModal').classList.remove('closed');
+    openFullPage('seedVerifyModal');
 }
-function closeSeedVerify() { document.getElementById('seedVerifyModal').classList.add('closed'); state.seedTargetIndex = null; clearSensitiveState(); }
+function closeSeedVerify() { closeFullPage('seedVerifyModal'); state.seedTargetIndex = null; clearSensitiveState(); }
 async function verifySeedWithBiometric() { const result = await BiometricAuth.verify(t('bioSeedPrompt')); if (!result.success) { showNotification('error', '❌', t('bioFailed')); return; } const creds = await BiometricAuth.getCredentials(); if (!creds || !creds.password) { showNotification('error', '❌', t('bioInfoNotFound')); return; } await decryptAndRevealSeed(creds.password); }
 async function verifySeedWithPassword() { const pass = document.getElementById('seedVerifyPass').value; if (!pass) { toast(t('enterPassword'), 'error'); return; } await decryptAndRevealSeed(pass); }
 
@@ -4572,18 +4774,71 @@ async function openTxDetail(index) {
 function closeTxDetailModal() { document.getElementById('txDetailModal').classList.add('closed'); }
 async function copyTxHash(hash) { const ok = await copyToClipboard(hash); if (ok) toast(t('hashCopied')); }
 
+// Full-page navigation helpers. Existing business logic and form IDs remain unchanged.
+let foxPageStack = [];
+// One shared overlay stack: the most recently opened dialog/page always sits above
+// every previously opened screen, regardless of the legacy per-ID z-index rules.
+let foxOverlayZ = 10000;
+function foxRaiseOverlay(node) {
+    if (!node) return;
+    foxOverlayZ = Math.max(foxOverlayZ + 1, 10001);
+    node.style.setProperty('z-index', String(foxOverlayZ), 'important');
+    node.style.setProperty('isolation', 'isolate');
+}
+function foxIsOverlayVisible(node) {
+    if (!node || node.classList.contains('closed')) return false;
+    if (node.classList.contains('modal-overlay')) return true;
+    return node.classList.contains('show');
+}
+function foxInstallOverlayStack() {
+    // Move every screen layer out of #app and other transformed/overflowing
+    // ancestors. Fixed descendants inside those stacking contexts can otherwise
+    // appear underneath the app even with very large z-index values.
+    const selector = '.modal-overlay, .token-detail-overlay, .nft-detail-overlay, .lang-select-overlay';
+    document.querySelectorAll(selector).forEach(node => {
+        if (node.parentElement !== document.body) document.body.appendChild(node);
+    });
+    document.querySelectorAll(selector).forEach(node => { if (foxIsOverlayVisible(node)) foxRaiseOverlay(node); });
+    if (window.__foxOverlayObserver) return;
+    window.__foxOverlayObserver = new MutationObserver(records => {
+        records.forEach(record => {
+            if (record.type !== 'attributes' || record.attributeName !== 'class') return;
+            const node = record.target;
+            if (node.matches && node.matches(selector) && foxIsOverlayVisible(node)) foxRaiseOverlay(node);
+        });
+    });
+    window.__foxOverlayObserver.observe(document.body, {subtree:true, attributes:true, attributeFilter:['class']});
+}
+function openFullPage(id) {
+    const page = document.getElementById(id); if (!page) return;
+    page.classList.add('page-screen'); page.classList.remove('closed');
+    foxPageStack = foxPageStack.filter(x => x !== id); foxPageStack.push(id);
+    document.body.classList.add('fox-page-open');
+    foxRaiseOverlay(page);
+    page.scrollTop = 0;
+}
+function closeFullPage(id) {
+    const page = document.getElementById(id); if (!page) return;
+    page.classList.add('closed'); foxPageStack = foxPageStack.filter(x => x !== id);
+    if (!document.querySelector('.modal-overlay.page-screen:not(.closed)')) document.body.classList.remove('fox-page-open');
+}
+// Install after the document is parsed; also catches legacy dialogs opened by
+// removing `.closed` or adding `.show` anywhere in the existing application.
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', foxInstallOverlayStack, {once:true});
+else foxInstallOverlayStack();
+
 // ═══════════════════════════════════════════════════════════════
 // QR / SCANNER / FAVORITES
 // ═══════════════════════════════════════════════════════════════
 function showQRCode() {
     if (!state.address) { showNotification('error', '❌', t('notConnected')); return; }
     const modal = document.getElementById('qrModal'); const addressText = document.getElementById('qrAddressText'); const qrContainer = document.getElementById('qrContainer');
-    if (!modal || !qrContainer) return; modal.classList.remove('closed'); addressText.textContent = state.address; qrContainer.innerHTML = '';
+    if (!modal || !qrContainer) return; openFullPage('qrModal'); addressText.textContent = state.address; qrContainer.innerHTML = '';
     if (typeof QRCode === 'undefined') { qrContainer.innerHTML = `<div style="color:#e94560;padding:20px;text-align:center;">${t('qrNotLoaded')}</div>`; return; }
     try { new QRCode(qrContainer, { text: state.address, width: 240, height: 240, colorDark: '#000000', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.M }); }
     catch (e) { qrContainer.innerHTML = `<div style="color:#e94560;padding:20px;text-align:center;">${t('qrError')}: ${e.message}</div>`; }
 }
-function closeQRModal() { const m = document.getElementById('qrModal'); if (m) m.classList.add('closed'); }
+function closeQRModal() { closeFullPage('qrModal'); }
 async function copyQrAddress() { if (state.address) { const ok = await copyToClipboard(state.address); if (ok) toast(t('copied')); } }
 
 async function startQRScanner(target) {
@@ -4639,10 +4894,10 @@ function updateFavoritesList() {
     });
     container.innerHTML = html;
 }
-async function showFavorites() { await loadFavorites(); state.favoritesForTarget = null; updateFavoritesList(); document.getElementById('favoritesModal').classList.remove('closed'); }
-function closeFavorites() { const modal = document.getElementById('favoritesModal'); if (modal) modal.classList.add('closed'); state.favoritesForTarget = null; }
-function showAddFavoriteModal() { document.getElementById('favNameInput').value = ''; document.getElementById('favAddressInput').value = ''; document.getElementById('addFavoriteModal').classList.remove('closed'); }
-function closeAddFavorite() { document.getElementById('addFavoriteModal').classList.add('closed'); }
+async function showFavorites() { await loadFavorites(); state.favoritesForTarget = null; updateFavoritesList(); openFullPage('favoritesModal'); }
+function closeFavorites() { closeFullPage('favoritesModal'); state.favoritesForTarget = null; }
+function showAddFavoriteModal() { document.getElementById('favNameInput').value = ''; document.getElementById('favAddressInput').value = ''; openFullPage('addFavoriteModal'); setTimeout(() => document.getElementById('favNameInput')?.focus({preventScroll:true}), 120); }
+function closeAddFavorite() { closeFullPage('addFavoriteModal'); }
 async function saveFavorite() {
     const name = document.getElementById('favNameInput').value.trim(); const address = document.getElementById('favAddressInput').value.trim();
     if (!name) { toast(t('favoriteNameRequired'), 'error'); return; }
@@ -4659,7 +4914,7 @@ function showFavoritesPicker() {
     if (titleEl) titleEl.textContent = t('favoritesPickerTitle'); if (descEl) descEl.textContent = t('favoritesPickerDesc'); if (addBtn) addBtn.style.display = 'none';
     let html = '';
     state.favorites.forEach(fav => { const safeAddr = fav.address.replace(/'/g, "\\'"); html += `<div class="favorite-item" onclick="pickFavorite('${safeAddr}')" style="cursor:pointer;"><div class="fav-info"><div class="fav-name">${fav.name}</div><div class="fav-address">${fav.address}</div></div><div class="fav-actions"><span style="color:var(--accent-success);font-size:1.2rem;">→</span></div></div>`; });
-    container.innerHTML = html; modal.classList.remove('closed');
+    container.innerHTML = html; openFullPage('favoritesModal');
 }
 function pickFavorite(address) { if (state.favoritesForTarget === 'send-token') document.getElementById('tokenSendTo').value = address; else if (state.favoritesForTarget === 'send-nft') document.getElementById('nftSendTo').value = address; toast('✅'); closeFavorites(); }
 
@@ -4670,9 +4925,9 @@ function showSendModal() {
     if (!state.signer) { showNotification('error', '❌', t('openWalletFirst')); return; }
     document.getElementById('tokenSendTo').value = ''; document.getElementById('tokenAmount').value = ''; document.getElementById('nftSendTo').value = ''; document.getElementById('nftAmount').value = '1';
     state.selectedNFT = null; currentSendToken = 'AVAX'; renderSendTokenSelector(); renderSendNFTGrid(); switchSendTab('token');
-    document.getElementById('sendModal').classList.remove('closed');
+    openFullPage('sendModal');
 }
-function closeSendModal() { document.getElementById('sendModal').classList.add('closed'); state.selectedNFT = null; }
+function closeSendModal() { closeFullPage('sendModal'); state.selectedNFT = null; }
 
 function switchSendTab(tab) {
     state.currentSendTab = tab;
@@ -4860,12 +5115,12 @@ async function executeSendNFT(tx) {
 // ═══════════════════════════════════════════════════════════════
 function showSwapModal() {
     if (!state.signer) { showNotification('error', '❌', t('openWalletFirst')); return; }
-    state.swapFromToken = 'AVAX'; state.swapToToken = 'USDC'; state.swapFromAmount = 0; state.swapToAmount = 0; state.swapAmountOutWei = null;
+    state.swapFromToken = 'AVAX'; state.swapToToken = 'USDT'; state.swapFromAmount = 0; state.swapToAmount = 0; state.swapAmountOutWei = null;
     document.getElementById('swapFromAmount').value = ''; document.getElementById('swapToAmount').value = '';
-    document.getElementById('swapFromSymbol').textContent = 'AVAX ▼'; document.getElementById('swapToSymbol').textContent = 'USDC ▼';
-    updateSwapBalanceInfo(); document.getElementById('swapModal').classList.remove('closed');
+    document.getElementById('swapFromSymbol').textContent = 'AVAX ▼'; document.getElementById('swapToSymbol').textContent = 'USDT ▼';
+    updateSwapBalanceInfo(); openFullPage('swapModal');
 }
-function closeSwapModal() { document.getElementById('swapModal').classList.add('closed'); }
+function closeSwapModal() { closeFullPage('swapModal'); }
 function swapDirection() {
     const tmp = state.swapFromToken; state.swapFromToken = state.swapToToken; state.swapToToken = tmp;
     document.getElementById('swapFromAmount').value = ''; document.getElementById('swapToAmount').value = '';
@@ -4975,11 +5230,11 @@ function openSwapTokenPicker(target) {
     let html = '';
     for (const key of Object.keys(CONFIG.pangolin.tokens)) {
         const tk = CONFIG.pangolin.tokens[key]; const isActive = (target === 'from' ? state.swapFromToken : state.swapToToken) === key;
-        html += `<div onclick="pickSwapToken('${key}')" style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:${isActive ? 'var(--accent-bg-success)' : 'var(--bg-input)'};border:2px solid ${isActive ? 'var(--accent-success)' : 'var(--border-light)'};border-radius:14px;cursor:pointer;transition:0.2s;"><div style="width:36px;height:36px;border-radius:50%;background:var(--bg-secondary);display:flex;align-items:center;justify-content:center;font-size:1.1rem;">${tk.isNative ? '🔺' : '💎'}</div><div style="flex:1;"><div style="font-size:0.85rem;font-weight:700;color:var(--text-primary);">${key}</div><div style="font-size:0.65rem;color:var(--text-muted);">${tk.symbol}</div></div>${isActive ? '<span style="color:var(--accent-success);font-size:1.2rem;">✓</span>' : ''}</div>`;
+        html += `<div onclick="pickSwapToken('${key}')" style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:${isActive ? 'var(--accent-bg-success)' : 'var(--bg-input)'};border:2px solid ${isActive ? 'var(--accent-success)' : 'var(--border-light)'};border-radius:14px;cursor:pointer;transition:0.2s;"><div style="width:36px;height:36px;min-width:36px;height:36px;border-radius:50%;background:var(--bg-secondary);display:flex;align-items:center;justify-content:center;overflow:hidden;"><img src="${key === 'AVAX' ? 'avax.png' : key === 'USDT' ? 'usdt.png' : 'usdc.png'}" alt="${key}" onerror="this.style.display='none';this.parentElement.textContent='${key === 'AVAX' ? '🔺' : '💵'}'" style="width:100%;height:100%;object-fit:contain;padding:4px;" /></div><div style="flex:1;"><div style="font-size:0.85rem;font-weight:700;color:var(--text-primary);">${key}</div><div style="font-size:0.65rem;color:var(--text-muted);">${tk.symbol}</div></div>${isActive ? '<span style="color:var(--accent-success);font-size:1.2rem;">✓</span>' : ''}</div>`;
     }
-    list.innerHTML = html; modal.classList.remove('closed');
+    list.innerHTML = html; openFullPage('swapTokenPickerModal');
 }
-function closeSwapTokenPicker() { document.getElementById('swapTokenPickerModal').classList.add('closed'); }
+function closeSwapTokenPicker() { closeFullPage('swapTokenPickerModal'); }
 function pickSwapToken(key) {
     if (swapPickerTarget === 'from') { if (key === state.swapToToken) { state.swapToToken = state.swapFromToken; document.getElementById('swapToSymbol').textContent = state.swapToToken + ' ▼'; } state.swapFromToken = key; document.getElementById('swapFromSymbol').textContent = key + ' ▼'; }
     else { if (key === state.swapFromToken) { state.swapFromToken = state.swapToToken; document.getElementById('swapFromSymbol').textContent = state.swapFromToken + ' ▼'; } state.swapToToken = key; document.getElementById('swapToSymbol').textContent = key + ' ▼'; }
@@ -5290,18 +5545,18 @@ function showPasswordPrompt() {
     return new Promise(resolve => {
         passwordPromptResolve = resolve;
         document.getElementById('promptPasswordInput').value = '';
-        document.getElementById('passwordPromptModal').classList.remove('closed');
+        openFullPage('passwordPromptModal');
     });
 }
 function submitPromptPassword() {
     const pass = document.getElementById('promptPasswordInput').value;
-    document.getElementById('passwordPromptModal').classList.add('closed');
+    closeFullPage('passwordPromptModal');
     if (passwordPromptResolve) { passwordPromptResolve(pass); passwordPromptResolve = null; }
 }
 // ✅ اصلاح: پاک کردن رمز هنگام انصراف
 function closePasswordPrompt() {
     clearSensitiveState();
-    document.getElementById('passwordPromptModal').classList.add('closed');
+    closeFullPage('passwordPromptModal');
     if (passwordPromptResolve) { passwordPromptResolve(null); passwordPromptResolve = null; }
 }
 
@@ -5613,8 +5868,8 @@ function updateUI() {
     const lsTitle = document.getElementById('langSelectTitle'); if (lsTitle) lsTitle.textContent = t('langChooseTitle');
     const lsDesc = document.getElementById('langSelectDesc'); if (lsDesc) lsDesc.textContent = t('langChooseDesc');
     const lsBtn = document.getElementById('langConfirmBtn'); if (lsBtn) lsBtn.textContent = t('langContinue');
-    const walletBtn = document.getElementById('walletSelectorBtn'); if (walletBtn) walletBtn.textContent = t('walletsBtn');
-    const langBtn = document.getElementById('langBtn'); if (langBtn) langBtn.textContent = currentLang === 'fa' ? '🇺🇸 EN' : '🇮🇷 FA';
+    const walletBtn = document.getElementById('walletSelectorBtn'); if (walletBtn) walletBtn.textContent = '👛';
+    const langBtn = document.getElementById('langBtn'); if (langBtn) langBtn.textContent = currentLang === 'fa' ? '🇺🇸' : '🇮🇷';
     const heroTotalLabel = document.getElementById('totalBalanceLabel'); if (heroTotalLabel) heroTotalLabel.textContent = t('heroTotalBalance');
     const heroSendLabel = document.getElementById('heroSendLabel'); if (heroSendLabel) heroSendLabel.textContent = t('heroSend');
     const heroReceiveLabel = document.getElementById('heroReceiveLabel'); if (heroReceiveLabel) heroReceiveLabel.textContent = t('heroReceive');
@@ -5800,7 +6055,7 @@ if (tfBtn && currentTokenDetail) {
 
 document.addEventListener('click', function (event) {
     const menu = document.getElementById('walletMenuDropdown');
-    if (menu && !menu.contains(event.target)) { if (!event.target.closest('.wallet-menu-btn')) menu.remove(); }
+    if (menu && !menu.contains(event.target) && !event.target.closest('.wallet-menu-btn')) closeWalletMenu();
 });
 
 // ═══════════════════════════════════════════════════════════════
@@ -5941,6 +6196,12 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 window.addEventListener('load', function () { updateUI(); });
+// Keep focused fields visible when the mobile keyboard changes the visual viewport.
+document.addEventListener('focusin', function(e) {
+  const el=e.target; if(!el || !el.matches('input,textarea,select') || !el.closest('.page-screen')) return;
+  setTimeout(()=>{ try { el.scrollIntoView({block:'center',behavior:'smooth'}); } catch(_) {} }, 220);
+});
+
 window.addEventListener('beforeunload', function () {
     if (state.priceUpdateInterval) clearInterval(state.priceUpdateInterval);
     if (state.qrScanner) { try { state.qrScanner.stop(); } catch (e) {} }
