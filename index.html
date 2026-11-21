@@ -2086,7 +2086,7 @@ function closeAllFilteredTx() {
     document.getElementById('allFilteredTxModal').classList.add('closed');
 }
   // باز کردن صفحه NFT
-function openNFTDetailPage(contract, name, image, collection) {
+function openNFTDetailPage(contract, name, image, collection, tokenId) {
     const overlay = document.getElementById('nftDetailOverlay');
     const titleEl = document.getElementById('nftDetailPageTitle');
     const contentEl = document.getElementById('nftDetailPageContent');
@@ -2096,7 +2096,6 @@ function openNFTDetailPage(contract, name, image, collection) {
 
     const nftInfo = window.NFT_PRICES.collections[contract.toLowerCase()] || {};
     const basePrice = nftInfo.basePrice || 0;
-    const maxSupply = nftInfo.maxSupply || 100;
 
     const savedNftTf = localStorage.getItem('fox_timeframe_' + contract.toLowerCase()) || '1d';
     const currentNftLabel = t(savedNftTf);
@@ -2108,8 +2107,12 @@ function openNFTDetailPage(contract, name, image, collection) {
         change24h = priceData.change24h;
     }
 
-    const userNFT = state.allNFTs.find(n => n.contract.toLowerCase() === contract.toLowerCase());
+    const userNFT = state.allNFTs.find(n =>
+        n.contract.toLowerCase() === contract.toLowerCase() && String(n.id) === String(tokenId)
+    );
     const userBalance = userNFT ? userNFT.balance : 0;
+    const mintedIds = window.FOX_MINTED_NFT_IDS?.[contract.toLowerCase()] || [];
+    const mintedCount = mintedIds.length;
 
     const changeClass = change24h >= 0 ? 'up' : 'down';
     const changeSign = change24h >= 0 ? '+' : '';
@@ -2157,17 +2160,17 @@ function openNFTDetailPage(contract, name, image, collection) {
 
         <div class="nft-supply-grid">
             <div class="nft-supply-item">
-                <div class="nft-supply-label">${currentLang === 'fa' ? 'کل ساپلای' : 'Total Supply'}</div>
-                <div class="nft-supply-value">${maxSupply}</div>
+                <div class="nft-supply-label">${currentLang === 'fa' ? 'شناسه‌های مینت‌شده روی شبکه' : 'Minted Token IDs'}</div>
+                <div class="nft-supply-value">${mintedCount || '—'}</div>
             </div>
             <div class="nft-supply-item">
                 <div class="nft-supply-label">${currentLang === 'fa' ? 'موجودی شما' : 'Your Balance'}</div>
-                <div class="nft-supply-value green">${userBalance} ${currentLang === 'fa' ? 'از' : 'of'} ${maxSupply}</div>
+                <div class="nft-supply-value green">${userBalance}</div>
             </div>
         </div>
 
         <div class="token-actions-grid">
-            <button class="token-action-btn send" onclick="openSendNFTFromDetail('${contract}', 1, '${name.replace(/'/g, "\\'")}', '${(image || '').replace(/'/g, "\\'")}', '${collection.replace(/'/g, "\\'")}')">📤 ${t('heroSend')}</button>
+            <button class="token-action-btn send" ${userBalance <= 0 ? 'disabled' : ''} onclick="openSendNFTFromDetail('${contract}', '${String(tokenId || '').replace(/'/g, '')}', '${name.replace(/'/g, "\\'")}', '${(image || '').replace(/'/g, "\\'")}', '${collection.replace(/'/g, "\\'")}', ${userBalance})">📤 ${t('heroSend')}</button>
             <button class="token-action-btn receive" onclick="showQRCode()">📥 ${t('heroReceive')}</button>
         </div>
 
@@ -3112,10 +3115,16 @@ nftContracts: [
         itemNames: {
             1: 'Fox of Autumn Nights'
         }
+    },
+    {
+        address: '0xaa890ebf2a6356c9da9e5b13c01db4ac88a70c8a',
+        name: 'Fox Eggs: Frozen Realm',
+        image: 'image/frozen.png',
+        itemNames: {}
     }
 ],
 
-    nftIdsToCheck: 1,
+    // شناسه‌ها از داده‌های واقعی ERC-1155 روی شبکه کشف می‌شوند؛ بازه ۱ تا ۱۰۰ فرض نمی‌شود.
     getNFTPrice(contractAddress, tokenId) {
         if (typeof window.NFT_PRICES === 'undefined') return 0;
         const prices = window.NFT_PRICES;
@@ -4085,13 +4094,13 @@ document.addEventListener('visibilitychange', function () {
 // ═══════════════════════════════════════════════════════════════
 async function loadAllNFTs(forceFetch = false) {
     if (!state.address) return;
-    const cacheKey = 'foxCachedNFTs_' + state.address.toLowerCase();
-    
-    // ✅ تابع کمکی برای آپدیت قیمت‌های کش شده
+    const walletKey = state.address.toLowerCase();
+    const cacheKey = 'foxCachedNFTs_' + walletKey;
+
     const applyLivePrices = (nfts) => {
-        for (let item of nfts) {
-            if (window.getCurrentNFTPrice && window.NFT_PRICES && window.NFT_PRICES.collections[item.contract.toLowerCase()]) {
-                const nftConfig = window.NFT_PRICES.collections[item.contract.toLowerCase()];
+        for (const item of nfts) {
+            const nftConfig = window.NFT_PRICES?.collections?.[item.contract.toLowerCase()];
+            if (window.getCurrentNFTPrice && nftConfig) {
                 const livePrice = window.getCurrentNFTPrice(item.contract, nftConfig.basePrice);
                 item.pricePerNFT = livePrice.price;
                 item.totalPrice = item.pricePerNFT * item.balance;
@@ -4100,73 +4109,218 @@ async function loadAllNFTs(forceFetch = false) {
         return nfts;
     };
 
-    if (!forceFetch) { 
-        try { 
-            const cached = await nftImageDB.getItem(cacheKey); 
-            if (cached) { 
-                // ✅ قبل از نمایش، قیمت‌ها رو با زمان الان آپدیت میکنیم
-                const updatedNFTs = applyLivePrices(cached);
-                state.allNFTs = updatedNFTs; 
-                renderNFTs(updatedNFTs); 
-                renderHeroBalance(); 
-                return; 
-            } 
-        } catch (e) {} 
+    if (!forceFetch) {
+        try {
+            const cached = await nftImageDB.getItem(cacheKey);
+            if (cached) {
+                state.allNFTs = applyLivePrices(cached);
+                renderNFTs(state.allNFTs);
+                renderHeroBalance();
+                return;
+            }
+        } catch (e) {}
     }
-    
-    if (!state.provider) { 
-        try { 
-            const cached = await nftImageDB.getItem(cacheKey); 
-            if (cached) { 
-                const updatedNFTs = applyLivePrices(cached);
-                state.allNFTs = updatedNFTs; 
-                renderNFTs(updatedNFTs); 
-            } 
-        } catch (e) {} 
-        return; 
+
+    if (!state.provider) {
+        try {
+            const cached = await nftImageDB.getItem(cacheKey);
+            if (cached) {
+                state.allNFTs = applyLivePrices(cached);
+                renderNFTs(state.allNFTs);
+            }
+        } catch (e) {}
+        return;
     }
-    
+
     try {
-        let allNFTs = [];
+        // تاریخچه انتقال ERC-1155 هم برای کشف شناسه‌هایی که این کیف پول با آن‌ها تعامل داشته استفاده می‌شود.
+        let walletTransfers = [];
+        try {
+            walletTransfers = await fetchNFTTransactions(state.address);
+            if (walletTransfers.length) await mergeAvaCloudTransactions([], walletTransfers);
+        } catch (e) {}
+
+        const allNFTs = [];
+        const mintedMap = {};
         for (const contractInfo of CONFIG.nftContracts) {
-            const contract = new ethers.Contract(contractInfo.address, ['function balanceOf(address, uint) view returns (uint)'], state.provider);
-            for (let id = 1; id <= CONFIG.nftIdsToCheck; id++) {
+            const contractAddress = contractInfo.address.toLowerCase();
+            let discoveredIds = await fetchMintedERC1155Ids(contractInfo);
+
+            // اگر فهرست کلکسیون موقتاً در دسترس نبود، از انتقال‌های واقعی و کش قبلی کمک می‌گیریم.
+            const cachedNFTs = await nftImageDB.getItem(cacheKey).catch(() => []) || [];
+            const knownIds = [
+                ...discoveredIds,
+                ...cachedNFTs.filter(n => (n.contract || '').toLowerCase() === contractAddress).map(n => String(n.id)),
+                ...state.txHistory.filter(t => t.type === 'nft' && (t.contract || '').toLowerCase() === contractAddress).map(t => String(t.tokenId)),
+                ...walletTransfers.filter(t => {
+                    const ca = t.erc1155Token?.address || t.erc1155TokenMetadata?.address || t.contractAddress || '';
+                    return ca.toLowerCase() === contractAddress;
+                }).map(t => String(t.erc1155Token?.tokenId || t.erc1155TokenId || ''))
+            ].filter(id => id !== '' && id !== 'undefined');
+
+            const ids = [...new Set(knownIds.map(String))];
+            mintedMap[contractAddress] = [...new Set([...discoveredIds, ...ids])];
+
+            const contract = new ethers.Contract(
+                contractInfo.address,
+                ['function balanceOf(address account, uint256 id) view returns (uint256)'],
+                state.provider
+            );
+
+            for (const id of ids) {
                 try {
-                    const balance = await Promise.race([contract.balanceOf(state.address, id), new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 3000))]);
-                    if (balance.gt(0)) {
-                        const totalBalance = balance.toNumber(); 
-                        let pricePerNFT = CONFIG.getNFTPrice(contractInfo.address, id);
-                        
-                        if (window.getCurrentNFTPrice && window.NFT_PRICES && window.NFT_PRICES.collections[contractInfo.address.toLowerCase()]) {
-                            const nftConfig = window.NFT_PRICES.collections[contractInfo.address.toLowerCase()];
-                            const livePrice = window.getCurrentNFTPrice(contractInfo.address, nftConfig.basePrice);
-                            pricePerNFT = livePrice.price;
-                        }
-                        
-                        let finalName = contractInfo.name + " #" + id; 
-                        if (contractInfo.itemNames && contractInfo.itemNames[id]) finalName = contractInfo.itemNames[id];
-                        
-                        allNFTs.push({ 
-                            id, 
-                            balance: totalBalance, 
-                            image: contractInfo.image, 
-                            name: finalName, 
-                            contract: contractInfo.address, 
-                            contractName: contractInfo.name, 
-                            pricePerNFT, 
-                            totalPrice: pricePerNFT * totalBalance 
-                        });
+                    const balance = await Promise.race([
+                        contract.balanceOf(state.address, id),
+                        new Promise((_, reject) => setTimeout(() => reject(new Error('RPC timeout')), 5000))
+                    ]);
+                    if (!balance || balance.isZero()) continue;
+
+                    const totalBalance = Number(balance.toString());
+                    const nftConfig = window.NFT_PRICES?.collections?.[contractAddress];
+                    let pricePerNFT = CONFIG.getNFTPrice(contractInfo.address, id);
+                    if (window.getCurrentNFTPrice && nftConfig) {
+                        pricePerNFT = window.getCurrentNFTPrice(contractInfo.address, nftConfig.basePrice).price;
+                    }
+
+                    let finalName = `${contractInfo.name} #${id}`;
+                    if (contractInfo.itemNames && contractInfo.itemNames[id]) finalName = contractInfo.itemNames[id];
+
+                    allNFTs.push({
+                        id: String(id),
+                        balance: totalBalance,
+                        image: contractInfo.image,
+                        name: finalName,
+                        contract: contractInfo.address,
+                        contractName: contractInfo.name,
+                        pricePerNFT,
+                        totalPrice: pricePerNFT * totalBalance
+                    });
+                } catch (e) {
+                    // یک شناسه ناموفق نباید مانع بررسی بقیه NFTها شود.
+                }
+            }
+        }
+
+        window.FOX_MINTED_NFT_IDS = mintedMap;
+        state.allNFTs = allNFTs;
+        renderNFTs(allNFTs);
+        renderHeroBalance();
+        await nftImageDB.setItem(cacheKey, allNFTs);
+    } catch (e) {
+        console.error('Load ERC-1155 NFTs error:', e);
+    }
+}
+
+/*
+ * فهرست شناسه‌های مینت‌شده را از ایندکسر بلاکچین می‌گیرد.
+ * در صورت نبودن فهرست ایندکسر، رویدادهای استاندارد TransferSingle/TransferBatch
+ * با from=0 را از بلاک استقرار قرارداد بررسی می‌کند.
+ */
+async function fetchMintedERC1155Ids(contractInfo) {
+    const address = contractInfo.address.toLowerCase();
+    const cacheKey = 'foxMintedERC1155Ids_' + address;
+    try {
+        const cached = await settingsDB.getItem(cacheKey);
+        if (cached && Array.isArray(cached.ids) && Date.now() - cached.savedAt < 6 * 60 * 60 * 1000) {
+            return cached.ids.map(String);
+        }
+    } catch (e) {}
+
+    const baseUrls = [...new Set([CONFIG.avaCloud.baseUrl, 'https://data-api.avax.network'])];
+    for (const baseUrl of baseUrls) {
+        try {
+            let pageToken = '';
+            const ids = [];
+            // سقف صفحه‌بندی برای جلوگیری از درخواست نامحدود؛ سقف عرضه کلکسیون‌های تعریف‌شده ۱۰۰ است.
+            for (let page = 0; page < 5; page++) {
+                const tokenParam = pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : '';
+                const url = `${baseUrl}/v1/chains/${CONFIG.chainId}/nfts/collections/${contractInfo.address}/tokens?pageSize=100${tokenParam}`;
+                const response = await fetch(url);
+                if (!response.ok) break;
+                const data = await response.json();
+                const tokens = Array.isArray(data.tokens) ? data.tokens : [];
+                for (const token of tokens) {
+                    if (token.ercType && String(token.ercType).toUpperCase() !== 'ERC-1155') continue;
+                    const id = String(token.tokenId ?? '');
+                    if (id && id !== 'undefined') ids.push(id);
+                }
+                pageToken = data.nextPageToken || '';
+                if (!pageToken) break;
+            }
+            if (ids.length) {
+                const unique = [...new Set(ids)];
+                await settingsDB.setItem(cacheKey, { ids: unique, savedAt: Date.now(), source: 'glacier-collection-index' });
+                return unique;
+            }
+        } catch (e) {}
+    }
+
+    // Fallback: اسکن رویدادهای واقعی مینت ERC-1155 از بلاک استقرار.
+    try {
+        if (state.provider && typeof state.provider.getLogs === 'function') {
+            let deploymentBlock = null;
+            for (const baseUrl of baseUrls) {
+                try {
+                    const response = await fetch(`${baseUrl}/v1/chains/${CONFIG.chainId}/contracts/${contractInfo.address}/transactions:getDeployment`);
+                    if (!response.ok) continue;
+                    const deployment = await response.json();
+                    const rawBlock = deployment.nativeTransaction?.blockNumber || deployment.blockNumber || deployment.transaction?.blockNumber;
+                    if (rawBlock !== undefined && rawBlock !== null) {
+                        deploymentBlock = Number(rawBlock);
+                        if (Number.isFinite(deploymentBlock)) break;
                     }
                 } catch (e) {}
             }
+
+            if (Number.isFinite(deploymentBlock)) {
+                const latestBlock = await state.provider.getBlockNumber();
+                const maxScanBlocks = 800000;
+                if (latestBlock - deploymentBlock > maxScanBlocks) {
+                    throw new Error('Contract deployment is older than the safe event-scan window; refusing to report a partial minted-ID list.');
+                }
+                const scanStart = deploymentBlock;
+                const singleTopic = ethers.utils.id('TransferSingle(address,address,address,uint256,uint256)');
+                const batchTopic = ethers.utils.id('TransferBatch(address,address,address,uint256[],uint256[])');
+                const zeroTopic = '0x' + '0'.repeat(64);
+                const iface = new ethers.utils.Interface([
+                    'event TransferSingle(address indexed operator,address indexed from,address indexed to,uint256 id,uint256 value)',
+                    'event TransferBatch(address indexed operator,address indexed from,address indexed to,uint256[] ids,uint256[] values)'
+                ]);
+                const found = new Set();
+                const chunkSize = 10000;
+
+                for (let fromBlock = scanStart; fromBlock <= latestBlock; fromBlock += chunkSize) {
+                    const toBlock = Math.min(latestBlock, fromBlock + chunkSize - 1);
+                    const logs = await state.provider.getLogs({
+                        address: contractInfo.address,
+                        fromBlock,
+                        toBlock,
+                        topics: [[singleTopic, batchTopic], null, zeroTopic]
+                    });
+                    for (const log of logs) {
+                        try {
+                            const parsed = iface.parseLog(log);
+                            if (parsed.name === 'TransferSingle') {
+                                found.add(parsed.args.id.toString());
+                            } else if (parsed.name === 'TransferBatch') {
+                                for (const id of parsed.args.ids) found.add(id.toString());
+                            }
+                        } catch (e) {}
+                    }
+                }
+
+                const ids = [...found];
+                if (ids.length) {
+                    await settingsDB.setItem(cacheKey, { ids, savedAt: Date.now(), source: 'erc1155-mint-events' });
+                    return ids;
+                }
+            }
         }
-        state.allNFTs = allNFTs; 
-        renderNFTs(allNFTs); 
-        renderHeroBalance(); 
-        await nftImageDB.setItem(cacheKey, allNFTs);
-    } catch (e) { 
-        console.error('Load NFTs error:', e); 
+    } catch (e) {
+        console.warn('ERC-1155 mint event scan unavailable:', contractInfo.address, e?.message || e);
     }
+
+    return [];
 }
 
 function renderNFTs(items) {
@@ -4210,7 +4364,7 @@ function renderNFTs(items) {
         }
         
         html += `
-            <div class="nft-card" onclick="openNFTDetailPage('${item.contract}', '${safeName}', '${safeImage}', '${safeCollection}')">
+            <div class="nft-card" onclick="openNFTDetailPage('${item.contract}', '${safeName}', '${safeImage}', '${safeCollection}', '${item.id}')">
                 ${imageHtml}
                 <div class="nft-name">${item.name}</div>
                 <span class="nft-id">ID: ${item.id}</span>
@@ -4328,15 +4482,30 @@ function openNFTDetailPage(contract, name, image, collection) {
 }
 
 function closeNFTDetail() { document.getElementById('nftDetailModal').classList.add('closed'); }
-function openSendNFTFromDetail(contract, id, name, image, collection) { state.selectedNFT = { contract, id, name, image, collection, balance: 1 }; closeNFTDetail(); showSendModal(); switchSendTab('nft'); }
+function openSendNFTFromDetail(contract, id, name, image, collection, balance = 1) { state.selectedNFT = { contract, id: String(id), name, image, collection, balance: Number(balance) || 0 }; closeNFTDetail(); showSendModal(); switchSendTab('nft'); }
 
 // ═══════════════════════════════════════════════════════════════
 // TX HISTORY
 // ═══════════════════════════════════════════════════════════════
 function getTxHistoryKey() { return 'foxTxHistory_' + (state.address || 'unknown').toLowerCase(); }
+function getTxIdentity(tx) {
+    if (tx.txKey) return String(tx.txKey);
+    const hash = String(tx.hash || '').toLowerCase();
+    if (!hash) return `${tx.type || 'unknown'}:${tx.timestamp || 0}:${tx.tokenId || ''}`;
+    if (tx.type === 'token') return `token:${hash}:${tx.logIndex ?? '0'}`;
+    if (tx.type === 'nft') return `nft:${hash}:${tx.logIndex ?? '0'}:${tx.tokenId ?? '0'}`;
+    return `${tx.type || 'tx'}:${hash}`;
+}
 async function loadTxHistoryFromCache() { try { const data = await txHistoryDB.getItem(getTxHistoryKey()); state.txHistory = data ? data : []; } catch (e) { state.txHistory = []; } }
 async function saveTxToCache() { try { await txHistoryDB.setItem(getTxHistoryKey(), state.txHistory); } catch (e) {} }
-async function addTxToHistory(tx) { const exists = state.txHistory.some(t => t.hash === tx.hash); if (exists) return; state.txHistory.unshift(tx); state.txHistory.sort((a, b) => b.timestamp - a.timestamp); await saveTxToCache(); }
+async function addTxToHistory(tx) {
+    const identity = getTxIdentity(tx);
+    const exists = state.txHistory.some(t => getTxIdentity(t) === identity);
+    if (exists) return;
+    state.txHistory.unshift(tx);
+    state.txHistory.sort((a, b) => b.timestamp - a.timestamp);
+    await saveTxToCache();
+}
 
 // ✅ اصلاح #8: دکمه «نمایش همه» فعال شد
 async function renderTxHistory() {
@@ -5190,55 +5359,220 @@ async function unlockWallet() {
 // ═══════════════════════════════════════════════════════════════
 // AVA CLOUD SYNC
 // ═══════════════════════════════════════════════════════════════
-async function checkAvaCloudUpdates() {
-    if (!state.address) return; const lastTxHashKey = 'foxLastTxHash_' + state.address.toLowerCase();
-    try {
-        const url = `${CONFIG.avaCloud.baseUrl}/v1/chains/${CONFIG.avaCloud.chainId}/addresses/${state.address}/transactions?pageSize=1`;
-        const response = await fetch(url); if (!response.ok) return;
-        const data = await response.json(); const txs = data.transactions || []; if (txs.length === 0) return;
-        const latestTxHash = txs[0].txHash; const lastKnownHash = await settingsDB.getItem(lastTxHashKey);
-        if (latestTxHash !== lastKnownHash) { await settingsDB.setItem(lastTxHashKey, latestTxHash); await refreshAll(true); await loadFullTxHistory(); }
-    } catch (e) {}
+async function fetchAvaCloudEndpoint(path) {
+    const bases = [...new Set([CONFIG.avaCloud.baseUrl, 'https://data-api.avax.network'])];
+    for (const baseUrl of bases) {
+        try {
+            const response = await fetch(`${baseUrl}${path}`);
+            if (!response.ok) continue;
+            return await response.json();
+        } catch (e) {}
+    }
+    return null;
 }
-async function fetchAVAXTransactions(address) { try { const url = `${CONFIG.avaCloud.baseUrl}/v1/chains/${CONFIG.avaCloud.chainId}/addresses/${address}/transactions?pageSize=${CONFIG.avaCloud.pageSize}`; const r = await fetch(url); if (!r.ok) return []; const d = await r.json(); return d.transactions || []; } catch (e) { return []; } }
-async function fetchNFTTransactions(address) { try { const url = `${CONFIG.avaCloud.baseUrl}/v1/chains/${CONFIG.avaCloud.chainId}/addresses/${address}/nft-transactions?pageSize=${CONFIG.avaCloud.pageSize}`; const r = await fetch(url); if (!r.ok) return []; const d = await r.json(); return d.transactions || []; } catch (e) { return []; } }
-async function mergeAvaCloudTransactions(avaxTxs, nftTxs) {
+
+async function checkAvaCloudUpdates() {
+    if (!state.address || !state.unlocked || !navigator.onLine) return;
+    try {
+        // این سه فهرست مستقل‌اند؛ واریز ERC-20 یا ERC-1155 حتی بدون تراکنش AVAX نیز دیده می‌شود.
+        const newCount = await loadFullTxHistory();
+        if (newCount > 0) await refreshAll(true);
+    } catch (e) {
+        console.warn('Wallet activity check failed:', e?.message || e);
+    }
+}
+
+async function fetchAVAXTransactions(address) {
+    const data = await fetchAvaCloudEndpoint(
+        `/v1/chains/${CONFIG.avaCloud.chainId}/addresses/${address}/transactions:listNative?pageSize=${CONFIG.avaCloud.pageSize}`
+    );
+    if (data && Array.isArray(data.transactions)) return data.transactions;
+
+    // سازگاری با نسخه قدیمی Glacier API
+    const fallback = await fetchAvaCloudEndpoint(
+        `/v1/chains/${CONFIG.avaCloud.chainId}/addresses/${address}/transactions?pageSize=${CONFIG.avaCloud.pageSize}`
+    );
+    return fallback?.transactions || [];
+}
+
+async function fetchERC20Transactions(address) {
+    const data = await fetchAvaCloudEndpoint(
+        `/v1/chains/${CONFIG.avaCloud.chainId}/addresses/${address}/transactions:listErc20?pageSize=${CONFIG.avaCloud.pageSize}`
+    );
+    return data?.transactions || [];
+}
+
+async function fetchNFTTransactions(address) {
+    const data = await fetchAvaCloudEndpoint(
+        `/v1/chains/${CONFIG.avaCloud.chainId}/addresses/${address}/transactions:listErc1155?pageSize=${CONFIG.avaCloud.pageSize}`
+    );
+    return data?.transactions || [];
+}
+
+function isSuccessfulIndexedTx(tx) {
+    const status = String(tx?.txStatus ?? tx?.status ?? '').toLowerCase();
+    return !status || ['1', '0x1', 'success', 'succeeded', 'confirmed'].includes(status);
+}
+
+function getTrackedERC20Config() {
+    const list = [];
+    for (const token of Object.values(CONFIG.pangolin.tokens || {})) {
+        if (token && !token.isNative && token.address) list.push(token);
+    }
+    for (const token of (EXTRA_TOKENS || [])) {
+        if (token && token.address) list.push(token);
+    }
+    return list;
+}
+
+async function mergeAvaCloudTransactions(avaxTxs, erc20Txs = [], nftTxs = []) {
     if (!state.address) return 0;
     const myAddress = state.address.toLowerCase();
-    const existingHashes = new Set(state.txHistory.map(t => t.hash));
+    const existingKeys = new Set(state.txHistory.map(getTxIdentity));
+    const trackedTokens = new Map(getTrackedERC20Config().map(token => [token.address.toLowerCase(), token]));
     let newCount = 0;
-    for (const avaxTx of avaxTxs) {
-        if (existingHashes.has(avaxTx.txHash)) continue; if (avaxTx.txStatus && avaxTx.txStatus !== 'success') continue;
-        const valueWei = avaxTx.value || '0'; if (valueWei === '0') continue;
-        const fromAddr = (avaxTx.from?.address || '').toLowerCase(); const toAddr = (avaxTx.to?.address || '').toLowerCase();
-        const isIncoming = toAddr === myAddress && fromAddr !== myAddress; const isOutgoing = fromAddr === myAddress && toAddr !== myAddress;
+
+    const addIfNew = (tx) => {
+        const identity = getTxIdentity(tx);
+        if (existingKeys.has(identity)) return;
+        state.txHistory.push(tx);
+        existingKeys.add(identity);
+        newCount++;
+    };
+
+    // AVAX native transfers
+    for (const avaxTx of (avaxTxs || [])) {
+        if (!isSuccessfulIndexedTx(avaxTx)) continue;
+        const hash = avaxTx.txHash || avaxTx.hash;
+        if (!hash) continue;
+        const from = typeof avaxTx.from === 'string' ? avaxTx.from : avaxTx.from?.address || '';
+        const to = typeof avaxTx.to === 'string' ? avaxTx.to : avaxTx.to?.address || '';
+        const fromAddr = from.toLowerCase();
+        const toAddr = to.toLowerCase();
+        const isIncoming = toAddr === myAddress && fromAddr !== myAddress;
+        const isOutgoing = fromAddr === myAddress && toAddr !== myAddress;
         if (!isIncoming && !isOutgoing) continue;
-        const valueAvax = parseFloat(ethers.utils.formatEther(valueWei)); let gasFeeAvax = '0';
-        if (avaxTx.gasUsed && avaxTx.gasPrice) { try { const gu = ethers.BigNumber.from(avaxTx.gasUsed); const gp = ethers.BigNumber.from(avaxTx.gasPrice); gasFeeAvax = parseFloat(ethers.utils.formatEther(gu.mul(gp))).toFixed(6); } catch (e) {} }
-        state.txHistory.push({ hash: avaxTx.txHash, type: 'avax', direction: isIncoming ? 'in' : 'out', from: avaxTx.from?.address || '', to: avaxTx.to?.address || '', value: valueAvax, gasFee: isOutgoing ? gasFeeAvax : null, timestamp: (avaxTx.blockTimestamp || 0) * 1000, blockNumber: avaxTx.blockNumber || 0, fromAvaCloud: true });
-        existingHashes.add(avaxTx.txHash); newCount++;
+
+        const valueWei = String(avaxTx.value || '0');
+        if (valueWei === '0') continue;
+        let valueAvax = '0';
+        try { valueAvax = ethers.utils.formatEther(valueWei); } catch (e) { continue; }
+
+        let gasFeeAvax = '0';
+        try {
+            const gasUsed = avaxTx.gasUsed || avaxTx.receiptGasUsed;
+            const gasPrice = avaxTx.receiptEffectiveGasPrice || avaxTx.gasPrice;
+            if (gasUsed && gasPrice) {
+                gasFeeAvax = ethers.utils.formatEther(ethers.BigNumber.from(gasUsed).mul(ethers.BigNumber.from(gasPrice)));
+            }
+        } catch (e) {}
+
+        addIfNew({
+            txKey: `avax:${String(hash).toLowerCase()}`,
+            hash, type: 'avax', direction: isIncoming ? 'in' : 'out',
+            from, to, value: valueAvax, gasFee: isOutgoing ? gasFeeAvax : null,
+            timestamp: Number(avaxTx.blockTimestampMilliseconds || (avaxTx.blockTimestamp || 0) * 1000),
+            blockNumber: Number(avaxTx.blockNumber || 0), fromAvaCloud: true
+        });
     }
-    for (const nftTx of nftTxs) {
-        if (existingHashes.has(nftTx.txHash)) continue;
-        const fromAddr = (nftTx.from?.address || '').toLowerCase(); const toAddr = (nftTx.to?.address || '').toLowerCase();
-        const isIncoming = toAddr === myAddress && fromAddr !== myAddress; const isOutgoing = fromAddr === myAddress && toAddr !== myAddress;
+
+    // ERC-20 transfers (USDT, USDC and other wallet-configured fungible tokens)
+    for (const tokenTx of (erc20Txs || [])) {
+        const hash = tokenTx.txHash || tokenTx.transactionHash;
+        if (!hash) continue;
+        const from = typeof tokenTx.from === 'string' ? tokenTx.from : tokenTx.from?.address || '';
+        const to = typeof tokenTx.to === 'string' ? tokenTx.to : tokenTx.to?.address || '';
+        const fromAddr = from.toLowerCase();
+        const toAddr = to.toLowerCase();
+        const isIncoming = toAddr === myAddress && fromAddr !== myAddress;
+        const isOutgoing = fromAddr === myAddress && toAddr !== myAddress;
         if (!isIncoming && !isOutgoing) continue;
-        const contractAddr = (nftTx.erc1155TokenMetadata?.address || nftTx.erc721TokenMetadata?.address || '').toLowerCase();
-        const isOurContract = CONFIG.nftContracts.some(c => c.address.toLowerCase() === contractAddr); if (!isOurContract) continue;
-        const tokenId = nftTx.erc1155TokenId || nftTx.erc721TokenId || '0'; const amount = parseInt(nftTx.erc1155TokenQuantity || '1');
-        const nftName = nftTx.erc1155TokenMetadata?.name || nftTx.erc721TokenMetadata?.name || `NFT #${tokenId}`; const image = nftTx.erc1155TokenMetadata?.imageUri || nftTx.erc721TokenMetadata?.imageUri || null;
-        const ci = CONFIG.nftContracts.find(c => c.address.toLowerCase() === contractAddr); const collection = ci?.name || 'Unknown';
-        const finalImage = image || ci?.image || null; const finalName = (ci?.itemNames?.[tokenId]) ? ci.itemNames[tokenId] : (nftName.includes('#') ? nftName : `${collection} #${tokenId}`);
-        state.txHistory.push({ hash: nftTx.txHash, type: 'nft', direction: isIncoming ? 'in' : 'out', from: nftTx.from?.address || '', to: nftTx.to?.address || '', contract: contractAddr, tokenId, amount, nftName: finalName, image: finalImage, collection, gasFee: null, timestamp: (nftTx.blockTimestamp || 0) * 1000, blockNumber: nftTx.blockNumber || 0, fromAvaCloud: true });
-        existingHashes.add(nftTx.txHash); newCount++;
+
+        const tokenMeta = tokenTx.erc20Token || {};
+        const tokenAddress = String(tokenMeta.address || tokenTx.contractAddress || '').toLowerCase();
+        const configured = trackedTokens.get(tokenAddress);
+        if (!configured) continue;
+
+        const decimals = Number(tokenMeta.decimals ?? configured.decimals ?? 18);
+        const rawValue = String(tokenTx.value || '0');
+        if (rawValue === '0') continue;
+        let formattedValue;
+        try { formattedValue = ethers.utils.formatUnits(rawValue, decimals); } catch (e) { continue; }
+
+        const logIndex = Number(tokenTx.logIndex ?? 0);
+        addIfNew({
+            txKey: `token:${String(hash).toLowerCase()}:${logIndex}`,
+            hash, logIndex, type: 'token', direction: isIncoming ? 'in' : 'out',
+            from, to, value: formattedValue,
+            tokenAddress: configured.address,
+            tokenSymbol: configured.symbol || tokenMeta.symbol || 'TOKEN',
+            tokenName: configured.name || tokenMeta.name || configured.symbol || 'TOKEN',
+            tokenDecimals: decimals,
+            timestamp: Number(tokenTx.blockTimestampMilliseconds || (tokenTx.blockTimestamp || 0) * 1000),
+            blockNumber: Number(tokenTx.blockNumber || 0), fromAvaCloud: true
+        });
     }
-    state.txHistory.sort((a, b) => b.timestamp - a.timestamp);
-    await saveTxToCache(); await renderTxHistory(); return newCount;
+
+    // ERC-1155 only — هیچ داده ERC-721 وارد تاریخچه نمی‌شود.
+    for (const nftTx of (nftTxs || [])) {
+        const hash = nftTx.txHash || nftTx.transactionHash;
+        if (!hash) continue;
+        const from = typeof nftTx.from === 'string' ? nftTx.from : nftTx.from?.address || '';
+        const to = typeof nftTx.to === 'string' ? nftTx.to : nftTx.to?.address || '';
+        const fromAddr = from.toLowerCase();
+        const toAddr = to.toLowerCase();
+        const isIncoming = toAddr === myAddress && fromAddr !== myAddress;
+        const isOutgoing = fromAddr === myAddress && toAddr !== myAddress;
+        if (!isIncoming && !isOutgoing) continue;
+
+        const tokenMeta = nftTx.erc1155Token || nftTx.erc1155TokenMetadata || {};
+        const contractAddr = String(tokenMeta.address || nftTx.contractAddress || nftTx.contract || '').toLowerCase();
+        const collectionInfo = CONFIG.nftContracts.find(c => c.address.toLowerCase() === contractAddr);
+        if (!collectionInfo) continue;
+
+        const tokenId = String(tokenMeta.tokenId ?? nftTx.erc1155TokenId ?? '');
+        if (!tokenId) continue;
+        const rawAmount = String(nftTx.value ?? nftTx.erc1155TokenQuantity ?? '1');
+        const amount = Math.max(1, Number(rawAmount) || 1);
+        const metadata = tokenMeta.metadata || tokenMeta;
+        const nftName = metadata.name || collectionInfo.itemNames?.[tokenId] || `${collectionInfo.name} #${tokenId}`;
+        const image = metadata.imageUri || metadata.image || collectionInfo.image || null;
+        const logIndex = Number(nftTx.logIndex ?? 0);
+
+        addIfNew({
+            txKey: `nft:${String(hash).toLowerCase()}:${logIndex}:${tokenId}`,
+            hash, logIndex, type: 'nft', direction: isIncoming ? 'in' : 'out',
+            from, to, contract: collectionInfo.address, tokenId, amount,
+            nftName, image, collection: collectionInfo.name, gasFee: null,
+            timestamp: Number(nftTx.blockTimestampMilliseconds || (nftTx.blockTimestamp || 0) * 1000),
+            blockNumber: Number(nftTx.blockNumber || 0), fromAvaCloud: true
+        });
+    }
+
+    state.txHistory.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+    await saveTxToCache();
+    await renderTxHistory();
+    return newCount;
 }
+
 async function loadFullTxHistory() {
-    if (!state.address) return;
-    try { const [avaxTxs, nftTxs] = await Promise.all([fetchAVAXTransactions(state.address), fetchNFTTransactions(state.address)]); await mergeAvaCloudTransactions(avaxTxs, nftTxs); restoreConnectedStatus(); } catch (e) { restoreConnectedStatus(); }
+    if (!state.address) return 0;
+    try {
+        const [avaxTxs, erc20Txs, nftTxs] = await Promise.all([
+            fetchAVAXTransactions(state.address),
+            fetchERC20Transactions(state.address),
+            fetchNFTTransactions(state.address)
+        ]);
+        const count = await mergeAvaCloudTransactions(avaxTxs, erc20Txs, nftTxs);
+        restoreConnectedStatus();
+        return count;
+    } catch (e) {
+        restoreConnectedStatus();
+        console.warn('Transaction history sync failed:', e?.message || e);
+        return 0;
+    }
 }
+
 async function refreshAll(forceFetch = false) {
     if (!state.address) return;
     try {
@@ -5584,7 +5918,7 @@ if (state.unlocked && state.address) {
         if (!document.hidden && state.unlocked && state.address && state.provider && navigator.onLine) {
             checkAvaCloudUpdates(); 
         }
-    }, 16000);
+    }, 30000);
 
     // چک کردن بالانس‌ها از شبکه هر ۳۰ ثانیه
     setInterval(() => {
