@@ -3780,7 +3780,13 @@ function openTokenDetail(symbol) {
     currentChartRange = savedTf;
     const currentLabel = t(savedTf);
 
-    let logoHtml = token.isNative ? `<div class="token-detail-logo" style="background:linear-gradient(135deg,#e94560,#d63652);color:#fff;">🔺</div>` : (token.image ? `<div class="token-detail-logo"><img src="${token.image}" onerror="this.parentElement.innerHTML='🪙'" /></div>` : `<div class="token-detail-logo">🪙</div>`);
+    // لوگوی AVAX در صفحه جزئیات نیز از فایل محلی خوانده می‌شود.
+    const detailLogoSrc = token.isNative
+        ? 'avax.png'
+        : (token.image || (safeSymbol === 'AVAX' ? 'avax.png' : ''));
+    let logoHtml = detailLogoSrc
+        ? `<div class="token-detail-logo"><img src="${detailLogoSrc}" alt="${token.name || safeSymbol} logo" style="display:block;width:100%;height:100%;object-fit:contain;border-radius:inherit;" onerror="this.parentElement.textContent='🪙'" /></div>`
+        : `<div class="token-detail-logo">🪙</div>`;
     const changeClass = (token.change24h || 0) >= 0 ? 'up' : 'down';
     const changeSign = (token.change24h || 0) >= 0 ? '+' : '';
     const contractHtml = token.isNative ? `<div class="token-detail-contract">🌐 ${t('native')}</div>` : `<div class="token-detail-contract" onclick="copyToClipboard('${token.address}').then(ok=>ok&&toast(t('copied')))"><span>${token.address.slice(0, 8)}...${token.address.slice(-6)}</span><span>📋</span></div>`;
