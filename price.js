@@ -13,6 +13,14 @@ window.NFT_PRICES = {
             image: "image/guardian.png",
             volatility: 0
         },
+        "0x6558756D5F7E8D165A29aD6fB15c92412b09DA00": {
+            name: "The Celestial Fox King",
+            basePrice: 50.00,
+            startDate: "2026-11-23",
+            maxSupply: 25,
+            image: "image/celestial-fox-king.png",
+            volatility: 0
+        },
         "0xcfd6c099bc8b3c91d47d62156aec6ba128eb6b92": {
             name: "Fox Eggs Seasonal NFT",
             basePrice: 10.00,
