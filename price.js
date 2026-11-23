@@ -1,6 +1,7 @@
 
 // ═══════════════════════════════════════════════════════════════
-// Fox Wallet - NFT Fixed Price + FOX Live Market Engine
+// Fox Wallet - Final Live Market Engine
+// Updated: Fox Kingdom Legendary NFT
 // ═══════════════════════════════════════════════════════════════
 
 window.NFT_PRICES = {
@@ -11,23 +12,26 @@ window.NFT_PRICES = {
             startDate: "2026-11-11",
             maxSupply: 100,
             image: "image/guardian.png",
-            volatility: 0
+            volatility: 0.05
         },
-        "0x6558756D5F7E8D165A29aD6fB15c92412b09DA00": {
-            name: "The Celestial Fox King",
-            basePrice: 50.00,
-            startDate: "2026-11-23",
-            maxSupply: 25,
-            image: "image/celestial-fox-king.png",
-            volatility: 0
-        },
+
         "0xcfd6c099bc8b3c91d47d62156aec6ba128eb6b92": {
             name: "Fox Eggs Seasonal NFT",
             basePrice: 10.00,
             startDate: "2026-11-11",
             maxSupply: 100,
             image: "image/autumn.png",
-            volatility: 0
+            volatility: 0.05
+        },
+
+        // NEW NFT - Fox Kingdom Legendary
+        "0x6558756D5F7E8D165A29aD6fB15c92412b09DA00": {
+            name: "The Celestial Fox King",
+            basePrice: 50.00,
+            startDate: "2026-11-23",
+            maxSupply: 25,
+            image: "image/celestial-fox-king.png",
+            volatility: 0.05
         }
     }
 };
@@ -41,42 +45,7 @@ window.TOKEN_PRICES = {
 };
 
 // ═══════════════════════════════════════════════════════════════
-// NFT FIXED PRICE SETTINGS
-// ═══════════════════════════════════════════════════════════════
-
-window.getFixedNFTPrice = function(contractAddress) {
-    if (!contractAddress) return null;
-
-    const addr = contractAddress.toLowerCase();
-    const nft = window.NFT_PRICES.collections[addr];
-
-    if (!nft) return null;
-
-    return {
-        price: nft.basePrice,
-        change24h: 0
-    };
-};
-
-// NFT chart information
-window.getNFTChartInfo = function(contractAddress) {
-    if (!contractAddress) return null;
-
-    const addr = contractAddress.toLowerCase();
-    const nft = window.NFT_PRICES.collections[addr];
-
-    if (!nft) return null;
-
-    return {
-        available: false,
-        message: "No Information Available",
-        description: "There is no chart data available for this NFT.",
-        candles: []
-    };
-};
-
-// ═══════════════════════════════════════════════════════════════
-// STABLE HASH
+// Stable Hash
 // ═══════════════════════════════════════════════════════════════
 
 function stableHash(str) {
@@ -91,7 +60,7 @@ function stableHash(str) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// BEARISH DAY
+// Bearish Day
 // ═══════════════════════════════════════════════════════════════
 
 function isBearishDay(contractAddress, targetTime) {
@@ -125,7 +94,7 @@ function isBearishDay(contractAddress, targetTime) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// LIVE TICK PRICE - TOKEN ENGINE
+// Price Engine
 // ═══════════════════════════════════════════════════════════════
 
 window.getTickPrice = function(
@@ -135,7 +104,9 @@ window.getTickPrice = function(
     contractAddress,
     isToken
 ) {
-    if (targetTime <= startDayTs) return basePrice;
+    if (targetTime <= startDayTs) {
+        return basePrice;
+    }
 
     const daysPassed =
         (targetTime - startDayTs) / 86400;
@@ -166,26 +137,32 @@ window.getTickPrice = function(
 
     const trendBias = isBearish ? -0.002 : 0.002;
 
-    let totalChange = trendBias + tickNoise;
+    const totalChange = trendBias + tickNoise;
 
-    let finalPrice = trendPrice * (1 + totalChange);
+    const finalPrice =
+        trendPrice * (1 + totalChange);
 
-    return finalPrice < 0.0001 ? 0.0001 : finalPrice;
+    return finalPrice < 0.0001
+        ? 0.0001
+        : finalPrice;
 };
 
 // ═══════════════════════════════════════════════════════════════
-// GET LIVE PRICE - TOKEN
+// Live Price
 // ═══════════════════════════════════════════════════════════════
 
 window.getLivePrice = function(
     contractAddress,
     basePrice,
-    isToken
+    isToken,
+    startDate
 ) {
     const now = Math.floor(Date.now() / 1000);
 
+    const date = startDate || "2026-11-11";
+
     const startDayTs = Math.floor(
-        new Date("2026-11-11T00:00:00Z").getTime() / 1000
+        new Date(date + "T00:00:00Z").getTime() / 1000
     );
 
     return window.getTickPrice(
@@ -198,9 +175,7 @@ window.getLivePrice = function(
 };
 
 // ═══════════════════════════════════════════════════════════════
-// GET CURRENT PRICE
-// NFT = FIXED
-// TOKEN = LIVE
+// Current Token Price
 // ═══════════════════════════════════════════════════════════════
 
 window.getCurrentTokenPrice = function(
@@ -215,25 +190,12 @@ window.getCurrentTokenPrice = function(
 
     const addr = contractAddress.toLowerCase();
 
-    // NFT fixed price
-    const nft = window.NFT_PRICES.collections[addr];
-
-    if (nft) {
-        return {
-            price: nft.basePrice,
-            change24h: 0
-        };
-    }
-
-    // Original token engine
     const isToken = !!window.TOKEN_PRICES[addr];
 
     const now = Math.floor(Date.now() / 1000);
 
     const startDayTs = Math.floor(
-        new Date(
-            config.startDate + "T00:00:00Z"
-        ).getTime() / 1000
+        new Date(config.startDate + "T00:00:00Z").getTime() / 1000
     );
 
     if (now < startDayTs) {
@@ -244,16 +206,17 @@ window.getCurrentTokenPrice = function(
     }
 
     const currentPrice = window.getLivePrice(
-        contractAddress,
+        addr,
         basePrice,
-        isToken
+        isToken,
+        config.startDate
     );
 
     const yesterdayPrice = window.getTickPrice(
         basePrice,
         now - 86400,
         startDayTs,
-        contractAddress,
+        addr,
         isToken
     );
 
@@ -262,34 +225,45 @@ window.getCurrentTokenPrice = function(
 
         change24h: yesterdayPrice > 0
             ? parseFloat(
-                (
-                    ((currentPrice / yesterdayPrice) - 1) * 100
-                ).toFixed(2)
+                (((currentPrice / yesterdayPrice) - 1) * 100).toFixed(2)
             )
             : 0
     };
 };
 
 // ═══════════════════════════════════════════════════════════════
-// GET CURRENT NFT PRICE
+// Current NFT Price
 // ═══════════════════════════════════════════════════════════════
 
 window.getCurrentNFTPrice = function(
     contractAddress,
     basePrice
 ) {
-    return window.getFixedNFTPrice(contractAddress) || {
-        price: basePrice,
-        change24h: 0
-    };
+    const addr = contractAddress.toLowerCase();
+
+    const nft =
+        window.NFT_PRICES.collections[addr];
+
+    if (!nft) {
+        return null;
+    }
+
+    return window.getCurrentTokenPrice(
+        addr,
+        basePrice !== undefined ? basePrice : nft.basePrice,
+        nft.volatility,
+        nft
+    );
 };
 
 // ═══════════════════════════════════════════════════════════════
-// GET TOKEN INFO
+// Token Information
 // ═══════════════════════════════════════════════════════════════
 
 window.getTokenInfo = function(contractAddress) {
-    if (!contractAddress) return null;
+    if (!contractAddress) {
+        return null;
+    }
 
     const addr = contractAddress.toLowerCase();
 
@@ -300,7 +274,7 @@ window.getTokenInfo = function(contractAddress) {
             const current = window.getCurrentTokenPrice(
                 addr,
                 info.basePrice,
-                0,
+                info.volatility,
                 info
             );
 
@@ -317,9 +291,39 @@ window.getTokenInfo = function(contractAddress) {
 };
 
 // ═══════════════════════════════════════════════════════════════
-// GENERATE PRICE HISTORY
-// NFT = NO CHART DATA
-// TOKEN = ORIGINAL LIVE HISTORY
+// NFT Information
+// ═══════════════════════════════════════════════════════════════
+
+window.getNFTInfo = function(contractAddress) {
+    if (!contractAddress) {
+        return null;
+    }
+
+    const addr = contractAddress.toLowerCase();
+
+    const nft = window.NFT_PRICES.collections[addr];
+
+    if (!nft) {
+        return null;
+    }
+
+    const current = window.getCurrentNFTPrice(addr);
+
+    return {
+        contract: addr,
+        name: nft.name,
+        collection: nft.collection || nft.name,
+        basePrice: nft.basePrice,
+        currentPrice: current.price,
+        change24h: current.change24h,
+        startDate: nft.startDate,
+        maxSupply: nft.maxSupply,
+        image: nft.image
+    };
+};
+
+// ═══════════════════════════════════════════════════════════════
+// Generate Price History
 // ═══════════════════════════════════════════════════════════════
 
 window.generatePriceHistory = function(
@@ -328,25 +332,24 @@ window.generatePriceHistory = function(
     contractAddress,
     config
 ) {
-    if (!config) {
-        config = { startDate: "2026-11-11" };
-    }
-
     const addr = contractAddress.toLowerCase();
 
-    // NFT chart disabled
-    if (window.NFT_PRICES.collections[addr]) {
-        return [];
+    if (!config) {
+        const nft = window.NFT_PRICES.collections[addr];
+        const token = window.TOKEN_PRICES[addr];
+
+        config = nft || token || {
+            startDate: "2026-11-11"
+        };
     }
 
-    // Original token chart engine
     const isToken = !!window.TOKEN_PRICES[addr];
 
-    const now = Math.floor(Date.now() / 1000);
-
     const startDayTs = Math.floor(
-        new Date("2026-11-11T00:00:00Z").getTime() / 1000
+        new Date(config.startDate + "T00:00:00Z").getTime() / 1000
     );
+
+    const now = Math.floor(Date.now() / 1000);
 
     const secMap = {
         "6h": 21600,
@@ -358,23 +361,31 @@ window.generatePriceHistory = function(
         "all": 31536000
     };
 
-    let sec = secMap[timeframe] || 86400;
+    const sec = secMap[timeframe] || 86400;
 
-    let totalCandles =
+    const totalCandles =
         Math.floor((now - startDayTs) / sec) + 1;
 
     const candles = [];
 
-    const livePrice = window.getLivePrice(
-        contractAddress,
+    if (now < startDayTs) {
+        return candles;
+    }
+
+    const livePrice = window.getTickPrice(
         basePrice,
+        now,
+        startDayTs,
+        addr,
         isToken
     );
 
     for (let i = 0; i < totalCandles; i++) {
         const time = startDayTs + (i * sec);
 
-        if (time > now) break;
+        if (time > now) {
+            break;
+        }
 
         const isLastCandle =
             (i === totalCandles - 1) ||
@@ -388,7 +399,7 @@ window.generatePriceHistory = function(
             basePrice,
             time,
             startDayTs,
-            contractAddress,
+            addr,
             isToken
         );
 
@@ -398,16 +409,16 @@ window.generatePriceHistory = function(
                 basePrice,
                 candleEndTime,
                 startDayTs,
-                contractAddress,
+                addr,
                 isToken
             );
 
         const highHash = stableHash(
-            contractAddress + "_high_" + time
+            addr + "_high_" + time
         );
 
         const lowHash = stableHash(
-            contractAddress + "_low_" + time
+            addr + "_low_" + time
         );
 
         const high =
@@ -433,14 +444,13 @@ window.generatePriceHistory = function(
 };
 
 // ═══════════════════════════════════════════════════════════════
-// CHART EMPTY STATE MESSAGE
+// Load Confirmation
 // ═══════════════════════════════════════════════════════════════
 
-window.NFT_CHART_EMPTY_MESSAGE = {
-    title: "No Information Available",
-    description: "There is no chart data available for this NFT."
-};
+console.log(
+    "Fox Wallet Price Engine Loaded Successfully"
+);
 
 console.log(
-    "Fox Wallet price.js loaded - NFT Fixed Prices / FOX Live Market"
+    "The Celestial Fox King - Fox Kingdom Legendary"
 );
